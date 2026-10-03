@@ -4,7 +4,7 @@ Inputs: `docs/REQUIREMENTS.md`, `audit/CAPABILITY_MATRIX.md`, the per-repo audit
 
 ## Resolved decisions
 
-The open decisions in §8 were resolved on 2026-10-03. At Checkpoint 1 (also 2026-10-03), Q2, Q3 and Q7 were updated, D5 and D6 were added, and the eight architecture changes proposed in `docs/spikes/PHASE1_REPORT.md` were applied throughout this document. These resolutions override any earlier wording in this document.
+The open decisions in §8 were resolved on 2026-10-03. At Checkpoint 1 (also 2026-10-03), Q2, Q3 and Q7 were updated, D5 and D6 were added, and the eight architecture changes proposed in `docs/spikes/PHASE1_REPORT.md` were applied throughout this document. At Checkpoint 2 (2026-10-03), Q7 and Q9 were updated, D7–D10 were added, and the design-note changes below were approved. These resolutions override any earlier wording in this document.
 
 | # | Decision | Resolution |
 |---|---|---|
@@ -14,13 +14,34 @@ The open decisions in §8 were resolved on 2026-10-03. At Checkpoint 1 (also 202
 | Q4 | Desktop wrapper | **Approved.** Electron, built only if benchmarks demand it. |
 | Q5 | History t0 | **Approved.** History starts from Azgaar's static human layer. |
 | Q6 | Fidelity targets | **Benchmark targets, not hard caps.** <ul><li>Whole planet: up to 2.56M cells.</li><li>Regional patches: down to about 1 km.</li><li>History benchmark: 5,000 years at 1-year ticks with aggregate agents.</li></ul>The timeline must support longer spans by using a coarser `dtYears` per era (§3.4), so histories of tens of thousands of years stay possible. |
-| Q7 | A/B thresholds | **Final at Checkpoint 1, as targets.** Each is measured on the 20k reference mesh after area-weighted restriction, comparing a preview with the final run of the same seed: <ul><li>land IoU ≥ 0.95;</li><li>coastline p95 ≤ 2 preview-cell widths;</li><li>Köppen area agreement ≥ 90%, for preview tiers of **200k cells and above**;</li><li>annual precipitation correlation (land) r ≥ 0.9;</li><li>mountain IoU (≥ 1,500 m) ≥ 0.6;</li><li>hypsometry KS distance (land) ≤ 0.05;</li><li>≥ 7 of the top 10 basins matched at IoU ≥ 0.5.</li></ul>CI **hard-fails on regression only** (Phase 4b defines regression). The targets are reviewed at Checkpoint 4b. |
+| Q7 | A/B thresholds | **Final at Checkpoint 1, as targets.** Each is measured on the 20k reference mesh after area-weighted restriction, comparing a preview with the final run of the same seed: <ul><li>land IoU ≥ 0.95;</li><li>coastline p95 ≤ 2 preview-cell widths;</li><li>Köppen area agreement ≥ 90%, for preview tiers of **200k cells and above**;</li><li>annual precipitation correlation (land) r ≥ 0.9;</li><li>mountain IoU (≥ 1,500 m) ≥ 0.6;</li><li>hypsometry KS distance (land) ≤ 0.05;</li><li>≥ 7 of the top 10 basins matched at IoU ≥ 0.5.</li></ul>**Checkpoint 2 added three full-resolution metrics**, because under anchoring (D5) four of the seven above hold by construction (design note 14 §3.9): <ul><li>hypsometry KS distance on native L1 land cells, preview vs final low-passed to the preview's band set;</li><li>Köppen agreement on the 1° grid (inverse sampling);</li><li>river-mouth distance (km) for the top-10 basins.</li></ul>Their target values are set from the Phase 4a baseline and reviewed at Checkpoint 4b. CI **hard-fails on regression only** (Phase 4b defines regression), for all ten metrics. The targets are reviewed at Checkpoint 4b. |
 | Q8 | Calibration data | **Approved.** Data is downloaded at tuning time and never vendored. Each dataset is logged in `PROVENANCE.md` with its license. |
-| Q9 | Tectonic history | **Changed.** The static tectonic snapshot still comes first. Forward plate evolution over deep time (hundreds of Myr) is a **core feature**: it has a fast rough pass and a slow detailed pass from the same seed. Design note 13 (Phase 2) specifies it, and Checkpoint 2 proposes where it goes in the phase order. |
+| Q9 | Tectonic history | **Changed.** The static tectonic snapshot still comes first. Forward plate evolution over deep time (hundreds of Myr) is a **core feature**: it has a fast rough pass and a slow detailed pass from the same seed. Design note 13 (Phase 2) specifies it. **Checkpoint 2:** it is built in **Phase 6b**, after Phase 6 and before Phase 7, with its own checkpoint. Default duration 300 Myr; the maximum is never capped below 800 Myr (initially 1,000 Myr). |
 | Q10 | Climate fidelity | **Approved.** orogen heuristics, forced by the VPLanet subset. |
 | Q11 | Node 24 | **Approved, project-local only.** fnm runs from `.tools/` with `FNM_DIR=.tools/fnm`, and the version is pinned in `.nvmrc`. System Node and global tools are not changed. |
 | D5 | Fidelity slider | **Redesign adopted (Checkpoint 1).** Structural decisions (mountain kernels and belts, hotspots, the macro land mask, major drainage divides) are made at a fixed reference resolution, with counter-based randomness keyed to reference-cell ids. Higher N adds only band-limited detail. See §3.1, §3.5, §4 (Fidelity slider) and design note 14. |
 | D6 | Phase 4 split | **Adopted (Checkpoint 1).** Phase 4a: orogen in the shell, parity test, globe, benchmarks. Phase 4b: the preview restructure (D5) behind the Q7 A/B gate. Each has its own checkpoint (§7). |
+| D7 | Climate at L0, downscaled | **Approved with a gate (Checkpoint 2).** Phase 4b must show that the downscaled climate scores within a stated tolerance of orogen's full-resolution climate on the Earth tuning harness, at the same N. The tolerance starts at **0.02 of the objective**: the downscaled score may be at most 0.02 lower. If it is not, the climate solve moves to the **80k-cell climate mesh fallback** (L0′, note 14 §3.6). |
+| D8 | Phase 4b fallback | **Adopted (Checkpoint 2).** If the restructure cannot reach the Q7 targets within its effort budget (Phase 4b), the preview shows **reference-level structure only**, and detail appears with the final run. |
+| D9 | Overlapping patches | **Approximate agreement (Checkpoint 2).** Nested patches stay exact (each restricts to its parent). Non-nested overlaps agree approximately and show a warning in the UI. Revisit at Phase 11. |
+| D10 | Phase 2 defaults | **Approved (Checkpoint 2).** <ul><li>Partial-world: latitude must be supplied when the import has no climate-bearing layers (40°N pre-filled).</li><li>Plate evolution: 300 Myr default.</li><li>Tidally locked and > 54° obliquity planets generate but are marked "climate outside model validity".</li><li>Soils use USDA orders.</li><li>Undiscovered deposits are stored and revealed by the history simulation (`discoveredTick`).</li><li>Parameter sweeps run nightly (about 1.4 h).</li><li>History uses aggregate agents, with named notable figures for the event log only.</li></ul> |
+
+### Known gaps (revisit later)
+
+| Gap | Status | Revisit |
+|---|---|---|
+| Tidally locked planets | Generated, but marked unsupported by the parameter mapping (design note 10 §3.4). orogen's banded circulation cannot represent a substellar-antistellar climate. | After Phase 8 |
+
+**Changes from the Phase 2 design notes (approved at Checkpoint 2).**
+
+| From | Change | Where |
+|---|---|---|
+| Note 14 | The pipeline becomes a **reference pass** (L0, identical for every fidelity setting) plus a **detail pass** (L1 at N). Climate is solved at L0 and downscaled to N. Reference erosion is one fixed model, and the slider chooses only N and the detail-erosion model. Stage 6 coupling runs at L0. Hydrology inherits major divides from L0. Collisions and stress move to L0. | §3, §4 |
+| Note 14 | New `structures` entity table; `referenceHash` in stage manifests. | §3, §3.3 |
+| Note 3 | Partial-world mode holds the imported elevation fixed and pins the **reference-level structure** (not orogen's elevation stage); adds feature extraction, a context search and Laplace margin blending. | §4 step 0p |
+| Note 6 | Patch meshes are snapped azimuthal equal-area lattices with an apron; patches nest (levels ≥ 2). Nested patches agree exactly; non-nested overlaps agree approximately and warn (D9). | §3.1 |
+| Note 11 | Climate layers are stored as annual-harmonic coefficients (H = 2), fitted from 12 phases solved at L0. Köppen uses real monthly criteria; the two-season form remains the parity mode. | §3.2 |
+| Note 13 | New stage 2e (plate evolution) as a pipeline variant; a layer has one producer *per variant*; entities declare `timeAxis` and time-varying layers declare it through `timeVarying` (geologic Myr or history ticks); geologic timeline in the save format; **Phase 6b** (moved from the proposed 4c at Checkpoint 2). | §3.2–3.4, §4, §5, §7 |
 
 ## Status of claims (read first)
 
@@ -127,11 +148,11 @@ World
 ├── planet        physical parameters + derived forcing tables
 ├── params        all generation parameters (1.0 = Earthlike convention)
 ├── rng           named stream states
-├── meshes        global SphereMesh (+ regional patch meshes, linked to parents)
+├── meshes        reference (L0), global (L1, fidelity N), regional patches (L2+), each linked to its parent
 ├── layers        per-cell typed-array fields, via LayerRegistry
-├── entities      columnar tables with stable ids and validity intervals
-├── timeline      calendar, tick, agent tables, event log, keyframes
-└── pipeline      completed stages, input hashes, mid-stage checkpoints
+├── entities      columnar tables with stable ids and validity intervals on a declared time axis
+├── timeline      geologic axis (Myr) and history axis (calendar, tick), agent tables, event logs, keyframes
+└── pipeline      resolved pipeline variant, completed stages, input hashes (incl. referenceHash), mid-stage checkpoints
 ```
 
 ### 3.1 Geometry and coordinates
@@ -148,13 +169,15 @@ World
   - a spatial index for point → cell lookup (cube-map buckets, then a walk on the Delaunay graph).
 - **Global mesh**: orogen's jittered Fibonacci–Voronoi mesh at the chosen fidelity N. Keeping it is what makes orogen's scale-invariance rules (hop counts scaled by `avgEdgeKm`, smoothing in physical km) carry over unchanged.
   - The construction pole and closure cell land at (0°N, 0°E) after the axis permutation (F1). That **seam cell** is a known small cell (0.28–0.62× mean area, degree 4–6). Spike 1a measured no field artifact there, and a regression test keeps it that way.
-- **Reference mesh** (D5, design note 14): a fixed-size mesh, the same ~20k-region mesh orogen already uses for coarse plates, on which every *structural* decision is made. It does not depend on fidelity N. The global mesh at any N relates to it through the same restriction and prolongation operators that relate a regional patch to the global mesh (below).
+- **Reference mesh** (D5, design note 14): a fixed-size mesh, the same ~20k-region mesh orogen already uses for coarse plates, on which every *structural* decision is made. It does not depend on fidelity N. The global mesh at any N relates to it through the same restriction and prolongation operators that relate a regional patch to the global mesh (below). Its layers and the `structures` entity table are the output of the **reference pass** (§4).
+  - **Mesh levels**: L0 = reference, L1 = global at N, L2+ = patches (a patch may parent a finer patch). Each level relates to its parent by R, P and the correction operator C, which makes R(C(δ)) = δ exactly (note 14 §3.4).
 - **Regional patches** are separate, finer meshes covering a spherical cap or polygon, linked to the global mesh by:
   - `parentOf: Int32Array` (patch cell → global cell);
   - a **restriction operator** R (area-weighted average of patch cells onto their parent cells);
   - a **prolongation operator** P (barycentric interpolation from the global Delaunay).
 
-  The invariant is **R(patch field) = global field** on every fully covered parent cell. Patch detail is P(global) plus band-limited detail whose restriction is zero. That makes whole-planet and regional views consistent by construction (requirement: no discontinuities across zoom). The algorithm is gap note #6.
+  The invariant is **R(patch field) = global field** on every fully covered parent cell. Patch detail is P(global) plus band-limited detail whose restriction is zero. That makes whole-planet and regional views consistent by construction (requirement: no discontinuities across zoom).
+  - **Patch meshes** (design note 6) are jittered hexagonal lattices in the azimuthal equal-area projection about the patch centre, re-legalised as spherical Delaunay. Centre, radius and spacing snap to fixed ladders, so the same request always gives the same mesh. An apron around the displayed core absorbs edge effects. Rivers crossing the patch edge enter as inflow boundary conditions from L1. A nested patch restricts exactly to its parent patch. Overlapping patches that are not nested agree only approximately, and the UI warns where they overlap (D9).
 
 ### 3.2 Layers (per-cell fields)
 
@@ -166,17 +189,17 @@ Fields are stored struct-of-arrays: one typed array per field per mesh. They are
 | `dtype` | Float32, Int32, Uint16, Uint8 (categorical) |
 | `unit` | SI unit string (`m`, `degC`, `mm/yr`, `m/s`, `m^2`, `m^3/s`, `enum:koppen`, ...) |
 | `kind` | `scalar`, `vector-en` (east and north components, two arrays), `categorical`, `bitset` |
-| `producer` | stage id that writes it; only that stage may write it |
+| `producer` | stage id that writes it in the resolved pipeline variant (for example with or without plate evolution, note 13). Exactly one producer per layer per variant, checked by the runner; only that stage may write it |
 | `deps` | layer ids the producer read; used for invalidation |
 | `sample` | `barycentric` (continuous), `nearest` (categorical), or `none` |
-| `timeVarying` | whether the history simulation may change it (see 3.4) |
+| `timeVarying` | `false`, or the time axis the layer changes on: `'geo'` (plate evolution, Myr) or `'history'` (ticks). See 3.4 |
 | `hash` | content hash, used for caching and the save manifest |
 
 Representative layers, with their producers:
 
-- **Tectonic**: `plate` (Uint16), `crustType` (Uint8: oceanic, continental, arc...), `crustAge_Myr`, `boundaryType`, `stress`, `lithology` (Uint8), all from tectonics.
+- **Tectonic**: `plate` (Uint16), `crustType` (Uint8: oceanic, continental, arc...), `crustAge_Myr`, `crustThickness_km`, `orogenyAge_Myr`, `boundaryType`, `stress`, `lithology` (Uint8), from tectonics, or from plate evolution (stage 2e) when that variant is active.
 - **Terrain**: `elevation` (m, relative to sea level), `bedrock` (m), `sediment` (m), `erosionRate` (m/Myr).
-- **Climate**: per season s, `temp.s` (°C), `precip.s` (mm), `wind.s` (m/s, east/north), `current.s` (m/s, east/north), `pressure.s` (hPa); annual aggregates; `iceCover`.
+- **Climate**: per field, annual-harmonic coefficients (`temp.a0`, `temp.a1`, `temp.b1`, `temp.a2`, `temp.b2`, and likewise for `precip` (mm), `wind` and `current` (m/s, east/north) and `pressure` (hPa)), evaluated for any day of the year (design note 11). Derived layers: `temp.mean/warmest/coldest`, `precip.annual/driest/wettest`, `growingSeasonDays`; `iceCover`. Parity mode keeps orogen's two seasons (`temp.summer`, `temp.winter`, ...).
 - **Hydrology**: `receiver` (Int32), `stackOrder` (Int32), `drainageArea` (m²), `discharge` (m³/s), `lake` (Int32 id or −1), `basin` (Int32), `riverId`.
 - **Classification and land**: `koppen` (enum), `biome` (enum), `soilType` (enum), `soilFertility` (0..1), `soilDepth` (m), `mineral.*` (deposit grade per class).
 - **Human, as the current value of time-varying fields**: `population`, `culture`, `language`, `polity`, `province`, `landUse`, `habitability`.
@@ -185,9 +208,10 @@ Representative layers, with their producers:
 
 ### 3.3 Entities
 
-Entities are columnar tables. Each row has a stable `id`, a `validFrom` / `validTo` tick interval (the `valid_time` idea from GPlates' feature model, used here as a concept only), and typed columns:
+Entities are columnar tables. Each row has a stable `id`, a `validFrom` / `validTo` interval (the `valid_time` idea from GPlates' feature model, used here as a concept only), and typed columns. Each table declares its **time axis**: `geo` (Myr, negative before present; plates, terranes) or `history` (ticks; everything human). Tables:
 
-- `plates` (Euler pole unit vector, rate in rad/Myr, density, oceanic flag);
+- `plates` (Euler pole unit vector, rate in rad/Myr, density, oceanic flag; with plate evolution, a per-step pole history and split and merge links);
+- `structures` (reference-pass features: kind, unit-vector position, orientation, amplitude, envelope, reference-cell id; note 14);
 - `rivers` (source and mouth cells, cell path, discharge at mouth);
 - `lakes` (type, surface elevation, outlet);
 - `cultures`, `languages`, `settlements` (cell, offset vector, population, rank), `polities`, `provinces`, `religions`, `routes` (cell paths), `goods`, `markets`.
@@ -203,13 +227,14 @@ This exists in the schema and save format from Phase 3, even though only a dummy
   - The benchmark is 5,000 years at 1-year ticks (Q6). That is a target, not a cap.
   - Longer histories, up to tens of thousands of years, use coarser eras: for example, 10- or 25-year ticks in deep prehistory and 1-year ticks near the present.
   - Agents and stages read `dtYears` for the current tick and never assume one year. Counter-based RNG keys on the tick, so changing the era schedule changes results only from the first changed era onward.
+- **Geologic axis** (note 13): `timeline.geo = { tStartMyr, dtMyr, keyframeEveryMyr }`, with its own keyframes and a `geoEvents` log of the same shape as `EventLog` (time in Myr). Present day, t = 0 Myr, is the physical world at history tick 0.
 - **Agent tables** are entity tables whose rows change every tick: settlements (population by cohort, resources, buildings), polities (treasury, military, government form, relations matrix in sparse form), populations or cultures (traits, language id), and languages (phoneme inventory, lexicon, sound-change history). Struct-of-arrays, so a tick can process them in bulk and in parallel.
-- **Time-varying cell layers** (`timeVarying: true`) have:
+- **Time-varying cell layers** (`timeVarying: 'geo'` or `'history'`, as in §3.2) have, on their own axis:
   - a *current* array;
-  - **keyframes** every K ticks (a full array snapshot);
-  - a **change log** between keyframes: (tick, cell, layer, old, new), run-length packed.
+  - **keyframes**: every K ticks on the history axis, every `keyframeEveryMyr` on the geo axis (a full array snapshot);
+  - a **change log** between keyframes: (time, cell, layer, old, new), run-length packed, where time is a tick or a geo step.
 
-  Scrubbing to tick t means loading the nearest earlier keyframe and replaying the log. The physical world can also change during history (climate shifts, river avulsion, sea level), so the same mechanism covers physical layers if they are marked time-varying.
+  Scrubbing to time t on an axis means loading that axis's nearest earlier keyframe and replaying its log. A layer can be time-varying on one axis only. The physical world can also change during history (climate shifts, river avulsion, sea level), so the same mechanism covers physical layers if they are marked time-varying.
 - **`EventLog`** is append-only:
 
   ```
@@ -243,6 +268,7 @@ This exists in the schema and save format from Phase 3, even though only a dummy
 | `r_elevation` (dimensionless) | `elevation` (m), plus adapter-private `orogen.elevRaw` | `elevToHeightKm × 1000` (F2) for the canonical layer. orogen's raw value is also kept as `orogen.elevRaw` (Float32), written by the orogen elevation and erosion stages and not read outside `packages/gen-orogen`. orogen's climate stages read `orogen.elevRaw`, never metres run back through the inverse S-curve: that round trip changes 13 Köppen cells, precipitation by up to 0.15 (normalised) and temperature by up to 0.03 °C at 200k (spike 1a), which breaks parity. When a non-orogen stage changes `elevation` (slow erosion, import, partial-world hold), the adapter regenerates `orogen.elevRaw` from metres through the inverse S-curve, and that world is outside the parity claim. Land above raw 1.0 (0.05% of cells) is clipped by the 6 km cap and is lossy in metres. |
 | precipitation (normalised 0–1, 95th-percentile scaled) | `precip.*` (mm/yr) | Monotone calibrated mapping fitted in Phase 8 against Earth data†. Until then, stored as `unit: "normalized"` and flagged. |
 | temperature (°C) | `temp.*` | Unchanged. |
+| climate stages at N | — | **Parity mode only.** From Phase 4b, orogen's climate runs at L0 and is downscaled to N (note 14 §3.6). |
 | wind / currents (3D tangent vectors) | `wind.*`, `current.*` (east/north) | Project onto local east = (−sin λ, cos λ, 0) and north = (−sin φ cos λ, −sin φ sin λ, cos φ). |
 | Köppen class index (1–30) | `koppen` enum | Table map; the canonical enum is a superset (adds `As`, separate from `Aw`). |
 | `r_plate`, plate seeds, vectors, density | `plate` layer + `plates` table | Plate velocity becomes an Euler pole and rate (GPlates-style math, re-implemented). |
@@ -396,38 +422,51 @@ stage(inputs: frozen layers, params, rng streams) → outputs: layers + entities
 
 The stage manifest records the stage code version and a hash of its inputs. The runner uses it to skip unchanged stages, to invalidate downstream stages when an input changes, and to resume a saved world mid-pipeline. Stages never read UI state.
 
-| # | Stage | Source | Writes |
-|---|---|---|---|
-| 0 | **Planet setup**: physical parameters → forcing tables, calendar, radius, gravity, Coriolis. In partial-world mode, also the constraints from inference (step 0p). | VPLanet subset (new TS) | `planet.*` |
-| 1 | **Mesh** at fidelity N (preview or final), plus the spatial index | orogen `sphere-mesh.js` | `meshes.global` |
-| 2 | **Tectonics**: coarse reference plates (fixed ~20k-region mesh, so layout does not depend on resolution), projection onto the mesh, plate physics, super-plates, Euler poles | orogen `coarse-plates.js`, `plates.js`, `plate-physics.js`, `super-plates.js`, `ocean-land.js` + rotation math | `plate`, `crustType`, `boundaryType`, `stress`, `plates` |
-| 3 | **Crust and elevation**: orogen's 12-stage elevation pipeline, plus new tags for crust age and lithology needed by soils and minerals. From Phase 4b, its structural decisions run on the reference mesh (D5). | orogen `elevation.js` + new | `elevation`, `crustAge_Myr`, `lithology` |
-| 4 | **Erosion**: *fast* = orogen `terrain-post.js` (warp, smoothing, hydraulic, thermal, ridge sharpening, soil creep); *slow* = Badlands-style stream power + diffusion, iterated to a target duration or steady state, followed by orogen's glacial and thermal finishing. The fidelity slider chooses which. | orogen / new (Badlands algorithm) | `elevation`, `sediment`, `erosionRate`, `receiver`, `stackOrder`, `drainageArea` |
-| 5 | **Climate**, per season: wind → ocean currents → temperature → precipitation, forced by step 0 | orogen `wind.js`, `ocean.js`, `temperature.js`, `precipitation.js`, `heuristic-precip.js` | `wind.*`, `current.*`, `temp.*`, `precip.*`, `pressure.*` |
-| 6 | **Erosion ↔ climate coupling** (high fidelity only): re-run 4 (slow) with precipitation-weighted runoff, then re-run 5 if elevation changed beyond a threshold. At most 2 iterations. | glue | as 4 and 5 |
-| 7 | **Hydrology**: reuse the flow network from step 4 (or compute it on the fast path), then lake detection with evaporation balance, river extraction, watersheds | new flow core + Azgaar `river-generator`, `lakes`, `features-generator` | `discharge`, `lake`, `basin`, `riverId`, `rivers`, `lakes` |
-| 8 | **Classification**: Köppen, biomes (Azgaar matrix informed by Köppen), ice | orogen `koppen.js`, Azgaar `biomes-generator` | `koppen`, `biome`, `iceCover` |
-| 9 | **Soils and minerals** (new) | design notes 4 and 5 | `soilType`, `soilFertility`, `soilDepth`, `mineral.*` |
-| 10 | **Resources and goods** | Azgaar `goods-generator`, extended to use soils and minerals | `goods`, per-cell resource layers |
-| 11 | **Static human layer = history t0**, in Azgaar's order: rank cells → cultures and names → expand cultures → burgs → states → routes → religions → specify burgs → state forms → provinces → markets → production | Azgaar generators via the facade | human layers and entities |
-| 12 | **History simulation** (Phase 13): time-stepped from t0 for demography, settlement growth and decline, trade, economics, politics and borders, war, and language evolution. Writes the event log and keyframes. | new | `timeline.*`, time-varying layers, `EventLog` |
-| — | **Views and exports** (outside the pipeline) | §3.7 | nothing in `World` |
+From Phase 4b (D5, design note 14) the pipeline has two passes:
 
-**Partial-world mode** adds step 0p before step 1:
+- The **reference pass (R)** runs on the reference mesh L0 and makes every structural decision. It is identical for every fidelity setting: the same code, models and parameters.
+- The **detail pass (D)** runs on the global mesh L1 at fidelity N. It prolongs the structure, adds band-limited detail, runs detail erosion, **anchors** every continuous field to the reference pass (R(field_N) = field_ref), downscales climate, and routes water within the major divides.
+- The slider chooses only N and the detail-erosion model. Regional patches run the detail pass again with L1 as parent (note 6).
 
-1. Import the regional map.
-2. Place it on the sphere (user-specified or inferred lat/lon, extent and rotation).
-3. **Infer** the surrounding plate and continental configuration consistent with the region (gap note 3).
-4. Pin the inferred configuration as constraints for step 2: plate partition, land/sea per plate, and optionally Euler poles. Spike 1d showed this works with a ~110-line patch to orogen's plate code (exact pin survival; bit-identical when unpinned). Pins change the RNG draw sequence, so the unpinned remainder differs from the same seed without pins.
-5. **Hold the imported elevation fixed** in steps 3–4, blending only at the margins. This step is **required**: plate and land/sea pins survive exactly, but elevation, coastline detail and mountains inside a pinned region are *not* held (final land agreement 86–91%, mountain IoU ≤ 0.22 in spike 1d). Design note 3 decides between this hold and constraining orogen's elevation stage.
-6. Run climate on the whole sphere at coarse N, and the region at fine N as a regional patch (§3.1).
+"R + D" means a stage has a reference part and a detail part. Before Phase 4b, and in parity mode, every stage runs as stock orogen does at N.
+
+| # | Stage | Pass | Source | Writes |
+|---|---|---|---|---|
+| 0 | **Planet setup**: physical parameters → forcing tables, calendar, radius, gravity, Coriolis. In partial-world mode, also the constraints from inference (step 0p). | — | VPLanet subset (new TS) | `planet.*` |
+| 1 | **Meshes**: the reference mesh L0 (fixed 20k) and the global mesh L1 at fidelity N, plus spatial indexes | R + D | orogen `sphere-mesh.js` | `meshes.reference`, `meshes.global` |
+| 2e | **Plate evolution** (optional variant; design note 13; Phase 6b): forward evolution over deep time from a snapshot or a supercontinent. The fast pass (L0, Δt 5 Myr) computes the dynamics and the event schedule. The slow pass (finer mesh, Δt 1 Myr, final tier only) replays it kinematically. The present-day state replaces orogen's coarse plates in stage 2. | R (fast) + D (slow) | new; orogen `plate-physics.js` formulas; rotation math | `plates`, `plate`, `crustType`, `crustAge_Myr`, `crustThickness_km`, `lithology`, `orogenyAge_Myr`, `geoEvents`, geologic keyframes |
+| 2 | **Tectonics**: coarse reference plates (or the stage 2e state), plate physics (skipped after 2e), super-plates, collisions and stress, Euler poles, all at L0. The partition is prolonged to L1 with orogen's continuous FBM boundary wobble. | R | orogen `coarse-plates.js`, `plates.js`, `plate-physics.js`, `super-plates.js`, `ocean-land.js`, `elevation.js` (collisions, stress) + rotation math | `plate`, `crustType`, `boundaryType`, `stress`, `plates` |
+| 3 | **Crust and elevation**: at L0, the structural stages (tectonic state, spatial fields, classification, skeleton, keyed kernel and edifice placement, low-frequency bands, final shaping, topology fixup); at L1, P(structure) plus band-limited detail, then anchoring. Reads per-cell `crustType` and, with 2e, `orogenyAge_Myr`. Tags crust age and lithology when 2e is off. | R + D | orogen `elevation.js` (ported, note 14 §3.10) + new | `elevation`, `structures`, `crustAge_Myr` and `lithology` (2e off) |
+| 4 | **Erosion**. *Reference erosion* at L0 is one fixed model for every slider setting: orogen `terrain-post.js` until Phase 7, then the Badlands-style pass with effective erodibility. *Detail erosion* at L1, anchored: fast = orogen `terrain-post.js` (warp, smoothing, hydraulic, thermal, ridge sharpening, soil creep); slow = Badlands-style stream power + diffusion, then orogen's glacial and thermal finishing. The fidelity slider chooses the detail model only. | R + D | orogen / new (Badlands algorithm) | `elevation`, `sediment`, `erosionRate`, `receiver`, `stackOrder`, `drainageArea` |
+| 5 | **Climate**, at 12 phases of the year fitted to annual harmonics (note 11): solved at L0 (wind → ocean currents → temperature → precipitation, forced by step 0), then downscaled to L1 (lapse-rate temperature, linear orographic precipitation, prolonged wind and currents, anchored). orogen's full climate at N is the parity mode only. | R + D | orogen `wind.js`, `ocean.js`, `temperature.js`, `precipitation.js`, `heuristic-precip.js`; downscaling new (note 14 §3.6) | `wind.*`, `current.*`, `temp.*`, `precip.*`, `pressure.*` |
+| 6 | **Erosion ↔ climate coupling**: re-run reference erosion with precipitation-weighted runoff, then re-run reference climate if elevation changed beyond a threshold. At most 2 iterations. Runs at L0 only, so it is identical for preview and final. | R | glue | as 4 and 5 |
+| 7 | **Hydrology**: major basins and divide bands at L0. At L1, flow routing constrained to them (reusing step 4's network), lakes with water balance (note 12), river extraction, watersheds | R + D | new flow core + Azgaar `river-generator`, `lakes`, `features-generator` | `discharge`, `lake`, `basin`, `basin.major`, `riverId`, `rivers`, `lakes` |
+| 8 | **Classification**: Köppen at L0 (for the A/B gate) and per L1 cell from downscaled fields; biomes (Azgaar matrix informed by Köppen); ice | R + D | orogen `koppen.js`, Azgaar `biomes-generator` | `koppen`, `biome`, `iceCover` |
+| 9 | **Soils and minerals** (new). Mineral deposits are keyed to L0 cells, so the deposit list does not depend on N (note 5). | D | design notes 4 and 5 | `soilType`, `soilFertility`, `soilDepth`, `mineral.*` |
+| 10 | **Resources and goods** | D | Azgaar `goods-generator`, extended to use soils and minerals | `goods`, per-cell resource layers |
+| 11 | **Static human layer = history t0**, in Azgaar's order: rank cells → cultures and names → expand cultures → burgs → states → routes → religions → specify burgs → state forms → provinces → markets → production | D | Azgaar generators via the facade | human layers and entities |
+| 12 | **History simulation** (Phase 13): time-stepped from t0 for demography, settlement growth and decline, trade, economics, politics and borders, war, and language evolution. Writes the event log and keyframes. | — | new | `timeline.*`, time-varying layers, `EventLog` |
+| — | **Views and exports** (outside the pipeline) | — | §3.7 | nothing in `World` |
+
+**Partial-world mode** adds step 0p before step 1 (design note 3):
+
+1. Import the regional map and its georeference.
+2. Place it on the sphere: user-specified lat/lon, extent and rotation. Latitude is inferred only when the import carries climate-bearing layers (biomes, Köppen, ice); elevation alone does not determine it.
+3. **Extract and interpret features** from the imported elevation: ranges, trenches, rifts, arcs, and active or passive margins. The output is candidate plate boundaries with types and confidences.
+4. **Pin** the inferred configuration:
+   - for step 2: plate partition, land/sea per plate, and Euler-pole *constraints*. Spike 1d showed the plate and land/sea pins work with a ~110-line patch to orogen's plate code (exact pin survival; bit-identical when unpinned). Pins change the plate stage's draw order, so the unpinned remainder differs from the same seed without pins.
+   - for stage 3, at L0: e_ref = R(import) on covered reference cells, the land mask, and structures (ranges, arcs, rifts) continuing across the region edge.
+5. **Search** for the most likely global context. Each candidate runs the tectonic and structural part of the reference pass (about 0.5 s) and is scored on boundary-type agreement, range continuation, land fraction and a plate-statistics prior. The best is kept, along with the top three alternatives.
+6. **Hold the imported elevation fixed**, the option design note 3 chose over constraining orogen's elevation stage. The region is exact. Outside it, the boundary mismatch is spread by Laplace interpolation over a margin band, so the join has no cliff. The hold is **required**: plate and land/sea pins survive exactly, but elevation, coastline detail and mountains inside a pinned region are *not* held by them (final land agreement 86–91%, mountain IoU ≤ 0.22 in spike 1d).
+7. Run climate on the whole sphere at L0 and downscale it to the region, which is a regional patch (§3.1, note 6).
 
 **Fidelity slider** (D5; design note 14). Spike 1c showed that running the same stages at lower N is **not** a faithful preview. Continent layout and land fraction carry over; mountain belts, coastline detail, Köppen and drainage basins do not, and they do not converge as N grows. The slider therefore separates *structure* from *detail*:
 
 - **Structural decisions are made on the fixed reference mesh** (§3.1), as orogen already does for plates: mountain kernels and orogenic belts, hotspots, the macro land mask, and the major drainage divides. Their randomness uses reference-keyed counter draws (§3.5), so it depends on neither N nor draw order.
 - **Higher N adds only band-limited detail** on top, whose restriction to the reference mesh is zero. This is the same R/P machinery as regional patches (§3.1).
-- Preview and final use the same seed and the same stream derivation. The preview runs at lower N with the fast erosion pass; the final run uses higher N and the slow pass.
-- Faithfulness is measured, not assumed. The Q7 metrics become a CI gate in Phase 4b, and the A/B is re-run in Phase 7 with the slow pass as "final".
+- Preview and final use the same seed and the same stream derivation. The preview runs the detail pass at lower N with fast detail erosion; the final run uses higher N and slow detail erosion. The reference pass, including its erosion and climate, is identical for both.
+- Faithfulness is measured, not assumed. The Q7 metrics become a CI gate in Phase 4b, and the A/B is re-run in Phase 7 with the slow pass as "final". Under anchoring, the four Q7 metrics measured after restriction (hypsometry, mountain IoU, and the elevation and precipitation fields) hold by construction and act as anchoring checks. The three full-resolution metrics added at Checkpoint 2 keep the gate informative.
+- **Fallback (D8):** if Phase 4b cannot reach the Q7 targets within its effort budget, the preview shows reference-level structure only (the reference pass prolonged to preview N, with no detail bands or detail erosion), and detail appears with the final run.
 - Stock orogen behaviour stays available as a parity mode, so the Phase 4a parity test keeps running after the restructure.
 
 ---
@@ -444,13 +483,14 @@ world.mapmaker
 ├── params.json          all generation parameters + fidelity + master seed (128-bit, hex)
 ├── planet.json          physical parameters; forcing tables → planet/*.bin
 ├── rng.json             every named stream: {name, algo, state[], draws}
-├── mesh/                points.f64, triangles.i32, halfedges.i32 (+ patches/ with parentOf)
+├── mesh/                points.f64, triangles.i32, halfedges.i32 (+ reference/, and patches/ with parentOf and PatchSpec)
 ├── layers/<id>.bin      one chunk per layer per mesh
 ├── entities/<table>/    columnar chunks + schema.json per table
 ├── pipeline.json        completed stages, input hashes, current stage,
 │                        mid-stage checkpoint (e.g. slow-erosion iteration k + its state chunks)
 ├── timeline/
-│   ├── timeline.json    calendar, tick, dtYears schedule
+│   ├── timeline.json    calendar, tick, dtYears schedule, geo axis {tStartMyr, dtMyr}
+│   ├── geo/             geologic keyframes and geoEvents chunks (plate evolution)
 │   ├── agents/          per agent type, columnar chunks
 │   ├── keyframes/<tick>/<layer>.bin
 │   ├── changes/<range>.bin   run-length-packed cell changes between keyframes
@@ -658,8 +698,8 @@ Added at Checkpoint 1 (D5):
 - Monorepo scaffolding (§2 layout), TypeScript strict, Vite, Vitest, Playwright, lint rules (including the `Math.random` ban), and CI.
 - **Cross-engine hash test in CI** (Q3): output hashes compared across Chromium, Firefox and WebKit, plus a **Windows/x64 runner**, since Windows is the one platform spike 1a could not test.
 - `PROVENANCE.md` plus a script that checks every vendored file against `upstream-manifest.json` commits, and records the third-party npm dependencies with their licenses.
-- `packages/core`: frame and units, `SphereMesh` (orogen's mesh builder, ported), `LayerRegistry`, entity tables, `Timeline` and `EventLog`, the RNG service (three algorithms, derivation, counter-based), `dmath` (pass-through), and save/load v0.
-- `packages/engine`: stage runner (manifests, hashing, invalidation), worker protocol, worker pool, cancellation, checkpoints.
+- `packages/core`: frame and units, `SphereMesh` (orogen's mesh builder, ported), `LayerRegistry`, entity tables (with declared time axes), `Timeline` (geologic and history axes) and `EventLog`, the RNG service (three algorithms, derivation, counter-based), `dmath` (pass-through), and save/load v0.
+- `packages/engine`: stage runner (manifests, hashing, invalidation, pipeline variants with the one-producer check), worker protocol, worker pool, cancellation, checkpoints.
 - A **dummy history stage** that writes agents, events, keyframes and changes, to prove the history schema round-trips through save → load → resume with hash equality.
 - GitHub Pages deployment, and a COOP/COEP shim test.
 
@@ -679,10 +719,11 @@ Added at Checkpoint 1 (D5):
 
 - Implement design note 14. Restructured stages are ported TypeScript modules next to the verbatim `vendor/` copy, which stays unchanged. They make structural decisions on the reference mesh with reference-keyed counter draws, and add band-limited detail above the reference scale.
 - Stock orogen stays available as a parity mode, so the Phase 4a parity test keeps running.
-- **A/B gate.** CI runs the Q7 metrics on fixed seeds and tiers. It **hard-fails only on regression**: a metric worse than the committed baseline for the same seed and tier, by more than a per-metric noise tolerance stored with the baseline. An improvement updates the baseline in the same commit. The seven Q7 thresholds are **targets**; the Köppen ≥ 90% target applies to preview tiers of 200k cells and above.
-- Re-run the tuning harness. The restructure must not lower the Earth Köppen objective below the Phase 4a baseline by more than its tolerance.
+- **A/B gate.** CI runs the ten Q7 metrics (the seven from Checkpoint 1 plus the three full-resolution metrics from Checkpoint 2) on fixed seeds and tiers. It **hard-fails only on regression**: a metric worse than the committed baseline for the same seed and tier, by more than a per-metric noise tolerance stored with the baseline. An improvement updates the baseline in the same commit. The Q7 thresholds are **targets**; the Köppen ≥ 90% target applies to preview tiers of 200k cells and above.
+- **Climate gate (D7).** On the Earth tuning harness at 40k and 160k, the reference-solve-plus-downscaling climate must score no more than **0.02** below orogen's full-resolution climate at the same N (the Phase 4a baselines were 0.678 at 40k and 0.668 at 160k). If it fails, switch the climate solve to the 80k-cell climate mesh (L0′) and re-run the gate. Changing the tolerance needs sign-off at a checkpoint.
+- **Effort budget and fallback (D8).** The budget is the first complete implementation of note 14 plus at most **two tuning rounds**, each ending with a full A/B run on the CI seeds. If the preview still misses Q7 targets after that, the preview switches to **reference-level structure only**: the reference pass prolonged to preview N, with no detail bands and no detail erosion. Detail then appears only with the final run. The gate keeps running, comparing the restricted final with the reference pass.
 
-**Checkpoint 4b**: measured Q7 metrics against the targets, and a review of the targets themselves. Stop and wait.
+**Checkpoint 4b**: measured Q7 metrics against the targets, the climate-gate result (and whether the 80k fallback was needed), whether the D8 fallback was taken, and a review of the targets themselves. Stop and wait.
 
 ### Phase 5: Projection and distortion layer
 
@@ -701,16 +742,27 @@ Added at Checkpoint 1 (D5):
 - VPLanet subset in TS (insolation, seasons, EBM core) with golden tests against native VPLanet output.
 - Parameter-mapping layer (design note 10); `planet.radius_m` threaded through.
 - Continuous seasons (design note 11).
+- **Q7 baseline rule:** any change to the climate model (the parameter mapping, seasons, or downscaling) re-records the Q7 A/B baseline in the **same commit**.
 
 **Checkpoint 6.** Stop and wait.
 
+### Phase 6b: Forward plate evolution (design note 13; slot set at Checkpoint 2)
+
+- Stage 2e: tracers, quaternion kinematics, ridge, subduction and collision interactions, force balance (porting orogen's `plate-physics.js` formulas), and the event schedule. The fast pass runs in the reference pass; the slow kinematic replay runs in the final-tier detail pass.
+- Duration: default 300 Myr. The maximum must not be capped below 800 Myr; it starts at 1,000 Myr. Benchmarks cover 300 and 1,000 Myr.
+- Present-day export to stage 2, with orogeny-age hooks in the structural stage. Geologic timeline and keyframes. The `plateEvolution` pipeline variant.
+- Fast/slow A/B in CI (regression-only failure), and Earth-likeness statistics (seafloor age, plate sizes, speeds).
+- Re-record the Q7 baseline with evolution on, in the same commit that enables it.
+
+**Checkpoint 6b.** Stop and wait.
+
 ### Phase 7: Slow erosion pass and hydrology, including D4 validation
 
-- Badlands-style stream power and diffusion on the sphere. Shared flow routing. Azgaar rivers, lakes and features via the facade. Lake water balance (design note 12).
+- Badlands-style stream power and diffusion on the sphere, as slow detail erosion at L1 and as the reference erosion at L0. The L0 model uses an effective erodibility calibrated so that R(an unanchored fine run) ≈ the L0 run (note 14 §3.8). Shared flow routing. Azgaar rivers, lakes and features via the facade. Lake water balance (design note 12).
 - **D4 validation**:
   1. On a planar benchmark, compare against Python Badlands with the same initial DEM, uplift and parameters (longitudinal profiles, hypsometry, drainage-area statistics);
   2. compare against orogen's fast pass on the same world;
-  3. compare against Earth statistics (hypsometry, Hack's law, concavity of river profiles);
+  3. compare against Earth statistics (hypsometry, Hack's law, concavity of river profiles). These run on the **anchored** result that users get, not on an unanchored test run. The unanchored fine run is used only to calibrate the L0 effective erodibility;
   4. re-run the fidelity A/B from 1c with the slow pass as "final", through the Phase 4b gate.
 
 **Checkpoint 7.** Stop and wait.
@@ -718,7 +770,9 @@ Added at Checkpoint 1 (D5):
 ### Phase 8: Calibration and parameter-scale documentation
 
 - Extend the tuning harness: elevation hypsometry, Köppen (Kottek or Beck), and temperature and precipitation climatology. Fit the precipitation unit mapping (§3.6).
-- Run 0 / 1.0 / 1.5 sweeps for every exposed parameter and generate `docs/PARAMETERS.md` (design note 8).
+- Run sweeps on the five-point scale **0, 0.5, 1, 1.5, 2** (design note 8) for every exposed parameter, and generate `docs/PARAMETERS.md`.
+- **Q7 baseline rule:** any change to the climate model (for example re-tuned constants or the precipitation unit mapping) re-records the Q7 A/B baseline in the **same commit**.
+- Revisit the known gap for tidally locked planets (Known gaps, top of this document).
 
 **Checkpoint 8.** Stop and wait.
 
@@ -751,7 +805,7 @@ Azgaar generators (step 11 in §4) via the facade, with injected RNG. Settlement
 
 - Heightmap and layer import onto the sphere (orogen import sampling; a GeoTIFF decoder library if wanted).
 - Partial-world inference (design note 3), including the plate-stage pins from spike 1d and the required elevation hold (§4, step 0p.5).
-- Regional-patch refinement with the R/P consistency test (design note 6).
+- Regional-patch refinement with the R/P consistency test (design note 6). Revisit D9: approximate agreement and a warning for non-nested overlaps, or a fixed tiling.
 
 **Checkpoint 11.** Stop and wait.
 
@@ -794,6 +848,6 @@ This is the original decision table, kept for its rationale. **All eleven questi
 | **Q6** | **Resolved** | Fidelity ceilings | Whole planet ≤ **2.56M cells (~12.5 km)** in the browser; regional patches down to **~1 km**; history at **1-year ticks for ≤ 5,000 years**, with **aggregate agents** (settlements, polities, cultures), not individuals | These set memory budgets, save sizes and the desktop-fallback trigger. Resolved as **benchmark targets, not caps**; longer histories use coarser per-era `dtYears`. |
 | **Q7** | **Resolved** | A/B pass thresholds for "preview is faithful" | Land IoU ≥ **0.95**; coastline Hausdorff ≤ **2 preview-cell widths**; Köppen area agreement ≥ **90%**; precipitation correlation ≥ **0.9**; no new or missing major mountain belts | These make "true preview" testable rather than subjective. Resolved as **provisional**: spike 1c measures first, and the final values are set at Checkpoint 1. Final at Checkpoint 1: seven targets, CI fails on regression only. |
 | **Q8** | **Resolved** | Earth calibration data | **Download at tuning time** (Kottek/Beck Köppen-Geiger, ETOPO elevation, a precipitation and temperature climatology), log each in `PROVENANCE.md` with its license, and never vendor large datasets in the repo | Keeps the repo small and licenses explicit. Licenses are checked before first use†. |
-| **Q9** | **Resolved** | Tectonic history | **Static tectonic snapshot first**, then forward plate evolution over deep time as a **core feature** (changed at resolution; design note 13) | No upstream generates plate history (matrix row 1). This is large original work. At resolution it became a core feature, with fast and slow passes from the same seed; its slot in the phase order is proposed at Checkpoint 2. |
+| **Q9** | **Resolved** | Tectonic history | **Static tectonic snapshot first**, then forward plate evolution over deep time as a **core feature** (changed at resolution; design note 13) | No upstream generates plate history (matrix row 1). This is large original work. At resolution it became a core feature, with fast and slow passes from the same seed; Checkpoint 2 placed it in Phase 6b, after Phase 6 and before Phase 7. |
 | **Q10** | **Resolved** | Climate fidelity ceiling | **orogen heuristics, forced by the VPLanet subset**; consider a dynamical (shallow-water) atmosphere or ocean only if Phase 8 calibration plateaus | orogen's climate is tuned against Earth and is the most-cited strength. A dynamical model is a large original project. |
 | **Q11** | **Resolved** | Node 24 for building Azgaar | **Install a project-local Node 24** (via a version manager such as `fnm` or `volta`, pinned in `.nvmrc`) | Azgaar requires Node ≥ 24 and this machine has 22.19.0. Approved: fnm plus Node 24 live in `.tools/`, with nothing global. |
