@@ -1,0 +1,23 @@
+# Read-only upstream reference repos — never modify, never commit.
+# Restore with scripts/restore-upstream.sh (uses upstream-manifest.json).
+upstream/
+
+# OS / editor cruft
+.DS_Store
+*.swp
+
+# Node
+node_modules/
+dist/
+build/
+.cache/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Env / secrets
+.env
+.env.local
