@@ -86,7 +86,7 @@ Each row ranks the candidates that actually matter and gives my pick. Repos that
 
 | Rank | Repo | Rating | Extractability | Lang | License | Note |
 |---|---|---|---|---|---|---|
-| 1 | Azgaar | 3 | loose | TS | MIT | `river-generator.ts`, `lakes.ts`, `features-generator.ts`: D8-style flow routing, discharge-based widths. No deltas. Planar Voronoi grid; needs an adapter to orogen's spherical Voronoi mesh (assumption: both are Delaunay/Voronoi cell graphs). |
+| 1 | Azgaar | 3 | loose | TS | MIT | `river-generator.ts`, `lakes.ts`, `features-generator.ts`: D8-style flow routing, discharge-based widths. No deltas. Verified (spike 1b): runs unmodified on orogen's sphere via a 75-line facade; all rivers terminate correctly at 200k. Uint16 flux overflows ≥~200k cells; river generation is superlinear (25 s at 1M). |
 | 2 | WRF-Hydro | 4 (channel routing) | loose | Fortran | custom UCAR, no resale | Muskingum / diffusive-wave channel routing, proven at continental scale. Reference only. |
 | 3 | Badlands | 3 | loose | Py | GPL-3.0 | Flow accumulation, no explicit lakes. |
 | 4 | CTSM / ParFlow | 4 / 3 | tangled | Fortran/C | UCAR / LGPL-2.1 | Soil-water and overland flow. Not river-network *generation*. |
@@ -135,6 +135,8 @@ Each row ranks the candidates that actually matter and gives my pick. Repos that
 
 **Pick: orogen.**
 
+**Sections 5–8 (spike 1a):** verified headless. Earth Köppen objective 0.678 (40k) / 0.668 (160k). Bit-identical across Node, Chromium, Firefox, WebKit. Ratings unchanged.
+
 ### 9. Climate: seasons
 
 | Rank | Repo | Rating | Note |
@@ -148,7 +150,7 @@ Each row ranks the candidates that actually matter and gives my pick. Repos that
 
 | Rank | Repo | Rating | Extractability | License | Note |
 |---|---|---|---|---|---|
-| 1 | orogen | 5 | standalone | GPL-3.0 | `koppen.js` (320 LOC, verified): Köppen-Geiger classification, ~30 classes. A climate classification, not an ecological biome model. |
+| 1 | orogen | 4 | standalone | GPL-3.0 | `koppen.js` (320 LOC, verified): Köppen-Geiger classification, ~30 classes. A climate classification, not an ecological biome model. Two-season (summer/winter) proxy for warmest/coldest month. Measured on Earth topography: 38–40% exact class, 72% major group (spike 1a). |
 | 2 | Azgaar | 3 | standalone | MIT | `biomes-generator.ts`: 13 biomes from a temperature x moisture matrix. |
 | 3 | LPJmL | 4 | tangled | AGPL-3.0 | Dynamic vegetation (PFTs), C. It consumes climate; does not generate it. Algorithm reference. |
 | 4 | CTSM | 4 | tangled | UCAR | DGVM/FATES, Fortran. Reference. |
@@ -269,6 +271,8 @@ Each row ranks the candidates that actually matter and gives my pick. Repos that
 
 No repo infers surrounding tectonic and continental context from a regional map. GPlates handles partial plate circuits but its audit says inference of missing rotations is a heuristic that is not implemented. **Gap: original code.** orogen's coarse-plate stage and the tectonics/climate pipeline are the natural substrate to constrain against.
 
+Spike 1d: orogen's coarse-plate stage accepts pinned plates and land/sea with a ~110-line patch (exact survival; bit-identical when unpinned). Elevation/mountains inside a pinned region are not held by plate pins.
+
 ### 23. Whole-world derivation from planet parameters (planet-parameter derivation)
 
 | Rank | Repo | Rating | Note |
@@ -293,7 +297,7 @@ No repo infers surrounding tectonic and continental context from a regional map.
 
 | Candidate | Finding |
 |---|---|
-| orogen | Closest. The seed and sliders are packed into a deterministic "planet code" (`planet-code.js`); plate layout comes from a fixed-size coarse reference mesh, so the continent layout is resolution-independent by design. RNG is `rng.js` (11-line LCG). **Unverified**: whether elevation/climate fields at low resolution are a faithful preview of the high-resolution result. This needs an A/B test. |
+| orogen | Closest. The seed and sliders are packed into a deterministic "planet code" (`planet-code.js`); plate layout comes from a fixed-size coarse reference mesh, so the continent layout is resolution-independent by design. RNG is `rng.js` (11-line LCG). **Measured (spike 1c): not faithful below the continent scale.** Land IoU 0.80–0.91, Köppen agreement 41–73%, mountain IoU 0.06–0.49 vs 2.56M; no convergence with N. Continent layout and land fraction are resolution-independent. |
 | FLAMEGPU2 / SLiM / CesiumJS | Not applicable or explicitly weak (RunPlan; seed-invariance not guaranteed). |
 
 **Pick: orogen's architecture.** The preview-equals-final guarantee across all subsystems is original design work and must be tested.
@@ -312,7 +316,7 @@ No repo infers surrounding tectonic and continental context from a regional map.
 
 | Rank | Repo | Rating | Note |
 |---|---|---|---|
-| 1 | Azgaar | 4 | `save.ts`, `load.ts`: comprehensive versioned serialization. Browser-native. |
+| 1 | Azgaar | 3 | `save.ts`, `load.ts`: comprehensive versioned serialization. Browser-native. Lossy on reload (pack.cells.h re-derived from grid: 547/4226 cells differ; pop rounded; conf recomputed); no RNG state (spike 1a). |
 | 2 | Badlands / PISM / WRF-Hydro / MOM6 | 4 | HDF5 / NetCDF restarts; HPC formats, not portable. |
 | - | orogen | 1-2 | Planet code holds seed plus slider values only. It regenerates deterministically; it is not a mid-run checkpoint. |
 
@@ -322,11 +326,11 @@ No repo infers surrounding tectonic and continental context from a regional map.
 
 | Rank | Repo | Rating | Note |
 |---|---|---|---|
-| 1 | orogen | 5 | `tuning/climate/` (verified): `optimize.mjs`, `score.mjs`, `koppen-distance.mjs`, `ground-truth.mjs` score the simulation against Earth Köppen zones (`assets/earth.png`). The only reusable, JS calibration harness. |
+| 1 | orogen | 5 | `tuning/climate/` (verified, run): `optimize.mjs`, `score.mjs`, `koppen-distance.mjs`, `ground-truth.mjs` score the simulation against Kottek et al. 2006 Köppen-Geiger 0.5° (downloaded; not in checkout). The only reusable, JS calibration harness. Headless, <2 s per evaluation at 40k. README's objective formula is stale. |
 | 2 | VPLanet | 4 | `examples/EarthClimate`: parameters tuned to modern Earth. |
 | 3 | LPJmL | 4 | Calibrated to reanalysis and flux observations; data not bundled. |
 
-**Pick: orogen's tuning harness.** Unverified: how much real Earth ground truth is bundled (it appears to be the single `earth.png`). **Documenting what 0, 1.0 and 1.5 mean for each parameter, as the requirements demand, exists in no repo.** It is original work built on this harness.
+**Pick: orogen's tuning harness.** Ground truth is the Kottek ASCII grid (downloaded at tuning time, Q8); `earth.png` is the input heightmap. **Documenting what 0, 1.0 and 1.5 mean for each parameter, as the requirements demand, exists in no repo.** It is original work built on this harness.
 
 ### 29. Provenance
 
@@ -360,7 +364,7 @@ These are the capabilities with **no usable implementation in any upstream repo*
 | Azgaar | MIT | |
 | VPLanet | MIT | Verified (`LICENSE`). |
 | Badlands | GPL-3.0 | |
-| GPlates | GPL-2.0 | Whether "only" or "or later" is unverified. Matters for combination with GPL-3.0 code. |
+| GPlates | GPL-2.0-only | Verified: `COPYING` preamble says "version 2 ... not any later version". Incompatible with GPL-3.0; math reference only. |
 | CesiumJS | Apache-2.0 | |
 | LPJmL, FLAMEGPU2 | AGPL-3.0 | Network-copyleft. |
 | Eurace | custom EULA | **Do not extract** without legal review. Owner-controlled modification and redistribution (verified in `LICENSE.md`). |
