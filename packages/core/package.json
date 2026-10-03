@@ -1,0 +1,19 @@
+{
+  "name": "@mapmaker/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "delaunator": "5.0.1",
+    "fflate": "0.8.2"
+  },
+  "devDependencies": {
+    "@types/delaunator": "^5.0.3",
+    "alea": "^1.0.1"
+  }
+}

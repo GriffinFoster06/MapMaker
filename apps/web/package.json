@@ -1,0 +1,9 @@
+{
+  "name": "@mapmaker/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
+  "dependencies": { "@mapmaker/core": "*", "@mapmaker/engine": "*", "coi-serviceworker": "0.1.7" }
+}
