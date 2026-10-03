@@ -31,10 +31,13 @@ Everything involved in simulating a fantasy world, end to end:
 
 - Support whole planets and regional patches, down to the most detailed scale that is still map-worthy.
 - Detail must be consistent across zoom levels (no discontinuities between whole-planet and regional views).
-- The canonical world representation is spherical (planet-first). Flat maps are projections of the sphere, not separate data.
-- Must support both a globe view and flat projections: Mercator, equirectangular, equal-area, and the other major projections.
-  - `orogen` (in `upstream/`) is the reference for the globe view and provides equirectangular only. It is not a multi-projection reference (corrected per `audit/CAPABILITY_MATRIX.md`).
-  - No repo in `upstream/` contains browser-ready multi-projection code. Flat projections come from a third-party library (`d3-geo` / `d3-geo-projection`, plus `proj4js` if needed), recorded as a dependency in `PROVENANCE.md`.
+- Globe accuracy comes first. The canonical world representation is the sphere (planet-first), and it is the only source of truth. Flat maps are never separate data; they are views computed from the sphere.
+- Must support both a globe view and switchable flat projections: equirectangular (the default), Mercator, equal-area, and the other major projections.
+  - Distortion is a mathematical consequence of the projection, computed from the sphere (for example per-point area, angular, and scale distortion from the projection's Jacobian, and optionally a Tissot indicatrix overlay). Nothing in the world data is adjusted to suit a projection.
+  - Flat views and flat exports are rendered by inverse-projecting each output pixel back to latitude/longitude and sampling the sphere, so poles and the antimeridian are handled by the sphere rather than patched in the flat map.
+  - Switching projection never regenerates or alters the world.
+  - `orogen` (in `upstream/`) is the reference for the globe view and provides equirectangular only. It is not a multi-projection reference (corrected per `audit/CAPABILITY_MATRIX.md`), and its own review notes pole and antimeridian seam artifacts.
+  - No repo in `upstream/` contains browser-ready multi-projection code. Projection math comes from a third-party library (`d3-geo` / `d3-geo-projection`, plus `proj4js` if needed), recorded as a dependency in `PROVENANCE.md`.
 
 ## Whole-world mode
 
