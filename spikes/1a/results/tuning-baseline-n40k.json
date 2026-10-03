@@ -1,0 +1,353 @@
+{
+  "label": "baseline",
+  "n": 40000,
+  "seed": 1234,
+  "paramsFile": null,
+  "overrides": {},
+  "maskStats": {
+    "simLandFrac": 0.31334216644583884,
+    "truthLandFrac": 0.3115422114447139,
+    "scoredFrac": 0.303142421439464,
+    "landAgreement": 0.9674485399712781
+  },
+  "metrics": {
+    "objective": 0.6778483507683707,
+    "gradedAcc": 0.8243711516999953,
+    "exactAcc": 0.3998845456044862,
+    "majorAcc": 0.7213425696849745,
+    "macroF1": 0.21450211731525795,
+    "groupBalance": 0.9458189015338941,
+    "watchlistF1": 0.12009669569583442,
+    "groupFractions": {
+      "A": {
+        "sim": 0.2165594590136896,
+        "truth": 0.20592116114134917
+      },
+      "B": {
+        "sim": 0.227280224311397,
+        "truth": 0.26917367639782286
+      },
+      "C": {
+        "sim": 0.1788718456209797,
+        "truth": 0.15066798614547253
+      },
+      "D": {
+        "sim": 0.2078179119247897,
+        "truth": 0.22010555830446973
+      },
+      "E": {
+        "sim": 0.169470559129144,
+        "truth": 0.1541316180108857
+      }
+    },
+    "scored": 12126,
+    "perClass": [
+      {
+        "code": "Af",
+        "support": 589,
+        "precision": 0.552,
+        "recall": 0.35144312393887944,
+        "f1": 0.4294605809128631
+      },
+      {
+        "code": "Am",
+        "support": 432,
+        "precision": 0.19452054794520549,
+        "recall": 0.16435185185185186,
+        "f1": 0.17816813048933502
+      },
+      {
+        "code": "Aw",
+        "support": 1476,
+        "precision": 0.46447507953340406,
+        "recall": 0.5934959349593496,
+        "f1": 0.5211183819155264
+      },
+      {
+        "code": "BWh",
+        "support": 1598,
+        "precision": 0.6342042755344418,
+        "recall": 0.3341677096370463,
+        "f1": 0.4377049180327869
+      },
+      {
+        "code": "BWk",
+        "support": 340,
+        "precision": 0.07575757575757576,
+        "recall": 0.04411764705882353,
+        "f1": 0.05576208178438662
+      },
+      {
+        "code": "BSh",
+        "support": 727,
+        "precision": 0.11278792692613185,
+        "recall": 0.1953232462173315,
+        "f1": 0.1430010070493454
+      },
+      {
+        "code": "BSk",
+        "support": 599,
+        "precision": 0.19037199124726478,
+        "recall": 0.14524207011686144,
+        "f1": 0.1647727272727273
+      },
+      {
+        "code": "Cfa",
+        "support": 593,
+        "precision": 0.12569832402234637,
+        "recall": 0.15177065767284992,
+        "f1": 0.13750954927425516
+      },
+      {
+        "code": "Cfb",
+        "support": 375,
+        "precision": 0.3459715639810427,
+        "recall": 0.19466666666666665,
+        "f1": 0.24914675767918087
+      },
+      {
+        "code": "Cfc",
+        "support": 31,
+        "precision": 0,
+        "recall": 0,
+        "f1": 0
+      },
+      {
+        "code": "Csa",
+        "support": 225,
+        "precision": 0.17017543859649123,
+        "recall": 0.4311111111111111,
+        "f1": 0.2440251572327044
+      },
+      {
+        "code": "Csb",
+        "support": 145,
+        "precision": 0.22857142857142856,
+        "recall": 0.05517241379310345,
+        "f1": 0.08888888888888889
+      },
+      {
+        "code": "Csc",
+        "support": 3,
+        "precision": 0,
+        "recall": 0,
+        "f1": 0
+      },
+      {
+        "code": "Cwa",
+        "support": 328,
+        "precision": 0.24169741697416974,
+        "recall": 0.39939024390243905,
+        "f1": 0.30114942528735633
+      },
+      {
+        "code": "Cwb",
+        "support": 124,
+        "precision": 0.2857142857142857,
+        "recall": 0.16129032258064516,
+        "f1": 0.20618556701030927
+      },
+      {
+        "code": "Cwc",
+        "support": 3,
+        "precision": 0,
+        "recall": 0,
+        "f1": 0
+      },
+      {
+        "code": "Dfa",
+        "support": 134,
+        "precision": 0.20270270270270271,
+        "recall": 0.5597014925373134,
+        "f1": 0.2976190476190476
+      },
+      {
+        "code": "Dfb",
+        "support": 658,
+        "precision": 0.44242424242424244,
+        "recall": 0.22188449848024316,
+        "f1": 0.2955465587044534
+      },
+      {
+        "code": "Dfc",
+        "support": 1281,
+        "precision": 0.6591439688715953,
+        "recall": 0.6612021857923497,
+        "f1": 0.6601714731098987
+      },
+      {
+        "code": "Dfd",
+        "support": 138,
+        "precision": 0,
+        "recall": 0,
+        "f1": 0
+      },
+      {
+        "code": "Dsa",
+        "support": 13,
+        "precision": 0.014285714285714285,
+        "recall": 0.07692307692307693,
+        "f1": 0.024096385542168672
+      },
+      {
+        "code": "Dsb",
+        "support": 33,
+        "precision": 0.24324324324324326,
+        "recall": 0.2727272727272727,
+        "f1": 0.2571428571428572
+      },
+      {
+        "code": "Dsc",
+        "support": 27,
+        "precision": 0.046153846153846156,
+        "recall": 0.2222222222222222,
+        "f1": 0.07643312101910828
+      },
+      {
+        "code": "Dwa",
+        "support": 65,
+        "precision": 0,
+        "recall": 0,
+        "f1": 0
+      },
+      {
+        "code": "Dwb",
+        "support": 99,
+        "precision": 0,
+        "recall": 0,
+        "f1": 0
+      },
+      {
+        "code": "Dwc",
+        "support": 210,
+        "precision": 0.1111111111111111,
+        "recall": 0.1380952380952381,
+        "f1": 0.12314225053078556
+      },
+      {
+        "code": "Dwd",
+        "support": 11,
+        "precision": 0,
+        "recall": 0,
+        "f1": 0
+      },
+      {
+        "code": "ET",
+        "support": 720,
+        "precision": 0.43146603098927294,
+        "recall": 0.5027777777777778,
+        "f1": 0.4644002565747274
+      },
+      {
+        "code": "EF",
+        "support": 1149,
+        "precision": 0.8412828947368421,
+        "recall": 0.8903394255874674,
+        "f1": 0.8651162790697674
+      }
+    ],
+    "evalMs": 518
+  },
+  "topConfusions": [
+    {
+      "truth": "BWh",
+      "sim": "BSh",
+      "count": 652
+    },
+    {
+      "truth": "Am",
+      "sim": "Aw",
+      "count": 278
+    },
+    {
+      "truth": "Af",
+      "sim": "Aw",
+      "count": 220
+    },
+    {
+      "truth": "Aw",
+      "sim": "BSh",
+      "count": 203
+    },
+    {
+      "truth": "Dfc",
+      "sim": "ET",
+      "count": 191
+    },
+    {
+      "truth": "BSh",
+      "sim": "Aw",
+      "count": 178
+    },
+    {
+      "truth": "Dfb",
+      "sim": "Dfa",
+      "count": 178
+    },
+    {
+      "truth": "ET",
+      "sim": "EF",
+      "count": 178
+    },
+    {
+      "truth": "Cfb",
+      "sim": "Cfa",
+      "count": 159
+    },
+    {
+      "truth": "BWh",
+      "sim": "Aw",
+      "count": 153
+    },
+    {
+      "truth": "Dfb",
+      "sim": "Dfc",
+      "count": 148
+    },
+    {
+      "truth": "Dfc",
+      "sim": "Dwc",
+      "count": 147
+    },
+    {
+      "truth": "Af",
+      "sim": "Am",
+      "count": 145
+    },
+    {
+      "truth": "Cfa",
+      "sim": "Csa",
+      "count": 141
+    },
+    {
+      "truth": "Cfa",
+      "sim": "Aw",
+      "count": 119
+    },
+    {
+      "truth": "EF",
+      "sim": "ET",
+      "count": 117
+    },
+    {
+      "truth": "ET",
+      "sim": "Dfc",
+      "count": 110
+    },
+    {
+      "truth": "Aw",
+      "sim": "Am",
+      "count": 108
+    },
+    {
+      "truth": "BWk",
+      "sim": "BSk",
+      "count": 104
+    },
+    {
+      "truth": "Cfa",
+      "sim": "Cwa",
+      "count": 102
+    }
+  ]
+}

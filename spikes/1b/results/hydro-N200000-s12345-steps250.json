@@ -1,0 +1,80 @@
+{
+ "N": 200000,
+ "seed": 12345,
+ "numRegions": 200001,
+ "resolveDepressionsSteps": 250,
+ "timingMs": {
+  "facade": 232,
+  "markupPack": 81,
+  "riversGenerate": 1128
+ },
+ "features": {
+  "oceans": 1,
+  "oceanCells": [
+   144279
+  ],
+  "lakes": 231,
+  "islands": 324
+ },
+ "rivers": 2557,
+ "criterion1_termination": {
+  "ocean": 692,
+  "lake": 122,
+  "tributary": 1743,
+  "offMap": 0,
+  "deadEndOnLand": 0,
+  "pass": true,
+  "badRiverIds": []
+ },
+ "criterion2_artifacts": {
+  "riverCellFractionByZone": {
+   "seam": {
+    "land": 2,
+    "river": 0,
+    "lakeAdj": 0,
+    "riverFrac": 0
+   },
+   "other": {
+    "land": 50394,
+    "river": 12543,
+    "lakeAdj": 0,
+    "riverFrac": 0.2489
+   },
+   "polar": {
+    "land": 3759,
+    "river": 838,
+    "lakeAdj": 0,
+    "riverFrac": 0.2229
+   },
+   "antimeridian": {
+    "land": 800,
+    "river": 169,
+    "lakeAdj": 0,
+    "riverFrac": 0.2112
+   }
+  },
+  "lakesByZone": {
+   "other": 212,
+   "polar": 15,
+   "antimeridian": 4
+  },
+  "featuresSpanningAntimeridian": 3,
+  "pathGaps": 32,
+  "pathGapKinds": {
+   "lake->lake (repeat)": 31,
+   "lake->lake": 1
+  },
+  "antimeridianCrossings": 25,
+  "riversCrossingAntimeridian": 16,
+  "seamCellIsRiver": false,
+  "seamCellH": 5
+ },
+ "criterion3_discharge": {
+  "downstreamDecreases": 0,
+  "riversWithDecrease": 0,
+  "totalRivers": 2557,
+  "maxCellFlux": 29899,
+  "cellsAtUint16Max": 0,
+  "maxRiverDischarge": 29899
+ }
+}

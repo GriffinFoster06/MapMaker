@@ -1,0 +1,15 @@
+{
+  "name": "mapmaker-phase1-spikes",
+  "private": true,
+  "type": "module",
+  "description": "Phase 1 throwaway spikes. Not shipped.",
+  "license": "GPL-3.0-only",
+  "dependencies": {
+    "delaunator": "5.0.1",
+    "pngjs": "7.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10",
+    "playwright": "1.55.1"
+  }
+}

@@ -1,0 +1,148 @@
+{
+ "regressionNoPins": {
+  "arrays": 69,
+  "differing": []
+ },
+ "fixedContinent": [
+  {
+   "seed": 12345,
+   "N": 20000,
+   "cells": 345,
+   "pinnedPlateIsLand": true,
+   "plateSurvival": 1,
+   "finalLandInCap": 0.936231884057971,
+   "finalLandInCore13deg": 0.9615384615384616,
+   "finalLandInRing15to17deg": 0.5978260869565217,
+   "worldLandFrac": 0.26368681565921703,
+   "plates": 80
+  },
+  {
+   "seed": 12345,
+   "N": 200000,
+   "cells": 3401,
+   "pinnedPlateIsLand": true,
+   "plateSurvival": 1,
+   "finalLandInCap": 0.9770655689503087,
+   "finalLandInCore13deg": 0.9972698907956318,
+   "finalLandInRing15to17deg": 0.6924664602683178,
+   "worldLandFrac": 0.2746436267818661,
+   "plates": 80
+  },
+  {
+   "seed": 777,
+   "N": 20000,
+   "cells": 336,
+   "pinnedPlateIsLand": true,
+   "plateSurvival": 1,
+   "finalLandInCap": 0.9910714285714286,
+   "finalLandInCore13deg": 1,
+   "finalLandInRing15to17deg": 0.8787878787878788,
+   "worldLandFrac": 0.26698665066746663,
+   "plates": 80
+  },
+  {
+   "seed": 777,
+   "N": 200000,
+   "cells": 3416,
+   "pinnedPlateIsLand": true,
+   "plateSurvival": 1,
+   "finalLandInCap": 0.9713114754098361,
+   "finalLandInCore13deg": 0.9793452844894778,
+   "finalLandInRing15to17deg": 0.9076600209863589,
+   "worldLandFrac": 0.2715936420317898,
+   "plates": 80
+  },
+  {
+   "seed": 4242,
+   "N": 20000,
+   "cells": 342,
+   "pinnedPlateIsLand": true,
+   "plateSurvival": 1,
+   "finalLandInCap": 0.9853801169590644,
+   "finalLandInCore13deg": 1,
+   "finalLandInRing15to17deg": 0.75,
+   "worldLandFrac": 0.2704364781760912,
+   "plates": 80
+  },
+  {
+   "seed": 4242,
+   "N": 200000,
+   "cells": 3408,
+   "pinnedPlateIsLand": true,
+   "plateSurvival": 1,
+   "finalLandInCap": 0.9958920187793427,
+   "finalLandInCore13deg": 1,
+   "finalLandInRing15to17deg": 0.8133472367049009,
+   "worldLandFrac": 0.273318633406833,
+   "plates": 80
+  }
+ ],
+ "heldRegion": [
+  {
+   "label": "unpinned seed S2 (control)",
+   "N": 20000,
+   "cellsInRegion": 938,
+   "plateSurvival": null,
+   "plateLevelLandAgreement": 0.6513859275053305,
+   "finalLandAgreement": 0.6247334754797441,
+   "elevationCorrelation": -0.14495063389652163,
+   "mountainIoU": 0,
+   "outsideFinalLandAgreement": 0.5968105754603158
+  },
+  {
+   "label": "pinned plates+land+Euler poles",
+   "N": 20000,
+   "cellsInRegion": 938,
+   "plateSurvival": 1,
+   "plateLevelLandAgreement": 1,
+   "finalLandAgreement": 0.8560767590618337,
+   "elevationCorrelation": 0.6489848303766934,
+   "mountainIoU": 0,
+   "outsideFinalLandAgreement": 0.6343702460263337
+  },
+  {
+   "label": "pinned plates+land only",
+   "N": 20000,
+   "cellsInRegion": 938,
+   "plateSurvival": 1,
+   "plateLevelLandAgreement": 1,
+   "finalLandAgreement": 0.8742004264392325,
+   "elevationCorrelation": 0.6336441017804623,
+   "mountainIoU": 0.0975609756097561,
+   "outsideFinalLandAgreement": 0.6452814352410429
+  },
+  {
+   "label": "unpinned seed S2 (control)",
+   "N": 200000,
+   "cellsInRegion": 9372,
+   "plateSurvival": null,
+   "plateLevelLandAgreement": 0.6693341869398207,
+   "finalLandAgreement": 0.6565300896286812,
+   "elevationCorrelation": -0.1364509261906853,
+   "mountainIoU": 0,
+   "outsideFinalLandAgreement": 0.5861332745804678
+  },
+  {
+   "label": "pinned plates+land+Euler poles",
+   "N": 200000,
+   "cellsInRegion": 9372,
+   "plateSurvival": 0.9997865983781477,
+   "plateLevelLandAgreement": 1,
+   "finalLandAgreement": 0.9040759709773795,
+   "elevationCorrelation": 0.7251673841703244,
+   "mountainIoU": 0.21676300578034682,
+   "outsideFinalLandAgreement": 0.6276327316410409
+  },
+  {
+   "label": "pinned plates+land only",
+   "N": 200000,
+   "cellsInRegion": 9372,
+   "plateSurvival": 0.9997865983781477,
+   "plateLevelLandAgreement": 1,
+   "finalLandAgreement": 0.9061032863849765,
+   "elevationCorrelation": 0.6794882075902263,
+   "mountainIoU": 0.050793650793650794,
+   "outsideFinalLandAgreement": 0.6250045900676182
+  }
+ ]
+}

@@ -1,0 +1,347 @@
+[
+ {
+  "seed": 12345,
+  "numRegions": 200001,
+  "seamIndex": 200000,
+  "seamXYZ_orogen": [
+   0,
+   0,
+   1
+  ],
+  "seamLatLon": [
+   0,
+   0
+  ],
+  "southIndex": 199999,
+  "southLatLon": [
+   -0.18369010153097004,
+   179.9954785529351
+  ],
+  "permutation": {
+   "maxLatErrRad": 0,
+   "maxLonErrRad": 0
+  },
+  "degree": {
+   "seam": 5,
+   "south": 8,
+   "min": 3,
+   "p50": 6,
+   "p999": 10,
+   "max": 12
+  },
+  "areaOverMean": {
+   "seam": 0.566,
+   "south": 1.7
+  },
+  "nnDistOverMedian": {
+   "seam": 0.544,
+   "south": 1.378
+  },
+  "roughnessPercentileInEquatorialBand": {
+   "r_elevation": {
+    "seam": 87,
+    "south": 5.8
+   },
+   "r_precip_summer": {
+    "seam": 74,
+    "south": 74.8
+   },
+   "r_precip_winter": {
+    "seam": 57.5,
+    "south": 86.3
+   },
+   "r_temperature_summer": {
+    "seam": 81,
+    "south": 78.4
+   },
+   "r_temperature_winter": {
+    "seam": 62.1,
+    "south": 67.4
+   },
+   "r_wind_east_summer": {
+    "seam": 91.7,
+    "south": 60.5
+   },
+   "r_plate": {
+    "seam": 0,
+    "south": 0
+   }
+  }
+ },
+ {
+  "seed": 777,
+  "numRegions": 200001,
+  "seamIndex": 200000,
+  "seamXYZ_orogen": [
+   0,
+   0,
+   1
+  ],
+  "seamLatLon": [
+   0,
+   0
+  ],
+  "southIndex": 199998,
+  "southLatLon": [
+   0.0728804392841582,
+   -179.81946452714956
+  ],
+  "permutation": {
+   "maxLatErrRad": 0,
+   "maxLonErrRad": 0
+  },
+  "degree": {
+   "seam": 4,
+   "south": 6,
+   "min": 3,
+   "p50": 6,
+   "p999": 10,
+   "max": 12
+  },
+  "areaOverMean": {
+   "seam": 0.284,
+   "south": 0.819
+  },
+  "nnDistOverMedian": {
+   "seam": 0.649,
+   "south": 0.495
+  },
+  "roughnessPercentileInEquatorialBand": {
+   "r_elevation": {
+    "seam": 85.8,
+    "south": 37.6
+   },
+   "r_precip_summer": {
+    "seam": 63.4,
+    "south": 59.7
+   },
+   "r_precip_winter": {
+    "seam": 37.6,
+    "south": 62.5
+   },
+   "r_temperature_summer": {
+    "seam": 87.3,
+    "south": 92.7
+   },
+   "r_temperature_winter": {
+    "seam": 80.1,
+    "south": 91.9
+   },
+   "r_wind_east_summer": {
+    "seam": 34.8,
+    "south": 93.8
+   },
+   "r_plate": {
+    "seam": 0,
+    "south": 0
+   }
+  }
+ },
+ {
+  "seed": 4242,
+  "numRegions": 200001,
+  "seamIndex": 200000,
+  "seamXYZ_orogen": [
+   0,
+   0,
+   1
+  ],
+  "seamLatLon": [
+   0,
+   0
+  ],
+  "southIndex": 199999,
+  "southLatLon": [
+   -0.18048878103589155,
+   -179.95483644057563
+  ],
+  "permutation": {
+   "maxLatErrRad": 0,
+   "maxLonErrRad": 0
+  },
+  "degree": {
+   "seam": 5,
+   "south": 7,
+   "min": 3,
+   "p50": 6,
+   "p999": 10,
+   "max": 12
+  },
+  "areaOverMean": {
+   "seam": 0.512,
+   "south": 0.7
+  },
+  "nnDistOverMedian": {
+   "seam": 0.651,
+   "south": 0.324
+  },
+  "roughnessPercentileInEquatorialBand": {
+   "r_elevation": {
+    "seam": 24.7,
+    "south": 75.9
+   },
+   "r_precip_summer": {
+    "seam": 70.1,
+    "south": 74.1
+   },
+   "r_precip_winter": {
+    "seam": 62.7,
+    "south": 50.2
+   },
+   "r_temperature_summer": {
+    "seam": 54.7,
+    "south": 98.3
+   },
+   "r_temperature_winter": {
+    "seam": 29.4,
+    "south": 81.9
+   },
+   "r_wind_east_summer": {
+    "seam": 74.1,
+    "south": 99.1
+   },
+   "r_plate": {
+    "seam": 0,
+    "south": 0
+   }
+  }
+ },
+ {
+  "seed": 9001,
+  "numRegions": 200001,
+  "seamIndex": 200000,
+  "seamXYZ_orogen": [
+   0,
+   0,
+   1
+  ],
+  "seamLatLon": [
+   0,
+   0
+  ],
+  "southIndex": 199999,
+  "southLatLon": [
+   -0.16945490580982378,
+   -179.93879256771706
+  ],
+  "permutation": {
+   "maxLatErrRad": 0,
+   "maxLonErrRad": 0
+  },
+  "degree": {
+   "seam": 6,
+   "south": 6,
+   "min": 3,
+   "p50": 6,
+   "p999": 10,
+   "max": 12
+  },
+  "areaOverMean": {
+   "seam": 0.569,
+   "south": 0.937
+  },
+  "nnDistOverMedian": {
+   "seam": 0.701,
+   "south": 1.364
+  },
+  "roughnessPercentileInEquatorialBand": {
+   "r_elevation": {
+    "seam": 87,
+    "south": 15.6
+   },
+   "r_precip_summer": {
+    "seam": 73.7,
+    "south": 48.5
+   },
+   "r_precip_winter": {
+    "seam": 95.8,
+    "south": 77.4
+   },
+   "r_temperature_summer": {
+    "seam": 34.7,
+    "south": 47
+   },
+   "r_temperature_winter": {
+    "seam": 86.3,
+    "south": 72.3
+   },
+   "r_wind_east_summer": {
+    "seam": 96.8,
+    "south": 96.4
+   },
+   "r_plate": {
+    "seam": 0,
+    "south": 0
+   }
+  }
+ },
+ {
+  "seed": 31337,
+  "numRegions": 200001,
+  "seamIndex": 200000,
+  "seamXYZ_orogen": [
+   0,
+   0,
+   1
+  ],
+  "seamLatLon": [
+   0,
+   0
+  ],
+  "southIndex": 199999,
+  "southLatLon": [
+   -0.21362511996796285,
+   179.99121887020962
+  ],
+  "permutation": {
+   "maxLatErrRad": 0,
+   "maxLonErrRad": 0
+  },
+  "degree": {
+   "seam": 5,
+   "south": 6,
+   "min": 3,
+   "p50": 6,
+   "p999": 10,
+   "max": 12
+  },
+  "areaOverMean": {
+   "seam": 0.621,
+   "south": 1.146
+  },
+  "nnDistOverMedian": {
+   "seam": 0.601,
+   "south": 1.331
+  },
+  "roughnessPercentileInEquatorialBand": {
+   "r_elevation": {
+    "seam": 40.4,
+    "south": 78.3
+   },
+   "r_precip_summer": {
+    "seam": 18.5,
+    "south": 65.5
+   },
+   "r_precip_winter": {
+    "seam": 49.5,
+    "south": 54.8
+   },
+   "r_temperature_summer": {
+    "seam": 77.7,
+    "south": 28.3
+   },
+   "r_temperature_winter": {
+    "seam": 65.3,
+    "south": 52.7
+   },
+   "r_wind_east_summer": {
+    "seam": 76.7,
+    "south": 47.9
+   },
+   "r_plate": {
+    "seam": 0,
+    "south": 0
+   }
+  }
+ }
+]

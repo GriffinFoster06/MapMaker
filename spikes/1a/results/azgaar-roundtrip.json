@@ -1,0 +1,55 @@
+{
+ "seed": "mapmaker-1a",
+ "mapBytes": 3087184,
+ "mapLines": 53,
+ "roundTrip": {
+  "mapLinesDiffering": [
+   {
+    "line": 18,
+    "lenA": 8472,
+    "lenB": 8471,
+    "headA": "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,",
+    "headB": "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"
+   }
+  ],
+  "packDigestDiffering": [
+   "cells.h",
+   "cells.pop"
+  ]
+ },
+ "sameSeedFreshPage": {
+  "mapLinesDiffering": [
+   {
+    "line": 0,
+    "headA": "1.153.1|File can be loaded in azgaar.github.io/Fantasy-Map-Generator|2026-10-3|m",
+    "headB": "1.153.1|File can be loaded in azgaar.github.io/Fantasy-Map-Generator|2026-10-3|m"
+   }
+  ],
+  "packDigestDiffering": []
+ },
+ "digest": {
+  "cells.h": "e7f4f845",
+  "cells.f": "dc12fc85",
+  "cells.t": "1cddabe5",
+  "cells.biome": "d7d866dd",
+  "cells.pop": "f82c73eb",
+  "cells.r": "acdf7b0d",
+  "cells.fl": "70cf925",
+  "cells.burg": "489de8cd",
+  "cells.culture": "5f661635",
+  "cells.state": "3616a515",
+  "cells.religion": "e492575",
+  "cells.province": "8fa160a5",
+  "n.burgs": 480,
+  "n.states": 19,
+  "n.cultures": 14,
+  "n.religions": 26,
+  "n.provinces": 128,
+  "n.rivers": 139,
+  "n.features": 29,
+  "n.markers": 53,
+  "names.burgs": "e21d85a"
+ },
+ "containsRngState": true,
+ "firstLine": "1.153.1|File can be loaded in azgaar.github.io/Fantasy-Map-Generator|2026-10-3|mapmaker-1a|1280|720|1791057210609"
+}

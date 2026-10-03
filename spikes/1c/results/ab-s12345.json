@@ -1,0 +1,726 @@
+{
+ "seed": 12345,
+ "Ns": [
+  20000,
+  50000,
+  200000,
+  1000000,
+  2560000
+ ],
+ "refN": 20001,
+ "mountainThresholdM": 1500,
+ "runs": [
+  {
+   "N": 20000,
+   "numRegions": 20001,
+   "ms": 585,
+   "cellKm": 159.7,
+   "landFrac": 0.2722,
+   "coastCells": 1216
+  },
+  {
+   "N": 50000,
+   "numRegions": 50001,
+   "ms": 1099,
+   "cellKm": 101,
+   "landFrac": 0.276,
+   "coastCells": 2387
+  },
+  {
+   "N": 200000,
+   "numRegions": 200001,
+   "ms": 4001,
+   "cellKm": 50.5,
+   "landFrac": 0.275,
+   "coastCells": 7231
+  },
+  {
+   "N": 1000000,
+   "numRegions": 1000001,
+   "ms": 22046,
+   "cellKm": 22.6,
+   "landFrac": 0.2791,
+   "coastCells": 25433
+  },
+  {
+   "N": 2560000,
+   "numRegions": 2560001,
+   "ms": 76900,
+   "cellKm": 14.1,
+   "landFrac": 0.2804,
+   "coastCells": 54882
+  }
+ ],
+ "vsFinal": [
+  {
+   "preview": 20000,
+   "final": 2560000,
+   "landIoU": {
+    "grid1deg": 0.8290317814289898,
+    "ref20k": 0.8555318999612556
+   },
+   "coastline": {
+    "hausdorffKm": 3890.6396841842175,
+    "p95Km": 532.7408660860826,
+    "p50Km": 128.8090267190168,
+    "hausdorffPreviewCells": 24.363199982113095,
+    "p95PreviewCells": 3.3360252587411816
+   },
+   "hypsometryKS": {
+    "all": 0.1490702837801408,
+    "land": 0.23771032337460124
+   },
+   "elevRmseLowpass20k": {
+    "allM": 1189.498634342374,
+    "landM": 1089.3184434185864
+   },
+   "mountains": {
+    "iou": 0.12954009164902486,
+    "finalMajorBelts": 5,
+    "missingInPreview": 2,
+    "previewMajorBelts": 12,
+    "newInPreview": 9,
+    "finalBelts": [
+     {
+      "areaKm2": 1245030,
+      "overlapFrac": 0.392
+     },
+     {
+      "areaKm2": 357358,
+      "overlapFrac": 0
+     },
+     {
+      "areaKm2": 673928,
+      "overlapFrac": 0.51
+     },
+     {
+      "areaKm2": 287234,
+      "overlapFrac": 0
+     },
+     {
+      "areaKm2": 348047,
+      "overlapFrac": 0.655
+     }
+    ]
+   },
+   "koppenAgreement": {
+    "ref20k": 0.4118712199754473,
+    "grid1deg": 0.39780522106508215
+   },
+   "precipCorrelation": {
+    "all": 0.8646070283669723,
+    "land": 0.6985791272091673
+   },
+   "majorBasins": {
+    "perBasinBestIoU": [
+     0.473,
+     0.303,
+     0.39,
+     0.36,
+     0.412,
+     0.561,
+     0.557,
+     0,
+     0,
+     0.158
+    ],
+    "meanIoU": 0.32139999999999996,
+    "matchedAt50": 2
+   }
+  },
+  {
+   "preview": 50000,
+   "final": 2560000,
+   "landIoU": {
+    "grid1deg": 0.8626901345175089,
+    "ref20k": 0.8728781357943426
+   },
+   "coastline": {
+    "hausdorffKm": 2928.083436467068,
+    "p95Km": 466.24340319440034,
+    "p50Km": 79.52180480593279,
+    "hausdorffPreviewCells": 28.990803738795616,
+    "p95PreviewCells": 4.616251992062739
+   },
+   "hypsometryKS": {
+    "all": 0.11839660770279598,
+    "land": 0.21008069578993127
+   },
+   "elevRmseLowpass20k": {
+    "allM": 913.9845273113027,
+    "landM": 749.3306704754924
+   },
+   "mountains": {
+    "iou": 0.2471708870505265,
+    "finalMajorBelts": 5,
+    "missingInPreview": 0,
+    "previewMajorBelts": 10,
+    "newInPreview": 7,
+    "finalBelts": [
+     {
+      "areaKm2": 1245030,
+      "overlapFrac": 0.801
+     },
+     {
+      "areaKm2": 357358,
+      "overlapFrac": 0.502
+     },
+     {
+      "areaKm2": 673928,
+      "overlapFrac": 0.75
+     },
+     {
+      "areaKm2": 287234,
+      "overlapFrac": 0.586
+     },
+     {
+      "areaKm2": 348047,
+      "overlapFrac": 0.627
+     }
+    ]
+   },
+   "koppenAgreement": {
+    "ref20k": 0.47371820589569047,
+    "grid1deg": 0.4660283437787842
+   },
+   "precipCorrelation": {
+    "all": 0.8403134671329219,
+    "land": 0.7742547281258706
+   },
+   "majorBasins": {
+    "perBasinBestIoU": [
+     0.672,
+     0.427,
+     0.328,
+     0.291,
+     0.459,
+     0.57,
+     0.829,
+     0.27,
+     0.138,
+     0.003
+    ],
+    "meanIoU": 0.39869999999999994,
+    "matchedAt50": 3
+   }
+  },
+  {
+   "preview": 200000,
+   "final": 2560000,
+   "landIoU": {
+    "grid1deg": 0.8819615447678443,
+    "ref20k": 0.915800391655161
+   },
+   "coastline": {
+    "hausdorffKm": 2568.73094807097,
+    "p95Km": 271.0810762475286,
+    "p50Km": 38.819554872118914,
+    "hausdorffPreviewCells": 50.86536492307941,
+    "p95PreviewCells": 5.367879371495273
+   },
+   "hypsometryKS": {
+    "all": 0.06924318031531085,
+    "land": 0.18968743420848866
+   },
+   "elevRmseLowpass20k": {
+    "allM": 654.2920638170381,
+    "landM": 639.9605279090406
+   },
+   "mountains": {
+    "iou": 0.26887951053535836,
+    "finalMajorBelts": 5,
+    "missingInPreview": 0,
+    "previewMajorBelts": 12,
+    "newInPreview": 7,
+    "finalBelts": [
+     {
+      "areaKm2": 1245030,
+      "overlapFrac": 0.841
+     },
+     {
+      "areaKm2": 357358,
+      "overlapFrac": 0.857
+     },
+     {
+      "areaKm2": 673928,
+      "overlapFrac": 0.48
+     },
+     {
+      "areaKm2": 287234,
+      "overlapFrac": 1
+     },
+     {
+      "areaKm2": 348047,
+      "overlapFrac": 0.709
+     }
+    ]
+   },
+   "koppenAgreement": {
+    "ref20k": 0.6048475288911611,
+    "grid1deg": 0.5743893307913782
+   },
+   "precipCorrelation": {
+    "all": 0.925040478724656,
+    "land": 0.8179803708511688
+   },
+   "majorBasins": {
+    "perBasinBestIoU": [
+     0.689,
+     0.559,
+     0.519,
+     0.395,
+     0.294,
+     0.543,
+     0.029,
+     0.254,
+     0.291,
+     0.383
+    ],
+    "meanIoU": 0.3956,
+    "matchedAt50": 4
+   }
+  },
+  {
+   "preview": 1000000,
+   "final": 2560000,
+   "landIoU": {
+    "grid1deg": 0.9078118120629709,
+    "ref20k": 0.944216418072707
+   },
+   "coastline": {
+    "hausdorffKm": 1838.3803852653652,
+    "p95Km": 176.14672824248714,
+    "p50Km": 16.063918316016586,
+    "hausdorffPreviewCells": 81.39974749353574,
+    "p95PreviewCells": 7.799419160295937
+   },
+   "hypsometryKS": {
+    "all": 0.03053506273132839,
+    "land": 0.08076011726502114
+   },
+   "elevRmseLowpass20k": {
+    "allM": 480.05088147790434,
+    "landM": 435.6183179238901
+   },
+   "mountains": {
+    "iou": 0.3973794430856349,
+    "finalMajorBelts": 5,
+    "missingInPreview": 0,
+    "previewMajorBelts": 8,
+    "newInPreview": 2,
+    "finalBelts": [
+     {
+      "areaKm2": 1245030,
+      "overlapFrac": 0.908
+     },
+     {
+      "areaKm2": 357358,
+      "overlapFrac": 0.627
+     },
+     {
+      "areaKm2": 673928,
+      "overlapFrac": 0.945
+     },
+     {
+      "areaKm2": 287234,
+      "overlapFrac": 1
+     },
+     {
+      "areaKm2": 348047,
+      "overlapFrac": 0.578
+     }
+    ]
+   },
+   "koppenAgreement": {
+    "ref20k": 0.7346784445375912,
+    "grid1deg": 0.6938202520807686
+   },
+   "precipCorrelation": {
+    "all": 0.9548208723124937,
+    "land": 0.8878440488691944
+   },
+   "majorBasins": {
+    "perBasinBestIoU": [
+     0.508,
+     0.482,
+     0.473,
+     0.415,
+     0.355,
+     0.591,
+     0.472,
+     0.123,
+     0.111,
+     0.385
+    ],
+    "meanIoU": 0.3915,
+    "matchedAt50": 2
+   }
+  }
+ ],
+ "consecutive": [
+  {
+   "preview": 20000,
+   "final": 50000,
+   "landIoU": {
+    "grid1deg": 0.8385136312493802,
+    "ref20k": 0.8341165255879388
+   },
+   "coastline": {
+    "hausdorffKm": 3118.1453798533303,
+    "p95Km": 456.0614608400716,
+    "p50Km": 104.65778797029063,
+    "hausdorffPreviewCells": 19.525837813119804,
+    "p95PreviewCells": 2.8558585416554876
+   },
+   "hypsometryKS": {
+    "all": 0.04428592638202078,
+    "land": 0.03944345791928461
+   },
+   "elevRmseLowpass20k": {
+    "allM": 1065.0708528105497,
+    "landM": 1178.5691991053109
+   },
+   "mountains": {
+    "iou": 0.225320229683283,
+    "finalMajorBelts": 10,
+    "missingInPreview": 2,
+    "previewMajorBelts": 12,
+    "newInPreview": 4,
+    "finalBelts": [
+     {
+      "areaKm2": 1366004,
+      "overlapFrac": 0.39
+     },
+     {
+      "areaKm2": 875109,
+      "overlapFrac": 0.366
+     },
+     {
+      "areaKm2": 299548,
+      "overlapFrac": 0.493
+     },
+     {
+      "areaKm2": 1192365,
+      "overlapFrac": 0.628
+     },
+     {
+      "areaKm2": 744270,
+      "overlapFrac": 0.55
+     },
+     {
+      "areaKm2": 378929,
+      "overlapFrac": 0.396
+     },
+     {
+      "areaKm2": 719610,
+      "overlapFrac": 0.516
+     },
+     {
+      "areaKm2": 631668,
+      "overlapFrac": 0.248
+     },
+     {
+      "areaKm2": 393096,
+      "overlapFrac": 0.888
+     },
+     {
+      "areaKm2": 260885,
+      "overlapFrac": 0
+     }
+    ]
+   },
+   "koppenAgreement": {
+    "ref20k": 0.5733873007834027,
+    "grid1deg": 0.5709871737459715
+   },
+   "precipCorrelation": {
+    "all": 0.7969544777502028,
+    "land": 0.6619711237265498
+   },
+   "majorBasins": {
+    "perBasinBestIoU": [
+     0.229,
+     0.472,
+     0.363,
+     0.558,
+     0.52,
+     0.533,
+     0.688,
+     0,
+     0.206,
+     0.24
+    ],
+    "meanIoU": 0.3809,
+    "matchedAt50": 4
+   }
+  },
+  {
+   "preview": 50000,
+   "final": 200000,
+   "landIoU": {
+    "grid1deg": 0.866242156323163,
+    "ref20k": 0.8710599876037181
+   },
+   "coastline": {
+    "hausdorffKm": 2589.2350432144735,
+    "p95Km": 315.9870643978697,
+    "p50Km": 65.28935410148213,
+    "hausdorffPreviewCells": 25.63588319805962,
+    "p95PreviewCells": 3.1285716977415925
+   },
+   "hypsometryKS": {
+    "all": 0.05461660223956763,
+    "land": 0.03498114230015387
+   },
+   "elevRmseLowpass20k": {
+    "allM": 815.8900180861199,
+    "landM": 793.9809358237657
+   },
+   "mountains": {
+    "iou": 0.3035778906366802,
+    "finalMajorBelts": 12,
+    "missingInPreview": 2,
+    "previewMajorBelts": 10,
+    "newInPreview": 0,
+    "finalBelts": [
+     {
+      "areaKm2": 296477,
+      "overlapFrac": 0.231
+     },
+     {
+      "areaKm2": 1096365,
+      "overlapFrac": 0.825
+     },
+     {
+      "areaKm2": 453716,
+      "overlapFrac": 0.483
+     },
+     {
+      "areaKm2": 286222,
+      "overlapFrac": 0.888
+     },
+     {
+      "areaKm2": 1008148,
+      "overlapFrac": 0.457
+     },
+     {
+      "areaKm2": 1044994,
+      "overlapFrac": 0.318
+     },
+     {
+      "areaKm2": 274444,
+      "overlapFrac": 0.41
+     },
+     {
+      "areaKm2": 692499,
+      "overlapFrac": 0.323
+     },
+     {
+      "areaKm2": 963106,
+      "overlapFrac": 0.545
+     },
+     {
+      "areaKm2": 446390,
+      "overlapFrac": 0.588
+     },
+     {
+      "areaKm2": 347112,
+      "overlapFrac": 0
+     },
+     {
+      "areaKm2": 268888,
+      "overlapFrac": 0.442
+     }
+    ]
+   },
+   "koppenAgreement": {
+    "ref20k": 0.5604441373890645,
+    "grid1deg": 0.5508827109982026
+   },
+   "precipCorrelation": {
+    "all": 0.8391958828757395,
+    "land": 0.7676241608336379
+   },
+   "majorBasins": {
+    "perBasinBestIoU": [
+     0.388,
+     0.591,
+     0.565,
+     0.541,
+     0.38,
+     0.005,
+     0.163,
+     0.163,
+     0.685,
+     0.053
+    ],
+    "meanIoU": 0.35339999999999994,
+    "matchedAt50": 4
+   }
+  },
+  {
+   "preview": 200000,
+   "final": 1000000,
+   "landIoU": {
+    "grid1deg": 0.896716558217957,
+    "ref20k": 0.931346923563381
+   },
+   "coastline": {
+    "hausdorffKm": 2480.824183715942,
+    "p95Km": 188.7706450545696,
+    "p50Km": 33.26505689531025,
+    "hausdorffPreviewCells": 49.12465725905429,
+    "p95PreviewCells": 3.737988890847627
+   },
+   "hypsometryKS": {
+    "all": 0.04114314570274452,
+    "land": 0.1122278813626913
+   },
+   "elevRmseLowpass20k": {
+    "allM": 577.3035046296499,
+    "landM": 566.3690642308003
+   },
+   "mountains": {
+    "iou": 0.3767790098727459,
+    "finalMajorBelts": 8,
+    "missingInPreview": 0,
+    "previewMajorBelts": 12,
+    "newInPreview": 1,
+    "finalBelts": [
+     {
+      "areaKm2": 1871544,
+      "overlapFrac": 0.537
+     },
+     {
+      "areaKm2": 276643,
+      "overlapFrac": 0.546
+     },
+     {
+      "areaKm2": 909114,
+      "overlapFrac": 0.374
+     },
+     {
+      "areaKm2": 499293,
+      "overlapFrac": 0.934
+     },
+     {
+      "areaKm2": 299376,
+      "overlapFrac": 0.853
+     },
+     {
+      "areaKm2": 394989,
+      "overlapFrac": 0.916
+     },
+     {
+      "areaKm2": 632252,
+      "overlapFrac": 0.778
+     },
+     {
+      "areaKm2": 259778,
+      "overlapFrac": 1
+     }
+    ]
+   },
+   "koppenAgreement": {
+    "ref20k": 0.6337333686930474,
+    "grid1deg": 0.6049609450643704
+   },
+   "precipCorrelation": {
+    "all": 0.9365360419697804,
+    "land": 0.8388212781276028
+   },
+   "majorBasins": {
+    "perBasinBestIoU": [
+     0.675,
+     0.576,
+     0.248,
+     0.514,
+     0.612,
+     0.388,
+     0.334,
+     0.785,
+     0.547,
+     0.025
+    ],
+    "meanIoU": 0.4704,
+    "matchedAt50": 6
+   }
+  },
+  {
+   "preview": 1000000,
+   "final": 2560000,
+   "landIoU": {
+    "grid1deg": 0.9078118120629709,
+    "ref20k": 0.944216418072707
+   },
+   "coastline": {
+    "hausdorffKm": 1838.3803852653652,
+    "p95Km": 176.14672824248714,
+    "p50Km": 16.063918316016586,
+    "hausdorffPreviewCells": 81.39974749353574,
+    "p95PreviewCells": 7.799419160295937
+   },
+   "hypsometryKS": {
+    "all": 0.03053506273132839,
+    "land": 0.08076011726502114
+   },
+   "elevRmseLowpass20k": {
+    "allM": 480.05088147790434,
+    "landM": 435.6183179238901
+   },
+   "mountains": {
+    "iou": 0.3973794430856349,
+    "finalMajorBelts": 5,
+    "missingInPreview": 0,
+    "previewMajorBelts": 8,
+    "newInPreview": 2,
+    "finalBelts": [
+     {
+      "areaKm2": 1245030,
+      "overlapFrac": 0.908
+     },
+     {
+      "areaKm2": 357358,
+      "overlapFrac": 0.627
+     },
+     {
+      "areaKm2": 673928,
+      "overlapFrac": 0.945
+     },
+     {
+      "areaKm2": 287234,
+      "overlapFrac": 1
+     },
+     {
+      "areaKm2": 348047,
+      "overlapFrac": 0.578
+     }
+    ]
+   },
+   "koppenAgreement": {
+    "ref20k": 0.7346784445375912,
+    "grid1deg": 0.6938202520807686
+   },
+   "precipCorrelation": {
+    "all": 0.9548208723124937,
+    "land": 0.8878440488691944
+   },
+   "majorBasins": {
+    "perBasinBestIoU": [
+     0.508,
+     0.482,
+     0.473,
+     0.415,
+     0.355,
+     0.591,
+     0.472,
+     0.123,
+     0.111,
+     0.385
+    ],
+    "meanIoU": 0.3915,
+    "matchedAt50": 2
+   }
+  }
+ ]
+}

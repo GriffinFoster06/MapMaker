@@ -1,0 +1,384 @@
+{
+ "params": {
+  "N": 20000,
+  "seed": 12345
+ },
+ "nodeVersion": "v24.21.0",
+ "nodeMs": 574,
+ "nArrays": 69,
+ "sameProcessRepeat": [],
+ "freshProcess": [],
+ "browsers": {
+  "chromium": {
+   "version": "140.0.7339.186",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/140.0.7339.186 Safari/537.36",
+   "ms": 542,
+   "nArrays": 69,
+   "mismatched": [],
+   "detail": {}
+  },
+  "firefox": {
+   "version": "141.0",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:141.0) Gecko/20100101 Firefox/141.0",
+   "ms": 578,
+   "nArrays": 69,
+   "mismatched": [],
+   "detail": {}
+  },
+  "webkit": {
+   "version": "26.0",
+   "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15",
+   "ms": 578,
+   "nArrays": 69,
+   "mismatched": [],
+   "detail": {}
+  }
+ },
+ "nodeHashes": {
+  "debug.backArc": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "22d4f43868e1c8c3"
+  },
+  "debug.base": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "166991bb077561de"
+  },
+  "debug.basin": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "5e849448601d2b6f"
+  },
+  "debug.basinWeight": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "ec3b6f9cdb499138"
+  },
+  "debug.coastal": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "f408e6add88c60f1"
+  },
+  "debug.continentalDrag": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "d3685f97c7a07215"
+  },
+  "debug.continentality": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "8e4016880ba3a381"
+  },
+  "debug.cratonWeight": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "c9249c1d7bdec4fe"
+  },
+  "debug.dynamicTopo": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "ef67734ad0574b18"
+  },
+  "debug.erosionDelta": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "7e315d383c27884c"
+  },
+  "debug.foldBeltWeight": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "f1d6f146a2421630"
+  },
+  "debug.hotspot": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "9a80ebf3de9e91d3"
+  },
+  "debug.interior": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "162ea5c804557d29"
+  },
+  "debug.koppen": {
+   "type": "Uint8Array",
+   "n": 20001,
+   "sha256": "426480291ef1e327"
+  },
+  "debug.lip": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "4a07ef60559b5b5d"
+  },
+  "debug.mantleFlow": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "1d0b58b7d5e9ec99"
+  },
+  "debug.margins": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "6eb1986df5ce8cc2"
+  },
+  "debug.noise": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "80a24a6cda5823df"
+  },
+  "debug.noiseAmp": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "ff59a15ac2355dbb"
+  },
+  "debug.ocean": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "7c939fac5f6e19b0"
+  },
+  "debug.orogenicPower": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "2e45120ec11c3ed1"
+  },
+  "debug.phasorRidge": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "28edc845ee593070"
+  },
+  "debug.plateSpeed": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "6661508c68bb29f6"
+  },
+  "debug.precipSummer": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "e427b69ce77e5803"
+  },
+  "debug.precipWinter": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "b2843323b0c710f6"
+  },
+  "debug.pressureSummer": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "31b2bf1b9c3e925d"
+  },
+  "debug.pressureWinter": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "7c4484829cf715df"
+  },
+  "debug.rainShadowSummer": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "83589df9fcb937ad"
+  },
+  "debug.rainShadowWinter": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "7c92e1d9ce4bebcc"
+  },
+  "debug.sizeVelocity": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "11a83ac117d23864"
+  },
+  "debug.skeleton": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "0ac975741a2ac400"
+  },
+  "debug.superPlates": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "43ab1929422fb603"
+  },
+  "debug.tecActivity": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "7c5d3d19945fac8f"
+  },
+  "debug.tectonic": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "39d546a73c5ede8e"
+  },
+  "debug.tempContinentality": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "dd61bf940376fe72"
+  },
+  "debug.tempSummer": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "e0d800d1995edacd"
+  },
+  "debug.tempWinter": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "555666c3640d1c71"
+  },
+  "debug.uniformNoise": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "fc05cd4e1bd94c9c"
+  },
+  "debug.velChange": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "9b504449caf1a9b5"
+  },
+  "debug.windSpeedSummer": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "ba6928f2a9943edc"
+  },
+  "debug.windSpeedWinter": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "45935640a7ce44ca"
+  },
+  "halfedges": {
+   "type": "Int32Array",
+   "n": 119994,
+   "sha256": "ca9446d95347ed09"
+  },
+  "itczLatsSummer": {
+   "type": "Float32Array",
+   "n": 360,
+   "sha256": "73217f1145788d5b"
+  },
+  "itczLatsWinter": {
+   "type": "Float32Array",
+   "n": 360,
+   "sha256": "16413a0f65512e62"
+  },
+  "itczLons": {
+   "type": "Float32Array",
+   "n": 360,
+   "sha256": "9b44e60c28c1aa7b"
+  },
+  "prePostElev": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "6ce2aa131c5c38df"
+  },
+  "r_elevation": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "245098cde4822de8"
+  },
+  "r_ocean_current_east_summer": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "78d0181385d1748b"
+  },
+  "r_ocean_current_east_winter": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "369345dd051e0e67"
+  },
+  "r_ocean_current_north_summer": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "5528ec4322a203c7"
+  },
+  "r_ocean_current_north_winter": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "5528ec4322a203c7"
+  },
+  "r_ocean_speed_summer": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "531a5b2a2fc3a280"
+  },
+  "r_ocean_speed_winter": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "ad3d4b35e7895999"
+  },
+  "r_ocean_warmth_summer": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "7e20f929b0bb53f9"
+  },
+  "r_ocean_warmth_winter": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "945ad42966de1b58"
+  },
+  "r_plate": {
+   "type": "Int32Array",
+   "n": 20001,
+   "sha256": "3c777b3d984ad8e2"
+  },
+  "r_precip_summer": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "e427b69ce77e5803"
+  },
+  "r_precip_winter": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "b2843323b0c710f6"
+  },
+  "r_stress": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "115f856a08116a69"
+  },
+  "r_temperature_summer": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "e0d800d1995edacd"
+  },
+  "r_temperature_winter": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "555666c3640d1c71"
+  },
+  "r_wind_east_summer": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "6f6d2fbb143092d3"
+  },
+  "r_wind_east_winter": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "5eb85f6c2f7e53f6"
+  },
+  "r_wind_north_summer": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "37d233496a5c2773"
+  },
+  "r_wind_north_winter": {
+   "type": "Float32Array",
+   "n": 20001,
+   "sha256": "ccd5e6b959e6b528"
+  },
+  "r_xyz": {
+   "type": "Float32Array",
+   "n": 60003,
+   "sha256": "f92284fc0f9418f7"
+  },
+  "t_elevation": {
+   "type": "Float32Array",
+   "n": 39998,
+   "sha256": "05ccd17313b731cd"
+  },
+  "t_xyz": {
+   "type": "Float32Array",
+   "n": 119994,
+   "sha256": "4ff6c7661763b8f5"
+  },
+  "triangles": {
+   "type": "Int32Array",
+   "n": 119994,
+   "sha256": "81eb69480b954367"
+  }
+ }
+}

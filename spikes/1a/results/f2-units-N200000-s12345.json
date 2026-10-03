@@ -1,0 +1,40 @@
+{
+ "N": 200000,
+ "seed": 12345,
+ "numRegions": 200001,
+ "rawElevation": {
+  "min": -0.8968009948730469,
+  "max": 1.0800591707229614,
+  "landCells": 54955,
+  "landAbove1": 25,
+  "landAbove1Frac": 0.00045491765990355747
+ },
+ "metresRange": {
+  "min": -8968.009765625,
+  "max": 6000
+ },
+ "roundTrip": {
+  "cellsChanged": 16011,
+  "maxAbsDeltaRaw": 0.000002562999725341797,
+  "maxAbsDeltaRawLand": 0.000002562999725341797
+ },
+ "climateRerunMatchesWorker": true,
+ "climateFromRoundTrip": {
+  "precipSummer": {
+   "nDiff": 177551,
+   "maxAbs": 0.14822322130203247
+  },
+  "tempSummer": {
+   "nDiff": 124268,
+   "maxAbs": 0.022588789463043213
+  },
+  "tempWinter": {
+   "nDiff": 125700,
+   "maxAbs": 0.027179628610610962
+  },
+  "koppen": {
+   "nDiff": 13,
+   "maxAbs": 10
+  }
+ }
+}
