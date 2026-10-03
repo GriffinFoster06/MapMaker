@@ -1,0 +1,756 @@
+# Architecture
+
+Inputs: `docs/REQUIREMENTS.md`, `audit/CAPABILITY_MATRIX.md`, the per-repo audits in `audit/`, and spot checks of the source in `upstream/`.
+
+## Resolved decisions
+
+The open decisions in §8 were resolved on 2026-10-03. These resolutions override any earlier wording in this document.
+
+| # | Decision | Resolution |
+|---|---|---|
+| Q1 | Base codebase | **Approved.** A new TypeScript shell that vendors orogen's stages (§1). |
+| Q2 | Project license | **GPL-3.0-only.** I checked orogen at `cc2662b`. `LICENSE` is the unmodified GPL-3.0 text, and `README.md` says only "GNU General Public License v3.0". There are no per-file headers, no SPDX tags and no package license field, and no "or (at your option) any later version" wording appears outside the license text. Under GPL-3.0 §14, a work that names version 3 without the later-version clause is version-3-only, so MapMaker cannot be offered as "-or-later" while it includes orogen code. `/LICENSE` holds the GPL-3.0 text. |
+| Q3 | Determinism scope | **Approved.** Exactness is guaranteed for the same app version on the same engine. The `dmath` hook stays. Cross-engine exactness will be decided after spike 1a measures the actual divergence. |
+| Q4 | Desktop wrapper | **Approved.** Electron, built only if benchmarks demand it. |
+| Q5 | History t0 | **Approved.** History starts from Azgaar's static human layer. |
+| Q6 | Fidelity targets | **Benchmark targets, not hard caps.** <ul><li>Whole planet: up to 2.56M cells.</li><li>Regional patches: down to about 1 km.</li><li>History benchmark: 5,000 years at 1-year ticks with aggregate agents.</li></ul>The timeline must support longer spans by using a coarser `dtYears` per era (§3.4), so histories of tens of thousands of years stay possible. |
+| Q7 | A/B thresholds | **Provisional.** Spike 1c reports measured values first. Final thresholds are set at Checkpoint 1. |
+| Q8 | Calibration data | **Approved.** Data is downloaded at tuning time and never vendored. Each dataset is logged in `PROVENANCE.md` with its license. |
+| Q9 | Tectonic history | **Changed.** The static tectonic snapshot still comes first. Forward plate evolution over deep time (hundreds of Myr) is a **core feature**: it has a fast rough pass and a slow detailed pass from the same seed. Design note 13 (Phase 2) specifies it, and Checkpoint 2 proposes where it goes in the phase order. |
+| Q10 | Climate fidelity | **Approved.** orogen heuristics, forced by the VPLanet subset. |
+| Q11 | Node 24 | **Approved, project-local only.** fnm runs from `.tools/` with `FNM_DIR=.tools/fnm`, and the version is pinned in `.nvmrc`. System Node and global tools are not changed. |
+
+## Status of claims (read first)
+
+- The capability ratings this document builds on come from **code reading only**. Nothing in `upstream/` has been built or run. Phase 1 of the build plan exists to confirm the ratings that decide this architecture before any product code is written.
+- **`†`** marks a claim I could not confirm from source, or one that depends on a measurement that has not been made yet.
+- Q1–Q11 are resolved (see above). The following decisions are also settled and are not reopened here: D1/D3 (sphere is canonical, inverse-projection rendering, d3-geo for projection math), D2 (requirements corrected), D4 (fast pass = orogen erosion, slow pass = Badlands-style re-implementation, still to be validated), the RNG-state save requirement, and the license rules:
+  - Eurace and WRF-Hydro are never extracted.
+  - GPlates is a math reference only until its GPL-2.0 "only" vs "or later" status is checked.
+  - All other license conflicts are deferred.
+
+### Facts checked against `upstream/` while writing this
+
+These affect the design and are not all in the audits.
+
+| # | Finding | Where | Consequence |
+|---|---|---|---|
+| F1 | orogen builds the Fibonacci sphere and its stereographic pole closure around **+z**, but every physics module treats **+y as north** (`lat = asin(y)`, `lon = atan2(x, z)`). | `js/sphere-mesh.js` (`generateFibonacciSphere`, `buildSphere`); `js/wind.js:571`, `js/terrain-post.js:453`, `js/elevation.js`, `js/planet-mesh.js:427` | The orogen adapter applies one fixed axis permutation. The mesh's construction pole and its closure cell end up on the *physical equator* at 0°E. Spike 1a checks that spot for artifacts. |
+| F2 | orogen elevation is **dimensionless**. Land runs 0..1 through an S-curve to 0..6 km; ocean is linear at ×10 km. Land is hard-capped at 6 km. | `js/color-map.js` `elevToHeightKm` | The canonical model stores metres. The adapter converts forward, and uses the inverse of the S-curve (monotone on [0,1]) when orogen's climate code needs raw elevation. |
+| F3 | orogen hard-codes the Earth radius `6371`. | `js/temperature.js`, `js/precipitation.js`, `js/ocean.js`, `js/elevation.js`, `js/heuristic-precip.js` | Planet radius has to be threaded through as a parameter. This belongs to gap 11 (physical-parameter mapping). |
+| F4 | orogen's RNG is a Park-Miller LCG with a one-integer state. With no seed given, it seeds from `Math.random()`. `buildSphere` consumes jitter draws proportional to N from the shared `rng`. | `js/rng.js`, `js/planet-worker.js:204` | The state is trivially serializable. Any stage that draws from the same `rng` after mesh building will see a different sequence at different resolutions. Spike 1c measures this. |
+| F5 | orogen's pipeline exists twice: once in `generate.js` (main-thread fallback) and once in `planet-worker.js`. UI and app state live in a global mutable `state` object. | `js/generate.js`, `js/planet-worker.js`, `js/state.js` | Only the stage functions are reused. Orchestration is replaced. |
+| F6 | orogen's tuning harness runs headless in Node. Its Köppen ground truth (`tuning/climate/data/ascii/Koeppen-Geiger-ASCII.txt`, Kottek et al. 2006) is **not in the checkout**. | `tuning/climate/README.md`, `tuning/climate/lib/ground-truth.mjs:15` | The data must be downloaded before the harness can run. This corrects the matrix's "appears to be the single earth.png". |
+| F7 | Azgaar **overwrites the global `Math.random`** with a re-seeded Alea at several points, and calls `Math.random()` directly in 11 generators. | `src/generators/grid-generator.ts:20`, `heightmap-generator.ts:558`, `precipitation-generator.ts:34`, `routes-generator.ts:210`, `provinces-generator.ts:82`, `src/components/seed.ts:20` | RNG state cannot be captured while this pattern exists. Every extracted Azgaar generator receives an injected stream instead. |
+| F8 | Azgaar uses two global graphs: `grid` (a jittered square grid) and `pack` (re-graphed from it). Generators read `cells.c` (neighbours), `cells.p` (planar xy), `cells.h` (0–100, sea level 20), `cells.area`, `cells.b` (border flag), `cells.g` (link to grid cell), and use quadtree `findCell`. | `src/types/PackedGraph.ts`, `src/generators/generation-pipeline.ts` | Planar geometry is concentrated in a few fields. A sphere-backed `PackedGraph` facade is feasible. Spike 1b tests it. |
+| F9 | Azgaar requires Node ≥ 24. This machine has Node 22.19.0. | `package.json` (per audit); `node --version` | Spike 1a uses a project-local Node 24 through fnm in `.tools/`, pinned in `.nvmrc` (Q11 resolved). System Node is unchanged. |
+| F10 | GPlates headers read "GNU General Public License, version 2", and a grep of all of `src/` finds no "any later version" wording. | `upstream/GPlates/src/maths/*.h`, `COPYING` | This strongly suggests GPL-2.0-only, but a full legal reading is still pending†. GPlates stays math-reference only, and Phase 1 records a full check. |
+
+---
+
+## 1. Base codebase: orogen fork or new shell?
+
+**Recommendation: build a new TypeScript shell. Vendor orogen's generation and climate modules into it verbatim, behind adapters, and replace them piece by piece (a strangler pattern).** This is not a rewrite. The orogen stage code moves over unchanged at first, and a parity test pins its output.
+
+Why not fork orogen and grow it:
+
+1. **Most of orogen's non-generation code would be replaced anyway.** Of its 18.7k LOC, roughly 11k are generation and climate (`elevation.js`, `terrain-post.js`, `plates.js`, `plate-physics.js`, `coarse-plates.js`, `super-plates.js`, `ocean-land.js`, `wind.js`, `ocean.js`, `temperature.js`, `precipitation.js`, `heuristic-precip.js`, `koppen.js`, `sphere-mesh.js`, plus config). Those are what MapMaker needs. The rest conflicts with the settled decisions:
+   - The flat map is a forward-projected triangle mesh with antimeridian triangle splitting (`planet-mesh.js` `buildMapMesh`). D1/D3 require inverse-projection sampling, so that code goes.
+   - The planet code (`planet-code.js`) holds a seed and slider values only. It cannot hold RNG state or mid-run state.
+   - Global mutable `state` (F5), a duplicated pipeline (F5), and no build step, types or tests.
+2. **The design philosophies conflict.** orogen's `CLAUDE.md` puts "artistic appeal" first and says "never slow down generation to chase physical accuracy". MapMaker's requirements say "prioritize realism over speed". A fork inherits a codebase tuned around the opposite trade-off.
+3. **Azgaar is a worse base.** Its UI, renderers and data model are planar SVG throughout, which is the opposite of sphere-canonical.
+4. **Cross-cutting guarantees must be imposed from outside.** Exact resume needs one RNG service, one layer registry and one stage runner across orogen-, Azgaar-, VPLanet- and Badlands-derived code. That has to be imposed by a shell that owns orchestration, not retrofitted into one upstream's globals.
+5. **License outcome is the same either way.** orogen is GPL-3.0, so the combined work is effectively GPL-3.0 whether we fork it or vendor it.
+
+The cost: a fork reaches first pixels sooner. That is mitigated by Phase 4, which runs orogen's stages *unmodified* inside the shell and asserts output parity with stock orogen for the same seed before anything is changed.
+
+What is kept from orogen besides generation:
+- the globe renderer concepts in `scene.js` (175 LOC) and the globe parts of `planet-mesh.js`;
+- the heightmap import sampling in `import-main.js` and `planet-worker.js` `handleImportHeightmap`;
+- the 16-bit PNG encoder in `planet-mesh.js`;
+- the tuning harness in `tuning/climate/`.
+
+---
+
+## 2. Host language and integration
+
+**Host: TypeScript (strict), ES modules, built with Vite, tested with Vitest and Playwright, organised as an npm-workspaces monorepo.** The same packages run in browser workers and in Node, which is used for headless tuning, A/B tests and golden-file tests. Output is a static bundle for GitHub Pages.
+
+| Source | Integration mode | Detail |
+|---|---|---|
+| **orogen** (JS, GPL-3.0) | **Vendor → adapt → port incrementally** | Copy `js/` stage modules at commit `cc2662b` into `packages/gen-orogen/vendor/` unchanged. Wrap each stage behind the stage interface (§4) with an adapter that does axis permutation, unit conversion, RNG injection and the radius parameter (F1–F4). Port to TypeScript one module at a time, with the parity test as a guard. Drop orogen's inlined Delaunator for the npm package. |
+| **Azgaar** (TS, MIT) | **Source-level adaptation** of selected generators | Extract `river-generator`, `lakes`, `features-generator`, `biomes-generator`, `population-generator`, `cultures-generator`, `names-generator`, `burgs-generator`, `states-generator`, `provinces-generator`, `routes-generator`, `religions-generator`, `goods-generator`, `production-generator`, `markets-generator`. Replace globals (`pack`, `grid`, `options`) with an explicit context and replace `Math.random` with injected streams (F7). Run them over a sphere-backed `PackedGraph` facade (§3.6). Azgaar's renderers, UI and `.map` format are references only. |
+| **VPLanet** (C, MIT) | **TypeScript re-implementation of a small subset**, validated against the native binary | Port only what MapMaker needs: insolation by latitude and day of year from orbital elements and obliquity (DistOrb/DistRot steady-state formulas, not secular evolution), and the POISE energy-balance core (annual and seasonal modes, OLR parameterisation, ice-albedo). A full WASM port is rejected: `poise.c` is tangled with `evolve.c` and the body struct, and we need a fraction of it. Native `vplanet` is built locally and its `examples/EarthClimate` output is used as golden data in tests. |
+| **Badlands** (Python/Fortran, GPL-3.0) | **Re-implementation in TypeScript** on the sphere mesh | Braun–Willett O(n) receiver and stack ordering, implicit stream-power incision (detachment-limited first, with transport-limited variants later), and linear and nonlinear hillslope diffusion, all using spherical cell areas. Validated against a Python Badlands run on a planar benchmark (Phase 7). Flexure (gFlex) is not ported; Airy isostasy if needed. |
+| **GPlates** (C++, GPL-2.0†) | **Math reference only** | Finite rotations, Euler poles and quaternion composition are written from published formulas (for example Cox & Hart, *Plate Tectonics: How It Works*), not from GPlates source. GPlates file paths are cited as reference only. |
+| **d3-geo, d3-geo-projection** | npm dependency | All projection math (D1). License recorded in `PROVENANCE.md`†. |
+| **proj4js** | npm dependency, only if needed | Only if a required projection is missing from d3-geo-projection. |
+| **three** | npm dependency | Globe rendering (WebGL2). |
+| **delaunator** | npm dependency | Spherical Delaunay through stereographic projection, as orogen does it. |
+| **fflate** | npm dependency | ZIP container for the save format and streaming compression. |
+| **Eurace, WRF-Hydro** | **Never extracted** | No code and no close paraphrase. Not even consulted as an algorithm reference for new code. |
+
+**WASM** is reserved for hot kernels, after profiling shows JS is the bottleneck. Likely candidates are flow routing and the stream-power solve at 2.56M cells, and history-sim inner loops. Such kernels would be written in Rust with wasm-bindgen. WASM is *not* a route for porting upstream C, C++ or Fortran.
+
+**Separate processes**: none in the browser build. The desktop fallback (§6.5) runs the same bundle. Native companion processes are not planned.
+
+**Proposed repository layout** (created in Phase 3, not now):
+
+```
+apps/web/                 UI shell, render loop, views
+packages/core/            canonical model: mesh, layers, entities, timeline, rng, dmath, units, save format
+packages/engine/          stage runner, worker protocol, worker pool, checkpoints
+packages/gen-orogen/      vendor/ (verbatim orogen) + adapters + progressive TS ports
+packages/planet/          VPLanet-derived insolation, seasons, EBM; physical → simulation parameter mapping
+packages/erosion/         Badlands-style slow pass; shared flow routing
+packages/human/           Azgaar-derived generators + PackedGraph facade
+packages/projection/      d3-geo wrappers, inverse sampler, distortion, Tissot, vector path
+packages/history/         history simulation (built last)
+tools/tuning/             calibration harness (from orogen tuning/), A/B harness
+spikes/                   Phase 1 throwaway code (not shipped)
+docs/                     ARCHITECTURE, design/, spikes/, PARAMETERS (later)
+PROVENANCE.md             module-level provenance + third-party dependencies
+```
+
+---
+
+## 3. Canonical spherical world model
+
+Everything the app knows about a world lives in one `World` object. Every stage reads and writes it through the layer registry. Every view and export samples it. Nothing else is authoritative.
+
+```
+World
+├── manifest      format version, app version, stage code versions
+├── planet        physical parameters + derived forcing tables
+├── params        all generation parameters (1.0 = Earthlike convention)
+├── rng           named stream states
+├── meshes        global SphereMesh (+ regional patch meshes, linked to parents)
+├── layers        per-cell typed-array fields, via LayerRegistry
+├── entities      columnar tables with stable ids and validity intervals
+├── timeline      calendar, tick, agent tables, event log, keyframes
+└── pipeline      completed stages, input hashes, mid-stage checkpoints
+```
+
+### 3.1 Geometry and coordinates
+
+- **Frame**: unit sphere, right-handed. **+Z = north pole**, **+X = (0°N, 0°E)**, **+Y = (0°N, 90°E)**. `lat = asin(z)`, `lon = atan2(y, x)`. All positions are unit vectors in Float64 where precision matters (mesh points), and Float32 elsewhere.
+- **Physical scale**: `planet.radius_m`. Every distance and area is computed as angle × radius, or steradians × radius², so no `6371` constant appears anywhere (F3).
+- **`SphereMesh`** is mesh-agnostic. Generators depend only on this interface, not on how the points were placed:
+  - `points: Float64Array(3N)`, the cell centres;
+  - Delaunay `triangles` and `halfedges` (Int32), closed over the sphere;
+  - CSR adjacency `adjOffset` / `adjList` (the shape orogen already uses);
+  - Voronoi vertices (triangle circumcentres on the sphere);
+  - `cellArea_sr: Float64Array(N)`;
+  - a spatial index for point → cell lookup (cube-map buckets, then a walk on the Delaunay graph).
+- **Global mesh**: orogen's jittered Fibonacci–Voronoi mesh at the chosen fidelity N. Keeping it is what makes orogen's scale-invariance rules (hop counts scaled by `avgEdgeKm`, smoothing in physical km) carry over unchanged.
+- **Regional patches** are separate, finer meshes covering a spherical cap or polygon, linked to the global mesh by:
+  - `parentOf: Int32Array` (patch cell → global cell);
+  - a **restriction operator** R (area-weighted average of patch cells onto their parent cells);
+  - a **prolongation operator** P (barycentric interpolation from the global Delaunay).
+
+  The invariant is **R(patch field) = global field** on every fully covered parent cell. Patch detail is P(global) plus band-limited detail whose restriction is zero. That makes whole-planet and regional views consistent by construction (requirement: no discontinuities across zoom). The algorithm is gap note #6.
+
+### 3.2 Layers (per-cell fields)
+
+Fields are stored struct-of-arrays: one typed array per field per mesh. They are registered in a `LayerRegistry` with this descriptor:
+
+| Descriptor field | Meaning |
+|---|---|
+| `id` | e.g. `elevation`, `temp.mean`, `precip.annual`, `wind.jan` |
+| `dtype` | Float32, Int32, Uint16, Uint8 (categorical) |
+| `unit` | SI unit string (`m`, `degC`, `mm/yr`, `m/s`, `m^2`, `m^3/s`, `enum:koppen`, ...) |
+| `kind` | `scalar`, `vector-en` (east and north components, two arrays), `categorical`, `bitset` |
+| `producer` | stage id that writes it; only that stage may write it |
+| `deps` | layer ids the producer read; used for invalidation |
+| `sample` | `barycentric` (continuous), `nearest` (categorical), or `none` |
+| `timeVarying` | whether the history simulation may change it (see 3.4) |
+| `hash` | content hash, used for caching and the save manifest |
+
+Representative layers, with their producers:
+
+- **Tectonic**: `plate` (Uint16), `crustType` (Uint8: oceanic, continental, arc...), `crustAge_Myr`, `boundaryType`, `stress`, `lithology` (Uint8), all from tectonics.
+- **Terrain**: `elevation` (m, relative to sea level), `bedrock` (m), `sediment` (m), `erosionRate` (m/Myr).
+- **Climate**: per season s, `temp.s` (°C), `precip.s` (mm), `wind.s` (m/s, east/north), `current.s` (m/s, east/north), `pressure.s` (hPa); annual aggregates; `iceCover`.
+- **Hydrology**: `receiver` (Int32), `stackOrder` (Int32), `drainageArea` (m²), `discharge` (m³/s), `lake` (Int32 id or −1), `basin` (Int32), `riverId`.
+- **Classification and land**: `koppen` (enum), `biome` (enum), `soilType` (enum), `soilFertility` (0..1), `soilDepth` (m), `mineral.*` (deposit grade per class).
+- **Human, as the current value of time-varying fields**: `population`, `culture`, `language`, `polity`, `province`, `landUse`, `habitability`.
+
+**Rule:** no layer is ever modified to suit a projection, a view or an export. Derived visual products (hillshade, colour ramps) are computed at render time and never stored in `World`.
+
+### 3.3 Entities
+
+Entities are columnar tables. Each row has a stable `id`, a `validFrom` / `validTo` tick interval (the `valid_time` idea from GPlates' feature model, used here as a concept only), and typed columns:
+
+- `plates` (Euler pole unit vector, rate in rad/Myr, density, oceanic flag);
+- `rivers` (source and mouth cells, cell path, discharge at mouth);
+- `lakes` (type, surface elevation, outlet);
+- `cultures`, `languages`, `settlements` (cell, offset vector, population, rank), `polities`, `provinces`, `religions`, `routes` (cell paths), `goods`, `markets`.
+
+Positions are stored as `(cell id, local unit-vector offset)`. They are never stored as planar coordinates.
+
+### 3.4 Time, agents and events (designed now, simulated last)
+
+This exists in the schema and save format from Phase 3, even though only a dummy stage exercises it until Phase 13.
+
+- **`Timeline`**: `calendar` (epoch, year length, month table from `planet`), `tick` (integer), `simTime`, and a `dtYears` schedule.
+  - The schedule is a list of eras, `[{ fromTick, dtYears }]`, so the span covered by one tick varies by era.
+  - The benchmark is 5,000 years at 1-year ticks (Q6). That is a target, not a cap.
+  - Longer histories, up to tens of thousands of years, use coarser eras: for example, 10- or 25-year ticks in deep prehistory and 1-year ticks near the present.
+  - Agents and stages read `dtYears` for the current tick and never assume one year. Counter-based RNG keys on the tick, so changing the era schedule changes results only from the first changed era onward.
+- **Agent tables** are entity tables whose rows change every tick: settlements (population by cohort, resources, buildings), polities (treasury, military, government form, relations matrix in sparse form), populations or cultures (traits, language id), and languages (phoneme inventory, lexicon, sound-change history). Struct-of-arrays, so a tick can process them in bulk and in parallel.
+- **Time-varying cell layers** (`timeVarying: true`) have:
+  - a *current* array;
+  - **keyframes** every K ticks (a full array snapshot);
+  - a **change log** between keyframes: (tick, cell, layer, old, new), run-length packed.
+
+  Scrubbing to tick t means loading the nearest earlier keyframe and replaying the log. The physical world can also change during history (climate shifts, river avulsion, sea level), so the same mechanism covers physical layers if they are marked time-varying.
+- **`EventLog`** is append-only:
+
+  ```
+  { id, tick, type, actors: EntityRef[], cells: Int32[], payload: {...}, causes: eventId[] }
+  ```
+
+  `causes` makes causal chains explicit, for example famine → migration → war, which is the "causation" Azgaar lacks. The log is chunked by tick range, so saves and the UI page it.
+- **RNG for the simulation** is counter-based (§3.5). A draw is a pure function of `(stream, tick, entityId, k)`, so results do not depend on worker scheduling, and resume only needs the tick.
+
+### 3.5 RNG service and deterministic math
+
+- **Named streams.** `ctx.rng(name)` returns a stream whose state serializes to `{ algo, state, draws }`. Algorithms:
+  - `orogen-lcg`: bit-identical to orogen's `makeRng`, with a one-integer state. Used for parity.
+  - `alea`: bit-identical to the Alea package Azgaar uses, with its state words exported. Used for parity.
+  - `sfc32`: four uint32 state words. The default for new code.
+- **Stream derivation**: stream seeds come from `hash(masterSeed, streamName)` (SplitMix64 / Murmur-style). Adding a stream therefore never shifts other streams. That matters for preview = final: mesh jitter at a different N cannot perturb downstream draws, which directly addresses F4.
+- **Counter-based draws** for parallel and history code: `u32 = hash(streamSeed, tick, entityId, k)`.
+- **Ban**: `Math.random` is a lint error in every engine package. It is still allowed in UI-only cosmetic code (for example the starfield in orogen `scene.js`).
+- **`dmath`**: all simulation code calls `dmath.sin/cos/exp/log/pow/atan2/...` rather than `Math.*`. Initially these pass straight through to `Math.*`. JS arithmetic is IEEE-754 deterministic, but transcendental `Math` functions are *not* guaranteed identical across V8, SpiderMonkey and JavaScriptCore. The hook lets us switch to a vendored deterministic implementation (an fdlibm port) if cross-browser bit-exactness is required (decision Q3). Spike 1a measures the actual divergence.
+
+### 3.6 How each upstream's data converts into the model
+
+**orogen ↔ canonical** (`packages/gen-orogen/adapter`)
+
+| orogen | canonical | Conversion |
+|---|---|---|
+| `r_xyz` (physics frame: +y north, lon 0 at +z) | `points` | Fixed axis permutation: X = z_o, Y = x_o, Z = y_o. This is cyclic, so it preserves handedness. Verified in spike 1a by checking that orogen's `lat = asin(y)` matches canonical `asin(Z)` for every cell (F1). |
+| `mesh.triangles/halfedges/adjOffset/adjList` | `SphereMesh` | Unchanged (permutation does not affect topology). |
+| `r_elevation` (dimensionless) | `elevation` (m) | `elevToHeightKm × 1000` (F2). The inverse S-curve, solved numerically on land [0,1], feeds orogen climate stages from canonical metres. |
+| precipitation (normalised 0–1, 95th-percentile scaled) | `precip.*` (mm/yr) | Monotone calibrated mapping fitted in Phase 8 against Earth data†. Until then, stored as `unit: "normalized"` and flagged. |
+| temperature (°C) | `temp.*` | Unchanged. |
+| wind / currents (3D tangent vectors) | `wind.*`, `current.*` (east/north) | Project onto local east = (−sin λ, cos λ, 0) and north = (−sin φ cos λ, −sin φ sin λ, cos φ). |
+| Köppen class index (1–30) | `koppen` enum | Table map; the canonical enum is a superset (adds `As`, separate from `Aw`). |
+| `r_plate`, plate seeds, vectors, density | `plate` layer + `plates` table | Plate velocity becomes an Euler pole and rate (GPlates-style math, re-implemented). |
+| `CLIMATE` / terrain config constants | `params` | Via the parameter-mapping layer (gap 11). Constants become parameters with documented 0 / 1.0 / 1.5 meaning (Phase 8). |
+| hard-coded `6371` | `planet.radius_m` | Patched in the vendored copy as a single injected constant. Parity tests run at R = 6371 km. |
+
+**Azgaar ↔ canonical** (`packages/human/facade`)
+
+Azgaar generators run against a `PackedGraph` facade built from the sphere mesh. There is no `grid`/`pack` split: one mesh serves both, so `cells.g[i] = i` (F8).
+
+| Azgaar field | Facade source |
+|---|---|
+| `cells.i`, `cells.c` | Cell index and CSR adjacency. |
+| `cells.v`, `vertices.p`, `vertices.c` | Voronoi vertices of the sphere mesh. |
+| `cells.p` (planar xy) | Local tangent-plane (gnomonic) coordinates about a per-call or per-region origin, in metres, for code that needs angles or local shapes. Distance and bearing helpers are replaced with geodesic versions where Azgaar computes them. Spike 1b counts the call sites. |
+| `cells.h` (0–100, sea level 20) | Monotone map from metres. Defined once and documented, then inverted on write-back. |
+| `cells.area` | `cellArea_sr × R²`, in Azgaar's expected unit. |
+| `cells.b` (map-edge border) | All false on a whole planet; true on regional patch edges. |
+| temperature, precipitation (Int8 °C, Uint8 scaled) | From canonical `temp.mean` and `precip.annual` by a documented scale. |
+| quadtree `findCell(x, y)` | Sphere spatial index. |
+| `Math.random` | Injected stream `ctx.rng('human.<generator>')` (F7). |
+
+Outputs map back as ids, cell ids and unit vectors. Burg positions become `(cell, offset)`; river paths become cell sequences; states, provinces and cultures become per-cell id layers plus entity rows.
+
+**VPLanet → canonical** (`packages/planet`)
+
+- Inputs: stellar mass, luminosity and age; semi-major axis, eccentricity, obliquity and longitude of perihelion; rotation period; planet mass and radius; CO₂ / greenhouse factor; ocean fraction.
+- Outputs:
+  - `planet.forcing.insolation[lat][dayOfYear]` (W/m²);
+  - `planet.forcing.annualTempProfile[lat]` and the ice line from the EBM;
+  - `planet.surfaceGravity`, `planet.coriolis(lat)`, and the year and day lengths that drive the calendar.
+- These feed orogen's climate through the **parameter-mapping layer** (gap 11), which turns forcing tables into orogen's tuned constants (thermal-equator profile, ITCZ swing amplitude, polar temperatures) instead of Earth-hard-coded values.
+
+**Badlands-style erosion → canonical** (`packages/erosion`)
+
+- Runs natively on the canonical mesh.
+- Reads `elevation`, `precip.annual` (as runoff), `lithology` (erodibility) and `uplift`.
+- Writes `receiver`, `stackOrder`, `drainageArea` (m², from spherical cell areas), `erosionRate`, `sediment`, and optional `strata` (per-cell layer stacks, deferred).
+- The flow-routing products are **shared with hydrology**: rivers and the slow erosion pass see the same drainage network.
+
+**GPlates math → canonical**
+
+- `plates` rows carry an Euler pole and rate.
+- Finite rotations are unit quaternions, composed with standard quaternion algebra.
+- These rotations give plate-motion vectors at boundaries for the static snapshot.
+- They are also the kinematic core of **forward plate evolution**, which is a core feature (Q9, design note 13). `plates` rows use `validFrom/validTo` in Myr of geologic time, and finite rotations compose per time step.
+
+### 3.7 Projection, distortion and rendering paths
+
+Projection is a *view*. It sits entirely outside `World` and the pipeline.
+
+```
+World (sphere) ──► ProjectionView ──► raster path (inverse)   ──► screen / PNG
+                                  └─► vector path (forward)   ──► SVG / overlays
+                                  └─► distortion (Jacobian)   ──► overlay layers / Tissot
+```
+
+**`ProjectionView`** wraps a d3 projection: `geoEquirectangular` (default), `geoMercator`, `geoEqualEarth`, `geoMollweide`, `geoRobinson`, `geoOrthographic`, azimuthal equal-area and equidistant, `geoNaturalEarth1`, and so on. It also holds rotation (centre lon/lat), clip settings and output size.
+
+**Raster path: inverse projection only.**
+
+For each output pixel (px, py):
+
+1. Call `projection.invert([px, py])` to get (λ, φ). If the result is null or non-finite, the pixel is outside the domain.
+2. **Domain check**: `projection([λ, φ])` must round-trip to within 0.5 px. d3 `invert` can return in-range values for points outside some projections' outlines, so this check is required.
+3. Convert (λ, φ) to a unit vector, look up the containing Delaunay triangle and cell with the spatial index, and sample the layer by its `sample` rule.
+
+There are two implementations:
+
+| Path | Used for | How |
+|---|---|---|
+| **Exact (CPU, workers)** | All exports (PNG, 16-bit heightmap, GeoTIFF later) and the test oracle | The steps above, using d3 `invert` directly, tiled across the worker pool. |
+| **Interactive (GPU)** | On-screen flat views | Fragment shaders implement inverse formulas for the supported projections. They sample a **cell-id cube map** and a triangle-id cube map, both built from the sphere at resolution at or above cell density, plus per-cell value textures. Barycentric weights are computed in-shader. Every shader projection is validated against d3 `invert` by pixel-difference tests. A projection with no shader implementation falls back to the CPU path at reduced resolution. |
+
+The cube maps are a lookup acceleration built from the sphere, not a resampled copy of the data: values still come from the per-cell arrays. Poles and the antimeridian need no special handling, because each pixel independently asks the sphere for its value. There is no triangle splitting and no seam patching, which removes the class of artifacts noted in orogen's `V1_REVIEW.md`.
+
+**Vector path: forward projection through d3.**
+
+- Rivers, borders, routes, coastlines, graticules and labels are stored as spherical polylines and polygons (cell-vertex unit vectors with great-circle edges). They are rendered as GeoJSON in lon/lat through `d3.geoPath(projection)`.
+- That gives adaptive great-circle resampling, antimeridian cutting and clip-circle or clip-extent handling from d3.
+- SVG export uses this path.
+- Vector geometry is derived from the sphere at export time. It is never stored projected.
+
+**Distortion: computed from the projection, never applied to data.**
+
+- For a point (λ, φ), compute the forward Jacobian J of (x, y) with respect to (λ, φ), using central differences on the d3 forward projection, or analytically for projections that have closed forms. Normalise it by the sphere metric:
+
+  ```
+  J' = J · diag(1/(R cos φ), 1/R)
+  ```
+
+- Let a ≥ b be the singular values of J'. Then:
+  - **areal scale** = a·b;
+  - **maximum angular deformation** ω = 2·asin((a − b)/(a + b));
+  - **meridian scale** h = |∂(x,y)/∂φ| / R;
+  - **parallel scale** k = |∂(x,y)/∂λ| / (R cos φ).
+- These are offered as overlay layers (areal-scale heatmap, ω heatmap, h/k), computed per pixel on the same inverse path.
+
+**Evaluation at and near the poles.** The normalisation `1/(R cos φ)` is singular at φ = ±90°. Evaluating it directly gives Inf/NaN, and its error grows near the poles. The rules are:
+
+1. **General points: use a pole-free tangent frame.**
+   - Let p be the point's unit vector, with an orthonormal tangent basis (e₁, e₂) at p. Away from the poles this is local east and north; at a pole it is any fixed pair, for example e₁ = +X and e₂ = +Y at the north pole.
+   - Differentiate F(s, t) = projection(normalize(p + s·e₁ + t·e₂)) at (0, 0). For projections with closed forms, do this analytically; otherwise, use central differences with step δ in radians.
+   - The Jacobian with respect to arc length is then J' = J_st / R. The singular values a ≥ b, areal scale a·b and ω are invariant under rotation of the tangent basis, so they need no cos φ term.
+   - h and k are defined only where east and north exist. Away from the poles: h = |J'·ê_north| and k = |J'·ê_east|.
+2. **At the pole itself, φ = ±90° exactly.** Each projection declares one of three pole classes:
+   - **Point pole** (azimuthals in polar aspect, orthographic, stereographic, Lambert conformal conic at its pole, and others): the projection is differentiable at the pole, so rule 1 applies directly. h and k are reported as their **analytic limit** as φ → ±90° along any meridian.
+   - **Non-differentiable pole**: the projection is not differentiable at the pole. There are two cases:
+     - a *line pole*, where the pole maps to a segment (equirectangular, Equal Earth, Robinson, Natural Earth, Eckert IV, and others);
+     - a *cusp pole*, where the pole maps to a point but meridians arrive at different angles (Mollweide, sinusoidal, and others).
+
+     Values are the **analytic limit** as φ → ±90° along the meridian λ that `invert` returns for the pixel (λ = 0 if `invert` returns none), taken from the projection's closed-form h and k:
+     - finite limits are reported as numbers (for example h → 1 for equirectangular, and a·b → 1 for any equal-area projection);
+     - divergent limits are reported as `+Infinity`, with a per-pixel `singular` flag;
+     - ω → 180° wherever k → ∞ while h stays finite.
+     - NaN is never produced.
+   - **Excluded** (Mercator, with |φ| clipped at about 85.05°; and the gnomonic outside its hemisphere): the domain check in step 2 of the raster path rejects the pixel, and the distortion is "outside domain".
+3. **Projections with no closed form** (some of the d3-geo-projection set): the limit is a **one-sided Richardson extrapolation** from φ = ±(90° − δ), ±(90° − δ/2) and ±(90° − δ/4), with δ = 1e-3 rad. The result is classed as divergent if the sequence grows by more than 2× per halving.
+4. **Overlays** draw `singular` pixels with a dedicated colour, not by clamping the ramp.
+- **Tissot indicatrix overlay**: at graticule nodes, generate a true geodesic small circle of fixed angular radius on the sphere and forward-project it through the vector path. This is exact rather than linearised, so it stays correct where distortion is extreme.
+- **Analytic tests**:
+  - Mercator: h = k = sec φ, ω = 0;
+  - equal-area projections: a·b = 1;
+  - equirectangular: h = 1, k = sec φ.
+- **Pole tests (φ = +90° and φ = −90° exactly, plus φ = ±(90° − 1e-9°) to check continuity):**
+  - azimuthal equal-area, polar aspect: h = k = 1, ω = 0, a·b = 1;
+  - azimuthal equidistant, polar aspect: h = k = 1, ω = 0;
+  - orthographic and stereographic, polar aspect: h = k = 1, ω = 0;
+  - equirectangular: h = 1, k = +∞ with `singular` set, ω = 180°, and no NaN;
+  - Equal Earth and Mollweide: a·b = 1 (finite limit), `singular` set for k;
+  - Mercator: "outside domain";
+  - rotated aspects: the azimuthal equal-area centred on (0°, 0°), evaluated at the geographic poles, must give a·b = 1 with no special-casing. This checks that rule 1 needs no cos φ.
+
+**Globe view**: Three.js (WebGL2). The sphere mesh is rendered directly with per-vertex colours and optional terrain displacement, adapting orogen's `scene.js` and the globe parts of `planet-mesh.js`. The globe is a direct rendering of the sphere, so it is not a projected view in the sense above.
+
+**Switching projection** swaps the `ProjectionView` and rebuilds GPU lookups only. It never touches `World` and never re-runs a stage.
+
+**SharedArrayBuffer note**: zero-copy sharing between workers needs cross-origin isolation (COOP/COEP headers). GitHub Pages cannot set custom headers. The default is transferable `ArrayBuffer`s (ownership moves, no copy). The `coi-serviceworker` shim is an optional upgrade for SharedArrayBuffer†, to be tested in Phase 3.
+
+---
+
+## 4. Pipeline order
+
+Each stage is a pure function:
+
+```
+stage(inputs: frozen layers, params, rng streams) → outputs: layers + entities + stage manifest
+```
+
+The stage manifest records the stage code version and a hash of its inputs. The runner uses it to skip unchanged stages, to invalidate downstream stages when an input changes, and to resume a saved world mid-pipeline. Stages never read UI state.
+
+| # | Stage | Source | Writes |
+|---|---|---|---|
+| 0 | **Planet setup**: physical parameters → forcing tables, calendar, radius, gravity, Coriolis. In partial-world mode, also the constraints from inference (step 0p). | VPLanet subset (new TS) | `planet.*` |
+| 1 | **Mesh** at fidelity N (preview or final), plus the spatial index | orogen `sphere-mesh.js` | `meshes.global` |
+| 2 | **Tectonics**: coarse reference plates (fixed ~20k-region mesh, so layout does not depend on resolution), projection onto the mesh, plate physics, super-plates, Euler poles | orogen `coarse-plates.js`, `plates.js`, `plate-physics.js`, `super-plates.js`, `ocean-land.js` + rotation math | `plate`, `crustType`, `boundaryType`, `stress`, `plates` |
+| 3 | **Crust and elevation**: orogen's 12-stage elevation pipeline, plus new tags for crust age and lithology needed by soils and minerals | orogen `elevation.js` + new | `elevation`, `crustAge_Myr`, `lithology` |
+| 4 | **Erosion**: *fast* = orogen `terrain-post.js` (warp, smoothing, hydraulic, thermal, ridge sharpening, soil creep); *slow* = Badlands-style stream power + diffusion, iterated to a target duration or steady state, followed by orogen's glacial and thermal finishing. The fidelity slider chooses which. | orogen / new (Badlands algorithm) | `elevation`, `sediment`, `erosionRate`, `receiver`, `stackOrder`, `drainageArea` |
+| 5 | **Climate**, per season: wind → ocean currents → temperature → precipitation, forced by step 0 | orogen `wind.js`, `ocean.js`, `temperature.js`, `precipitation.js`, `heuristic-precip.js` | `wind.*`, `current.*`, `temp.*`, `precip.*`, `pressure.*` |
+| 6 | **Erosion ↔ climate coupling** (high fidelity only): re-run 4 (slow) with precipitation-weighted runoff, then re-run 5 if elevation changed beyond a threshold. At most 2 iterations. | glue | as 4 and 5 |
+| 7 | **Hydrology**: reuse the flow network from step 4 (or compute it on the fast path), then lake detection with evaporation balance, river extraction, watersheds | new flow core + Azgaar `river-generator`, `lakes`, `features-generator` | `discharge`, `lake`, `basin`, `riverId`, `rivers`, `lakes` |
+| 8 | **Classification**: Köppen, biomes (Azgaar matrix informed by Köppen), ice | orogen `koppen.js`, Azgaar `biomes-generator` | `koppen`, `biome`, `iceCover` |
+| 9 | **Soils and minerals** (new) | design notes 4 and 5 | `soilType`, `soilFertility`, `soilDepth`, `mineral.*` |
+| 10 | **Resources and goods** | Azgaar `goods-generator`, extended to use soils and minerals | `goods`, per-cell resource layers |
+| 11 | **Static human layer = history t0**, in Azgaar's order: rank cells → cultures and names → expand cultures → burgs → states → routes → religions → specify burgs → state forms → provinces → markets → production | Azgaar generators via the facade | human layers and entities |
+| 12 | **History simulation** (Phase 13): time-stepped from t0 for demography, settlement growth and decline, trade, economics, politics and borders, war, and language evolution. Writes the event log and keyframes. | new | `timeline.*`, time-varying layers, `EventLog` |
+| — | **Views and exports** (outside the pipeline) | §3.7 | nothing in `World` |
+
+**Partial-world mode** adds step 0p before step 1:
+
+1. Import the regional map.
+2. Place it on the sphere (user-specified or inferred lat/lon, extent and rotation).
+3. **Infer** the surrounding plate and continental configuration consistent with the region (gap note 3).
+4. Pin the inferred configuration as constraints for step 2.
+5. Hold the imported elevation fixed (or blend it at the margins) in steps 3–4.
+6. Run climate on the whole sphere at coarse N, and the region at fine N as a regional patch (§3.1).
+
+**Fidelity slider**: preview and final use the same seed and the same stream derivation (§3.5). The preview runs the same stages at lower N with the fast erosion pass; the final run uses higher N and the slow pass. Whether the preview is *faithful* is an empirical question for spikes 1c and 7.
+
+---
+
+## 5. Save file format
+
+Container: **`.mapmaker`, a ZIP** written with fflate in streaming mode. JSON holds metadata and small tables; raw little-endian binary chunks hold typed arrays.
+
+```
+world.mapmaker
+├── manifest.json        format version, app version + git commit, created/modified,
+│                        stage code versions, chunk table [{path, dtype, shape, unit, sha256}],
+│                        determinism profile (dmath mode, engine fingerprint)
+├── params.json          all generation parameters + fidelity + master seed (128-bit, hex)
+├── planet.json          physical parameters; forcing tables → planet/*.bin
+├── rng.json             every named stream: {name, algo, state[], draws}
+├── mesh/                points.f64, triangles.i32, halfedges.i32 (+ patches/ with parentOf)
+├── layers/<id>.bin      one chunk per layer per mesh
+├── entities/<table>/    columnar chunks + schema.json per table
+├── pipeline.json        completed stages, input hashes, current stage,
+│                        mid-stage checkpoint (e.g. slow-erosion iteration k + its state chunks)
+├── timeline/
+│   ├── timeline.json    calendar, tick, dtYears schedule
+│   ├── agents/          per agent type, columnar chunks
+│   ├── keyframes/<tick>/<layer>.bin
+│   ├── changes/<range>.bin   run-length-packed cell changes between keyframes
+│   └── events/<range>.ndjson.gz   event-log chunks
+└── ui.json              camera, projection, styles, selected layers (non-authoritative)
+```
+
+Rules:
+
+- **Exact resume.** Loading restores `params`, `rng`, `pipeline` and `timeline` exactly. Continuing a run (the next erosion iteration or the next history tick) gives the same result as if the session had never stopped. This is tested by a CI test that runs N steps, saves at step k, reloads, finishes, and compares hashes.
+- **Scope of exactness.** It is guaranteed for the same app version on the same browser engine. Cross-engine bit-exactness is decided after spike 1a measures divergence (Q3 resolved; `dmath` hook in place). **GPU-computed values are never part of resumable state** (§6).
+- **Mid-stage checkpoints.** Iterative stages (slow erosion, the coupling loop, history) implement `checkpoint(): Chunk[]` and `restore(chunks)`. Single-shot stages are re-run from their recorded inputs if interrupted.
+- **Versioning.** `manifest.format` uses semver and migrations live in `packages/core/save/migrations/`. If stage code versions differ from the running app, the world opens **view-only for simulation**: it can be viewed and exported, but resuming requires an explicit "re-run from stage X".
+- **World code.** A short, recipe-only string (params + seed + app version), like orogen's planet code, for sharing a world that regenerates deterministically. It is not a save.
+- **Storage.** Saves use the File System Access API where available and a Blob download elsewhere. Autosave goes to IndexedDB at stage boundaries and every K history ticks.
+- **Size**†. At 2.56M cells, mesh plus about 40 Float32 layers is roughly 0.5 GB uncompressed. Layers are compressed per chunk. Preview-tier worlds are small. Phase 12 measures real sizes and may add optional Float16 quantisation for display-only layers.
+- Azgaar's `.map` (`src/services/io/save.ts`) is the template for the breadth of what to save, but not for the encoding: it is CRLF-separated, JSON-in-text, and has no RNG state.
+
+---
+
+## 6. Heavy simulation in the browser
+
+### 6.1 Threads
+
+- **The main thread** runs the UI, input and rendering. It never runs a stage.
+- **The engine worker** (a module worker) owns `World` during generation and runs the stage runner. orogen already runs generation in a worker, so this is its pattern, generalised.
+- **The worker pool** (`navigator.hardwareConcurrency − 1` workers) handles data-parallel kernels: climate passes over cell ranges, inverse-projection export tiles, history ticks partitioned by region. Data moves as transferable `ArrayBuffer`s by default, or as SharedArrayBuffer under cross-origin isolation (§3.7).
+- **Protocol**: typed messages `run(stage, inputs)`, `progress`, `checkpoint`, `cancel`, `result`. Cancellation is cooperative: long loops poll an abort flag at chunk boundaries.
+
+### 6.2 Memory budget
+
+The memory budget is set per fidelity tier. Layers are allocated only when a downstream stage or the user needs them. The tiers below are **benchmark targets, not hard caps** (Q6).
+
+| Tier | Cells | Approx. cell size | Rough working set |
+|---|---|---|---|
+| Preview | 50k–200k | 90–45 km | < 100 MB |
+| Standard | 500k–1M | 28–20 km | 150–300 MB |
+| Max (browser) | 2.56M | ~12.5 km | ~400–600 MB† |
+| Regional patch | per patch, up to ~1M | down to ~1 km | budgeted separately |
+
+Safari's per-tab limits are the tightest constraint†. Phase 4 measures real numbers per browser.
+
+### 6.3 CPU, WASM and GPU roles
+
+- **Authoritative results come from CPU code** (JS, with optional WASM SIMD kernels), because CPU arithmetic can be made deterministic (§3.5).
+- **WebGL2** (Three.js) is the baseline renderer for the globe and the interactive inverse-projection views.
+- **WebGPU** is used where available for rendering acceleration and for **non-authoritative previews only** (for example a live erosion preview while the user drags a slider). GPU floating-point results vary across hardware and drivers, so a GPU result is never saved as resumable state. If a GPU kernel ever becomes authoritative, it must use integer or fixed-point arithmetic and pass a cross-GPU bit-equality test.
+
+### 6.4 Long runs
+
+The slow erosion pass and the history simulation run in the engine worker with periodic checkpoints and IndexedDB autosave. They support pause and resume, and they report progress and ETA. The UI can view a running world: the engine posts read-only snapshots at a throttled rate.
+
+### 6.5 Desktop fallback
+
+The desktop fallback is built **only if** phase-gate benchmarks (Phases 4, 7 and 13) show the browser cannot complete the max tier within budget. That means running out of memory, or a slow pass or history run taking over about 30 minutes†.
+
+**Recommendation: Electron**, wrapping the same bundle, rather than Tauri:
+
+- Electron ships the same Chromium/V8 on Windows and macOS, so the determinism profile matches Chrome.
+- Heap limits can be raised.
+- Node `worker_threads` are available.
+- Azgaar already ships an Electron build, which is a working reference.
+
+Tauri is lighter, but it uses WKWebView on macOS, so the Mac desktop build would inherit Safari's memory limits and JavaScriptCore math. That is decision Q4.
+
+---
+
+## 7. Phased build plan
+
+Every phase ends at a **checkpoint**. At that point I stop, post a summary (what was built, test results, measurements, deviations from this document, proposed changes), and **wait for your review** before starting the next phase. Each checkpoint also updates `PROVENANCE.md` (from Phase 3 on) and this document where reality differs.
+
+### Phase 1: Spikes only (throwaway code in `spikes/`, not shipped)
+
+**1a. Build and run orogen and Azgaar locally; confirm the ratings that decide the plan.**
+
+- Run orogen with a static server and Azgaar with Node 24 (`npm ci && npm run build`, then dev server and its Playwright tests).
+- Confirm or downgrade each of these, with evidence (screenshots, numbers, hashes):
+  - orogen tectonics/heightmap (4), erosion (4), climate (4), Köppen (5);
+  - the **tuning harness (5)**: download the Kottek Köppen data (F6), run `tuning/climate/evaluate.mjs`, and record the baseline objective;
+  - **scale invariance** (orogen's own claim);
+  - **determinism**: same planet code gives identical array hashes across runs and across Chrome, Firefox and Safari. Record any cross-engine divergence; this input decides Q3;
+  - **axis convention and the seam cell** (F1);
+  - **elevation units** (F2).
+- Azgaar: rivers (3), names and burgs (3), save (4) via a `.map` round-trip that compares state, and an inventory of `Math.random` use (F7).
+- Record the **GPlates license check** (F10): headers across `src/`, plus `COPYING`.
+- *Optional*: build native VPLanet and run `examples/EarthClimate`, to confirm it is usable as a golden-data oracle.
+
+**1b. Run an Azgaar generator on orogen's spherical mesh.**
+
+- Build a minimal `PackedGraph` facade (§3.6) over an orogen-generated mesh. Feed orogen elevation and precipitation (converted). Run Azgaar `features-generator` → `lakes` → `river-generator`.
+- Pass criteria:
+  - every river terminates in ocean or a lake;
+  - no river or lake artifacts at the poles, the antimeridian or the orogen seam cell;
+  - discharge increases downstream.
+- Record: adapter LOC, number of Azgaar call sites changed (especially uses of `cells.p` and geodesic replacements), and run time at 200k cells.
+- Stretch: `burgs-generator`.
+
+**1c. A/B: orogen low-res vs high-res for the fidelity slider.**
+
+- Same seed at N = 20k, 50k, 200k, 1M and 2.56M. Resample every run onto a common reference (the 20k mesh by area-weighted restriction, and a 1° grid by inverse sampling).
+- Metrics:
+  - land-mask IoU;
+  - coastline Hausdorff distance (km) and its 95th percentile;
+  - hypsometric-curve KS distance;
+  - elevation RMSE after low-pass to the 20k Nyquist scale;
+  - mountain-belt overlap;
+  - Köppen class agreement (% of area);
+  - annual precipitation correlation;
+  - major-basin agreement;
+  - **RNG-draw divergence** (does any stage consume the post-mesh `rng`? F4).
+- The thresholds in Q7 are provisional. The spike reports **measured values first**, without pass or fail, and recommends thresholds. Final thresholds are set at Checkpoint 1.
+- If the measurements show the preview is not faithful, the report proposes a fix: either stream separation (§3.5) or restructuring the preview as "coarse stages exact, detail skipped".
+- The A/B is re-run in Phase 7 once the slow pass exists.
+
+**1d. Can orogen's coarse-plate stage accept pinned constraints?**
+
+Partial-world mode (§4, step 0p) needs to pin part of the tectonic and continental configuration and generate the rest around it. This spike decides whether orogen's coarse-plate stage can be driven that way.
+
+- Targets:
+  - `generateCoarsePlates` (`js/coarse-plates.js`), which in turn calls `generatePlates` (`js/plates.js`) and `assignOceanLand` (`js/ocean-land.js`);
+  - `projectCoarsePlates`, which adds FBM boundary perturbation;
+  - `buildSuperPlates` (`js/super-plates.js`).
+- Constraint types to test:
+  1. **Fixed continent shape**: a set of coarse cells forced to land, optionally with a given plate id.
+  2. **Region held fixed**: plate ids and land/sea locked inside a region while the rest of the planet is regenerated.
+- Method:
+  - Read the code to find every place that would override or ignore a pinned cell: plate seed placement, plate growth, smoothing and reconnection, land/sea selection, trapped-sea absorption, and the FBM perturbation in projection.
+  - In a spike-local copy (never `upstream/`), make the smallest patch that honours pins.
+  - Measure how well the pins survive, as the fraction of pinned cells whose land/sea and plate are unchanged at N = 20k and N = 200k.
+  - Check that the unpinned remainder still looks like an orogen world.
+- Deliverable: the exact list of functions, and the line ranges at `cc2662b`, that would have to change, with what each change is. Then a plain verdict, one of three:
+  - **constrainable**;
+  - **constrainable with these limits**;
+  - **cannot be constrained**, with the reason.
+
+**Checkpoint 1**: `docs/spikes/PHASE1_REPORT.md`, containing:
+- results of spikes 1a–1d;
+- the confirmed or revised ratings;
+- the measured A/B values and the proposed final thresholds (Q7);
+- the measured cross-engine divergence and a recommendation for Q3;
+- the 1d verdict;
+- a proposed diff to `audit/CAPABILITY_MATRIX.md`;
+- any changes this architecture needs.
+
+**Stop and wait.**
+
+### Phase 2: Design notes for original-code gaps (documents only, no code)
+
+Each note goes in `docs/design/` and uses one template:
+- problem;
+- canonical inputs and outputs (layers, entities, events);
+- approach and algorithm choice;
+- upstream references (algorithm-level only; Eurace and WRF-Hydro excluded);
+- validation method;
+- open questions;
+- size estimate.
+
+Notes are 1–3 pages each.
+
+1. History, war, economics and politics simulation (agent types, tick structure, event causality, the counter-based RNG; ideas from UrbanSim discrete choice, SLiM individual-based models, Azgaar t0).
+2. Language evolution (proto-language generation, sound-change rules, lexical replacement, family trees, names derived from language state at tick t; extends Azgaar `names-generator`).
+3. Partial-world inference (from region to plate and continent constraints; formulation as constrained sampling over orogen's coarse-plate stage).
+4. Soils (from lithology, slope, climate, vegetation and time; LPJmL and CTSM as references).
+5. Mineral and ore resources (deposit classes keyed to tectonic setting, lithology and erosion depth).
+6. Regional-patch refinement (the restriction and prolongation operators, band-limited detail, the patch–global consistency test).
+7. STL export (sphere or patch → watertight mesh, vertical exaggeration, base plate, size limits).
+8. Parameter-scale documentation (the 1.0 = Earth convention, sweep methodology at 0 / 1.0 / 1.5, the `docs/PARAMETERS.md` format).
+9. Dynamic population, settlement, trade and borders over time (the bridge from Azgaar's static t0 to the history engine).
+
+Also, because they are gaps in the matrix:
+
+10. Physical → simulation parameter mapping (VPLanet forcing to orogen constants; the radius plumbing, F3).
+11. Continuous seasons (N seasons from forcing tables, versus orogen's two).
+12. Lake and basin hydrology (water balance, endorheic basins, salt lakes).
+
+Added by decision Q9:
+
+13. **Forward plate evolution over deep time.** The note uses the standard template and must cover:
+    - **Scope.** Forward evolution of plates over hundreds of millions of years from an initial configuration. The initial configuration is either orogen's static snapshot or a supercontinent seed. The output is the present-day tectonic state plus its history.
+    - **Algorithm.**
+      - Kinematics: Euler poles and rates per plate, and finite rotations as composed unit quaternions (§3.6, GPlates math re-implemented).
+      - Plate interactions: rifting and new ocean crust at divergent boundaries; subduction and slab consumption at convergent oceanic boundaries; collision and suturing of continents; plate break-up and merging.
+      - Driving forces: a heuristic model, for example slab pull and ridge push weighted by boundary type. The note must say where it comes from, at the algorithm level only.
+      - Remeshing: crust is advected on the sphere, and per-cell state is resampled onto the fixed mesh each step.
+    - **Inputs and outputs.**
+      - Inputs: seed, `planet.*`, and parameters (plate count, mean rate, duration in Myr, continental fraction).
+      - Outputs: the `plates` table, with rows and `validFrom/validTo` in Myr; `plate`, `crustType`, `crustAge_Myr` (true age since formation at a ridge, replacing the heuristic tag in stage 3), `lithology` (from tectonic history: arc, ophiolite, craton, passive margin, foreland basin...), `boundaryType` and `stress`; and a geologic event log (rifts, collisions, orogenies) with times.
+    - **Fast and slow passes from the same seed.**
+      - Fast pass: the coarse mesh (about 20k cells, as orogen's coarse plates) with large Δt (about 5–10 Myr).
+      - Slow pass: a finer mesh with small Δt (about 1 Myr).
+      - Both draw from the same named RNG streams, keyed by (plate id, event index), not by step count. Both share one **event schedule**, rifts and collisions included, decided at coarse resolution, so the slow pass refines the fast one rather than diverging from it.
+      - The fast pass is a true preview in the same sense as the fidelity slider. The note defines the A/B metrics for this, matching spike 1c.
+    - **Feeding the existing model.** The final state feeds stage 2 in place of orogen's coarse plates, either replacing it or seeding it. The pass must stay compatible with partial-world pins (spike 1d).
+    - **Canonical-model check.** Confirm that nothing in §3 blocks this. Entities already have validity intervals. Layers can be marked time-varying with keyframes. The timeline's era schedule can carry a geologic era in Myr ahead of the human-history eras. Stage 2 is a replaceable stage. One rule is affected: each layer has a single producer. When plate evolution is active, `crustAge_Myr` and `lithology` are produced by the plate-evolution stage and not by stage 3, and the stage graph has to express that choice.
+    - **Phase order.** At Checkpoint 2, propose where this goes in the phase order, for example after Phase 4 and before Phase 7, since erosion consumes lithology.
+
+**Checkpoint 2**: all notes, plus the proposed phase slot for note 13. **Stop and wait.**
+
+### Phase 3: Shell, canonical model, determinism infrastructure
+
+- Monorepo scaffolding (§2 layout), TypeScript strict, Vite, Vitest, Playwright, lint rules (including the `Math.random` ban), and CI.
+- `PROVENANCE.md` plus a script that checks every vendored file against `upstream-manifest.json` commits, and records the third-party npm dependencies with their licenses.
+- `packages/core`: frame and units, `SphereMesh` (orogen's mesh builder, ported), `LayerRegistry`, entity tables, `Timeline` and `EventLog`, the RNG service (three algorithms, derivation, counter-based), `dmath` (pass-through), and save/load v0.
+- `packages/engine`: stage runner (manifests, hashing, invalidation), worker protocol, worker pool, cancellation, checkpoints.
+- A **dummy history stage** that writes agents, events, keyframes and changes, to prove the history schema round-trips through save → load → resume with hash equality.
+- GitHub Pages deployment, and a COOP/COEP shim test.
+
+**Checkpoint 3.** Stop and wait.
+
+### Phase 4: orogen generation in the shell, plus the globe
+
+- Vendor orogen (`cc2662b`). Write the adapters (F1–F4). Run stages 1–5 and 8 in the engine worker.
+- **Parity test**: with R = 6371 km, the canonical outputs equal stock orogen's for the same seed. Bit-exact for elevation and plates; within a stated tolerance anywhere the adapter changes arithmetic.
+- Globe view (Three.js). Layer picker. Per-browser memory and timing benchmarks for each tier.
+- orogen's tuning harness runs headless against the shell.
+
+**Checkpoint 4.** Stop and wait.
+
+### Phase 5: Projection and distortion layer
+
+- `ProjectionView` with the d3 projection set, the exact CPU inverse sampler, GPU shaders for the common projections, the vector path via `geoPath`, distortion overlays, the Tissot overlay, and 16-bit PNG heightmap export through the exact path.
+- Tests:
+  - analytic distortion values (§3.7);
+  - distortion pole tests at ±90° (§3.7);
+  - pole and antimeridian pixel tests;
+  - shader vs d3 `invert` pixel-difference tests;
+  - a guard that switching projection does not change any `World` hash.
+
+**Checkpoint 5.** Stop and wait.
+
+### Phase 6: Planet physics
+
+- VPLanet subset in TS (insolation, seasons, EBM core) with golden tests against native VPLanet output.
+- Parameter-mapping layer (design note 10); `planet.radius_m` threaded through.
+- Continuous seasons (design note 11).
+
+**Checkpoint 6.** Stop and wait.
+
+### Phase 7: Slow erosion pass and hydrology, including D4 validation
+
+- Badlands-style stream power and diffusion on the sphere. Shared flow routing. Azgaar rivers, lakes and features via the facade. Lake water balance (design note 12).
+- **D4 validation**:
+  1. On a planar benchmark, compare against Python Badlands with the same initial DEM, uplift and parameters (longitudinal profiles, hypsometry, drainage-area statistics);
+  2. compare against orogen's fast pass on the same world;
+  3. compare against Earth statistics (hypsometry, Hack's law, concavity of river profiles);
+  4. re-run the fidelity A/B from 1c with the slow pass as "final".
+
+**Checkpoint 7.** Stop and wait.
+
+### Phase 8: Calibration and parameter-scale documentation
+
+- Extend the tuning harness: elevation hypsometry, Köppen (Kottek or Beck), and temperature and precipitation climatology. Fit the precipitation unit mapping (§3.6).
+- Run 0 / 1.0 / 1.5 sweeps for every exposed parameter and generate `docs/PARAMETERS.md` (design note 8).
+
+**Checkpoint 8.** Stop and wait.
+
+### Phase 9: Soils, minerals, final biomes
+
+Implement design notes 4 and 5, and the biome layer that combines Köppen and the Azgaar matrix.
+
+**Checkpoint 9.** Stop and wait.
+
+### Phase 10: Static human layer on the sphere, and SVG
+
+Azgaar generators (step 11 in §4) via the facade, with injected RNG. Settlement, border, route and label rendering on the globe and flat views. SVG export via the vector path.
+
+**Checkpoint 10.** Stop and wait.
+
+### Phase 11: Import, partial-world mode, regional patches
+
+- Heightmap and layer import onto the sphere (orogen import sampling; a GeoTIFF decoder library if wanted).
+- Partial-world inference (design note 3).
+- Regional-patch refinement with the R/P consistency test (design note 6).
+
+**Checkpoint 11.** Stop and wait.
+
+### Phase 12: Exports and save hardening
+
+STL (design note 7), GeoJSON, PNG tiles, and other formats as feasible. Save size measurements, migrations, autosave, and a large-world streaming test.
+
+**Checkpoint 12.** Stop and wait.
+
+### Phase 13: History simulation (built last; a checkpoint after each sub-phase)
+
+| Sub-phase | Content |
+|---|---|
+| 13a | Engine core (tick loop, agent tables, event log, keyframes, scrubbing, mid-run save and resume) plus demography and settlement growth and decline |
+| 13b | Trade networks and economics (dynamic prices and flows over Azgaar's route graph) |
+| 13c | Politics, diplomacy, borders and war |
+| 13d | Language evolution and time-dependent naming |
+
+Each sub-phase ends at a checkpoint. Stop and wait after each.
+
+### Phase 14: Performance and desktop fallback (conditional)
+
+Profile, add WASM kernels where they are justified, and build the Electron wrapper **only if** earlier benchmarks require it.
+
+**Checkpoint 14.** Stop and wait.
+
+---
+
+## 8. Decisions (all resolved, 2026-10-03)
+
+This is the original decision table, kept for its rationale. **All eleven questions are resolved.** The binding outcomes are in [Resolved decisions](#resolved-decisions) at the top of this document. Where a resolution differs from the recommendation here (Q2, Q6, Q7, Q9), the resolution wins.
+
+| # | Status | Decision | Original recommendation | Why |
+|---|---|---|---|---|
+| **Q1** | **Resolved** | Base: new TS shell, or fork orogen? | **New shell, vendoring orogen's stages verbatim** | §1. The parts of orogen we would keep are the parts that move cleanly. A fork's head start is recovered by the Phase 4 parity approach. |
+| **Q2** | **Resolved** | Project license | ~~Declare GPL-3.0-or-later now~~ → **GPL-3.0-only** (orogen has no or-later grant) | orogen (GPL-3.0, with no or-later grant) forces version 3 for the combined work. Declaring it early avoids accidental incompatible additions. This does not resolve the deferred conflicts (GPlates 2.0-only stays code-free). |
+| **Q3** | **Resolved** | Determinism scope: exact resume on the same browser engine only, or bit-exact across Chrome, Firefox and Safari? | **Same-version, same-engine exactness now**, with the `dmath` hook in place from day one. Decide on cross-engine exactness after spike 1a measures actual divergence. | A deterministic math library costs performance (estimated 1.5–3× on transcendental-heavy code†). It may be needed only for the history simulation. |
+| **Q4** | **Resolved** | Desktop wrapper, if needed | **Electron**, built only if benchmarks demand it | Same engine as Chrome on both OSes, consistent determinism, raisable heap. Tauri on macOS inherits WebKit's limits. |
+| **Q5** | **Resolved** | History t0 | **Start from Azgaar's static human layer**; add "grow from first settlements" later | Gets a working history loop much sooner. The schema already supports both. |
+| **Q6** | **Resolved** | Fidelity ceilings | Whole planet ≤ **2.56M cells (~12.5 km)** in the browser; regional patches down to **~1 km**; history at **1-year ticks for ≤ 5,000 years**, with **aggregate agents** (settlements, polities, cultures), not individuals | These set memory budgets, save sizes and the desktop-fallback trigger. Resolved as **benchmark targets, not caps**; longer histories use coarser per-era `dtYears`. |
+| **Q7** | **Resolved** | A/B pass thresholds for "preview is faithful" | Land IoU ≥ **0.95**; coastline Hausdorff ≤ **2 preview-cell widths**; Köppen area agreement ≥ **90%**; precipitation correlation ≥ **0.9**; no new or missing major mountain belts | These make "true preview" testable rather than subjective. Resolved as **provisional**: spike 1c measures first, and the final values are set at Checkpoint 1. |
+| **Q8** | **Resolved** | Earth calibration data | **Download at tuning time** (Kottek/Beck Köppen-Geiger, ETOPO elevation, a precipitation and temperature climatology), log each in `PROVENANCE.md` with its license, and never vendor large datasets in the repo | Keeps the repo small and licenses explicit. Licenses are checked before first use†. |
+| **Q9** | **Resolved** | Tectonic history | **Static tectonic snapshot first**, then forward plate evolution over deep time as a **core feature** (changed at resolution; design note 13) | No upstream generates plate history (matrix row 1). This is large original work. At resolution it became a core feature, with fast and slow passes from the same seed; its slot in the phase order is proposed at Checkpoint 2. |
+| **Q10** | **Resolved** | Climate fidelity ceiling | **orogen heuristics, forced by the VPLanet subset**; consider a dynamical (shallow-water) atmosphere or ocean only if Phase 8 calibration plateaus | orogen's climate is tuned against Earth and is the most-cited strength. A dynamical model is a large original project. |
+| **Q11** | **Resolved** | Node 24 for building Azgaar | **Install a project-local Node 24** (via a version manager such as `fnm` or `volta`, pinned in `.nvmrc`) | Azgaar requires Node ≥ 24 and this machine has 22.19.0. Approved: fnm plus Node 24 live in `.tools/`, with nothing global. |

@@ -21,3 +21,10 @@ venv/
 # Env / secrets
 .env
 .env.local
+
+# Project-local toolchain (fnm, Node 24, Playwright browsers, npm cache) — see scripts/node24.sh
+.tools/
+
+# Phase 1 spike work copies and downloaded data (never committed)
+spikes/_work/
+spikes/_data/
