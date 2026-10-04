@@ -1,0 +1,29 @@
+name: Nightly upstream parity
+
+# CI proper has no upstream/ checkout, so the upstream-parity tests are skipped there and covered by committed golden
+# hashes. This job restores the repos the parity tests need and runs them for real, and byte-compares vendored files.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  upstream-parity:
+    name: upstream parity (ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Restore upstream/ (orogen and Azgaar only; the full set is about 17 GB)
+        run: scripts/restore-upstream.sh orogen Azgaars-Fantasy-Map-Generator
+      - name: Tests with upstream present (parity tests run, not skipped)
+        env:
+          REQUIRE_UPSTREAM: '1'
+        run: npm test
+      - name: Provenance check (byte-compares vendored files with upstream)
+        run: npm run provenance:check

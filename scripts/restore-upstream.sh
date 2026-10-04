@@ -3,6 +3,9 @@
 # exact recorded commit. Use this to rebuild upstream/ on a fresh machine
 # (it is gitignored and never committed).
 #
+# Usage: restore-upstream.sh [repo-name ...]
+#   With no arguments every repo is restored (about 17 GB). With names, only those (e.g. CI: orogen Azgaars-Fantasy-Map-Generator).
+#
 # Requires: git, python3, jq (optional — falls back to python3 if absent)
 
 set -euo pipefail
@@ -18,6 +21,14 @@ fi
 
 mkdir -p "$UPSTREAM_DIR"
 
+WANT=("$@")
+wanted() {
+  [ ${#WANT[@]} -eq 0 ] && return 0
+  local w
+  for w in "${WANT[@]}"; do [ "$w" = "$1" ] && return 0; done
+  return 1
+}
+
 # Emit "name|remote|commit" lines from the manifest, one per repo.
 repo_lines() {
   python3 - "$MANIFEST" <<'PY'
@@ -30,6 +41,7 @@ PY
 }
 
 while IFS='|' read -r name remote commit; do
+  wanted "$name" || continue
   target="$UPSTREAM_DIR/$name"
   if [ -d "$target/.git" ]; then
     echo "== $name already present, skipping (delete $target to force re-clone) =="
