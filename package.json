@@ -4,8 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "license": "GPL-3.0-only",
-  "engines": { "node": ">=24.0.0" },
-  "workspaces": ["apps/*", "packages/core", "packages/engine", "packages/gen-orogen", "tools/*"],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/core",
+    "packages/engine",
+    "packages/gen-orogen",
+    "tools/*"
+  ],
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc -b",
@@ -13,7 +21,8 @@
     "build": "npm run build -w @mapmaker/web",
     "e2e": "playwright test",
     "provenance:check": "tsx tools/provenance/check.ts",
-    "probe": "tsx tools/determinism/node-probe.ts"
+    "probe": "tsx tools/determinism/node-probe.ts",
+    "bench": "playwright test -c playwright.bench.config.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.36.0",
