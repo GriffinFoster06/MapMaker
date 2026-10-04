@@ -38,6 +38,8 @@ export interface LoadResult {
   /** True when stage code versions differ from the running app: view and export only (§5 Versioning). */
   viewOnly: boolean;
   staleStages: string[];
+  /** Set when the save was produced in a different dmath mode than this realm runs in: resuming would not be bit-exact (Q3). */
+  modeMismatch?: { stored: DmathMode; current: DmathMode };
 }
 
 export async function loadWorld(bytes: Uint8Array, opts: { stageVersions?: Record<string, string> } = {}): Promise<LoadResult> {
@@ -59,5 +61,7 @@ export async function loadWorld(bytes: Uint8Array, opts: { stageVersions?: Recor
   if (opts.stageVersions) {
     for (const [id, v] of Object.entries(manifest.stageVersions)) if (opts.stageVersions[id] !== v) stale.push(id);
   }
-  return { world, manifest, viewOnly: stale.length > 0, staleStages: stale.sort() };
+  // The save records the dmath mode it was produced in. Resuming in another mode would break exact resume (Q3).
+  const modeMismatch = manifest.determinism.dmath !== dmath.mode ? { stored: manifest.determinism.dmath, current: dmath.mode } : undefined;
+  return { world, manifest, viewOnly: stale.length > 0, staleStages: stale.sort(), ...(modeMismatch ? { modeMismatch } : {}) };
 }

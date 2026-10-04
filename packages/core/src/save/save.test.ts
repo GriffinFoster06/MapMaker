@@ -45,6 +45,13 @@ function makeWorld(): World {
 }
 
 describe('save / load v0', () => {
+  it('reports a dmath mode mismatch on load, and none when modes agree', async () => {
+    const w = makeWorld();
+    const native = await saveWorld(w, { engine: 'test', dmathMode: 'native' });
+    expect((await loadWorld(native)).modeMismatch).toEqual({ stored: 'native', current: 'fdlibm' });
+    expect((await loadWorld(await saveWorld(w, { engine: 'test' }))).modeMismatch).toBeUndefined();
+  });
+
   it('round-trips the whole world with equal hash', async () => {
     const w = makeWorld();
     const bytes = await saveWorld(w, { engine: 'test' });

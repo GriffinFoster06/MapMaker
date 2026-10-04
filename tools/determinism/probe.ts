@@ -1,7 +1,7 @@
 // Determinism probe (ARCHITECTURE §3.5, Q3): runs the shell's own deterministic outputs and hashes them. The same
 // code runs in Node and in browser workers; CI compares the hashes with golden.json on every engine and OS.
 // Phase 4a adds the orogen pipeline's output arrays (`orogen.<N>.*`): the vendored orogen code calls Math.* directly,
-// so these are report-only until the first per-OS results are in (they answer whether orogen is identical across OS and CPU).
+// yet its Float32 output was identical on every OS, CPU and engine in CI (Checkpoint 4a), so these keys are strict.
 //
 // The probe runs twice. Keys without a prefix are computed with dmath.mode = 'native' (orogen parity): their
 // libm-dependent values are report-only. Keys prefixed `fd.` are computed with dmath.mode = 'fdlibm' and are ALL
