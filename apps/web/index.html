@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MapMaker</title>
+  <style>
+    body { font: 15px/1.4 system-ui, sans-serif; margin: 2rem auto; max-width: 52rem; padding: 0 1rem; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: .25rem 1rem; }
+    dt { color: #555; } pre { background: #f4f4f4; padding: .75rem; overflow: auto; max-height: 20rem; }
+  </style>
+</head>
+<body>
+  <h1>MapMaker</h1>
+  <p>Phase 3 shell. Determinism probe and cross-origin isolation status.</p>
+  <dl>
+    <dt>crossOriginIsolated</dt><dd id="isolated">…</dd>
+    <dt>SharedArrayBuffer</dt><dd id="sab">…</dd>
+    <dt>Engine</dt><dd id="engine">…</dd>
+    <dt>Probe</dt><dd id="probe">not run</dd>
+  </dl>
+  <button id="run">Run determinism probe</button>
+  <pre id="out"></pre>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

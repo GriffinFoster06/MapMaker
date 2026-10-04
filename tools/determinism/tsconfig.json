@@ -1,6 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "noEmit": false, "outDir": "dist", "rootDir": ".", "tsBuildInfoFile": "dist/.tsbuildinfo", "allowImportingTsExtensions": false },
+  "compilerOptions": { "outDir": "dist", "rootDir": ".", "tsBuildInfoFile": "dist/.tsbuildinfo", "module": "ESNext", "types": ["node"] },
   "include": ["*.ts"],
   "references": [{ "path": "../../packages/core" }, { "path": "../../packages/engine" }]
 }

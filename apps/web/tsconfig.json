@@ -1,6 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "outDir": "dist-types", "rootDir": "..", "tsBuildInfoFile": "dist-types/.tsbuildinfo", "types": ["vite/client"] },
-  "include": ["src"],
-  "references": [{ "path": "../../packages/core" }, { "path": "../../packages/engine" }]
+  "compilerOptions": { "outDir": "dist-types", "rootDir": ".", "tsBuildInfoFile": "dist-types/.tsbuildinfo", "types": ["vite/client"] },
+  "include": ["src", "vite.config.ts"],
+  "references": [{ "path": "../../packages/core" }, { "path": "../../packages/engine" }, { "path": "../../tools/determinism" }]
 }

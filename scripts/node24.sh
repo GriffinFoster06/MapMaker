@@ -4,6 +4,8 @@
 # Usage: scripts/node24.sh node -v   |   scripts/node24.sh npm ci
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# CI installs Node itself (actions/setup-node); there is no .tools/ there.
+if [ -n "${CI:-}" ] && [ ! -x "$ROOT/.tools/bin/fnm" ]; then exec "$@"; fi
 export FNM_DIR="$ROOT/.tools/fnm"
 export PLAYWRIGHT_BROWSERS_PATH="$ROOT/.tools/ms-playwright"
 export npm_config_cache="$ROOT/.tools/npm-cache"
