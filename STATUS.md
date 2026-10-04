@@ -10,7 +10,7 @@ Updated at every checkpoint.
 
 ## Phase 3 results (2026-10-04)
 
-- **Unit tests:** 87 passing (core 49, engine 31, tools 7). Lint, `tsc -b` and `provenance:check` clean.
+- **Unit tests:** 87 passing (core 57, engine 20, tools 10). Lint, `tsc -b` and `provenance:check` clean.
 - **Cross-engine tests:** 9 Playwright runs (determinism and COOP/COEP shim, in Chromium 140, Firefox 141 and WebKit 26) pass locally, in CI on ubuntu, macOS and **Windows x64**, and against the live site.
 - **CI:** `checks` (ubuntu) and `determinism` (ubuntu, macOS, Windows) green; Pages deployed to https://griffinfoster06.github.io/MapMaker/ with a live smoke test.
 - **Determinism:** all strict probe keys match everywhere. Float64 libm-dependent keys diverge by 1–2 ULP across engines and across arm64/x64. See Q3 in `docs/ARCHITECTURE.md` and the Checkpoint 3 report.
