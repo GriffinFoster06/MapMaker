@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "outDir": "dist", "rootDir": ".", "tsBuildInfoFile": "dist/.tsbuildinfo", "allowJs": true, "checkJs": false },
+  "include": ["src", "vendor/js"],
+  "references": [{ "path": "../core" }, { "path": "../engine" }]
+}

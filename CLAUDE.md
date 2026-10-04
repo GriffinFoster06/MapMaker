@@ -10,7 +10,8 @@ Sphere-canonical world generator. TypeScript monorepo (npm workspaces). License:
 - **Each extraction needs a test** that checks it against the upstream behaviour or a golden value.
 - **Update `STATUS.md` at every checkpoint.**
 - **Stop at each phase boundary and wait for the user.** Do not start the next phase.
-- No `Math.random` in `packages/**`. Simulation math goes through `dmath`.
+- No `Math.random` in `packages/**`. Simulation math goes through `dmath`. **Exception:** `packages/gen-orogen/vendor/` is verbatim upstream code (lint-ignored). It calls `Math.*` and `Math.random` directly (the latter only in `planet-worker.js`, a test-only oracle), so it runs only in stages flagged `parity`, inside `dmath.withMode('native')`. Tests make `Math.random` throw during pipeline runs.
+- `dmath` defaults to `'fdlibm'` in every realm. The stage runner fails any non-parity stage that enters `'native'`.
 
 ## Commands
 

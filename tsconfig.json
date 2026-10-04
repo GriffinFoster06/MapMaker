@@ -3,6 +3,7 @@
   "references": [
     { "path": "packages/core" },
     { "path": "packages/engine" },
+    { "path": "packages/gen-orogen" },
     { "path": "tools/determinism" },
     { "path": "tools/provenance" },
     { "path": "apps/web" }
