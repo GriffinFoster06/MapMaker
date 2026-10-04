@@ -1,7 +1,7 @@
 // Engine worker host: owns the World during generation and runs the stage runner (ARCHITECTURE §6.1).
 // Works with any PortLike: a browser DedicatedWorkerGlobalScope, a Node worker_threads port, or a MessagePort.
-import { type World, hashWorld, loadWorld, saveWorld } from '@mapmaker/core';
-import type { PortLike, Request, Response, RunSummary } from './protocol';
+import { type TypedArray, type World, arrayIds, dmath, hashWorld, loadWorld, saveWorld } from '@mapmaker/core';
+import type { MeshData, PortLike, Request, Response, RunSummary, WorldStats } from './protocol';
 import { runPipeline } from './runner';
 import type { CancelFlag, Stage } from './stage';
 
@@ -11,6 +11,8 @@ export interface HostOptions {
   engine: string;
   /** Data-parallel kernels callable through the pool. Must be pure functions of their arguments. */
   kernels?: Record<string, (args: never) => unknown>;
+  /** Builds a fresh world from request params (the `create` op). */
+  create?: (params: unknown) => World;
 }
 
 export function attachHost(port: PortLike, opts: HostOptions): void {
@@ -42,6 +44,7 @@ export function attachHost(port: PortLike, opts: HostOptions): void {
         const res = await runPipeline(w, opts.stages, {
           ...(req.variant ? { variant: req.variant } : {}),
           ...(req.only ? { only: req.only } : {}),
+          ...(req.strict !== undefined ? { strict: req.strict } : {}),
           signal: cancel,
           onProgress: (p) => {
             send({ id: req.id, op: 'progress', stageId: p.stageId, fraction: p.fraction, ...(p.message !== undefined ? { message: p.message } : {}) });
@@ -63,6 +66,42 @@ export function attachHost(port: PortLike, opts: HostOptions): void {
       case 'hash': {
         if (!world) throw new Error('no world loaded');
         send({ id: req.id, op: 'result', value: await hashWorld(world) });
+        return;
+      }
+      case 'create': {
+        if (!opts.create) throw new Error('this host cannot create worlds');
+        world = opts.create(req.params);
+        cancel = { aborted: false };
+        send({ id: req.id, op: 'result', value: { viewOnly: false } });
+        return;
+      }
+      case 'layers': {
+        if (!world) throw new Error('no world loaded');
+        const meshId = req.mesh ?? 'global';
+        const out: Record<string, TypedArray[]> = {};
+        const transfer: Transferable[] = [];
+        for (const id of req.ids) {
+          out[id] = arrayIds(world.registry.get(id)).map((a) => { const c = world!.layers.get(meshId, a).slice(); transfer.push(c.buffer as ArrayBuffer); return c; });
+        }
+        send({ id: req.id, op: 'result', value: out }, transfer);
+        return;
+      }
+      case 'meshdata': {
+        if (!world) throw new Error('no world loaded');
+        const m = world.meshes.get(req.mesh ?? 'global');
+        if (!m) throw new Error('no such mesh');
+        const value: MeshData = { numRegions: m.mesh.numRegions, precision: m.mesh.precision, points: m.mesh.points.slice(), triangles: m.mesh.triangles.slice(), halfedges: m.mesh.halfedges.slice() };
+        send({ id: req.id, op: 'result', value }, [value.points.buffer as ArrayBuffer, value.triangles.buffer as ArrayBuffer, value.halfedges.buffer as ArrayBuffer]);
+        return;
+      }
+      case 'stats': {
+        if (!world) throw new Error('no world loaded');
+        let meshBytes = 0, layerBytes = 0;
+        for (const m of world.meshes.values()) meshBytes += m.mesh.points.byteLength + m.mesh.triangles.byteLength + m.mesh.halfedges.byteLength + m.mesh.adjList.byteLength + m.mesh.adjOffset.byteLength + m.mesh.adjTriList.byteLength;
+        const keys = world.layers.keys();
+        for (const k of keys) { const i = k.indexOf('/'); layerBytes += world.layers.get(k.slice(0, i), k.slice(i + 1)).byteLength; }
+        const value: WorldStats = { meshBytes, layerBytes, layerArrays: keys.length, dmath: dmath.mode };
+        send({ id: req.id, op: 'result', value });
         return;
       }
       case 'kernel': {

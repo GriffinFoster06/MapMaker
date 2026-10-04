@@ -21,6 +21,11 @@ export interface LayerDescriptor {
   deps: string[];
   sample: SampleRule;
   timeVarying: TimeVarying;
+  /**
+   * 'private' layers (an adapter's scratch state, such as `orogen.elevRaw`) may be read only by stages whose id starts
+   * with the layer id's first segment plus a dot (`orogen.*`). Default 'public'.
+   */
+  visibility?: 'public' | 'private';
 }
 
 const ID_RE = /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)*$/;

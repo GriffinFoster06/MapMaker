@@ -1,4 +1,5 @@
-import type { PortLike, Request, Response, RunSummary } from './protocol';
+import type { TypedArray } from '@mapmaker/core';
+import type { MeshData, PortLike, Request, Response, RunSummary, WorldStats } from './protocol';
 
 type Pending = { resolve: (v: unknown) => void; reject: (e: Error) => void; onProgress?: (p: { stageId: string; fraction: number; message?: string }) => void; onCheckpoint?: (b: Uint8Array) => void };
 
@@ -35,10 +36,15 @@ export class EngineClient {
     return this.call((id) => ({ id, op: 'load', bytes: copy }), {}, [copy.buffer as ArrayBuffer]);
   }
 
-  run(opts: { variant?: string; only?: string[]; checkpointEvery?: number; onProgress?: Pending['onProgress']; onCheckpoint?: Pending['onCheckpoint'] } = {}): Promise<RunSummary> {
+  run(opts: { variant?: string; only?: string[]; checkpointEvery?: number; strict?: boolean; onProgress?: Pending['onProgress']; onCheckpoint?: Pending['onCheckpoint'] } = {}): Promise<RunSummary> {
     const { onProgress, onCheckpoint, ...rest } = opts;
     return this.call((id) => ({ id, op: 'run', ...rest }), { ...(onProgress ? { onProgress } : {}), ...(onCheckpoint ? { onCheckpoint } : {}) });
   }
+
+  create(params: unknown): Promise<{ viewOnly: boolean }> { return this.call((id) => ({ id, op: 'create', params })); }
+  layers(ids: string[], mesh?: string): Promise<Record<string, TypedArray[]>> { return this.call((id) => ({ id, op: 'layers', ids, ...(mesh ? { mesh } : {}) })); }
+  meshData(mesh?: string): Promise<MeshData> { return this.call((id) => ({ id, op: 'meshdata', ...(mesh ? { mesh } : {}) })); }
+  stats(): Promise<WorldStats> { return this.call((id) => ({ id, op: 'stats' })); }
 
   cancel(): void { this.port.postMessage({ op: 'cancel' } satisfies Request); }
   snapshot(): Promise<Uint8Array> { return this.call((id) => ({ id, op: 'snapshot' })); }

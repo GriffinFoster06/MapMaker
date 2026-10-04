@@ -50,7 +50,14 @@ export function checkProducers(world: World, stages: Stage[], variant: string): 
       writer.set(w, s.id);
     }
   }
-  for (const s of stages) for (const r of s.reads) if (!r.startsWith('table:') && !world.registry.has(r)) throw new Error(`stage ${s.id} reads unregistered layer ${r}`);
+  for (const s of stages) {
+    for (const r of s.reads) {
+      if (r.startsWith('table:')) continue;
+      if (!world.registry.has(r)) throw new Error(`stage ${s.id} reads unregistered layer ${r}`);
+      const d = world.registry.get(r);
+      if (d.visibility === 'private' && !s.id.startsWith(`${r.split('.')[0]}.`)) throw new Error(`stage ${s.id} reads private layer ${r}`);
+    }
+  }
 }
 
 const macrotask = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
