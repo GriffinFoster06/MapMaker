@@ -57,10 +57,14 @@ Each row ranks the candidates that actually matter and gives my pick. Repos that
 |---|---|---|---|---|---|---|
 | 1 | orogen | 4 | loose | JS | GPL-3.0 | `plates.js`, `plate-physics.js`, `coarse-plates.js`, `super-plates.js`: farthest-point plate seeding, drift-based boundary classification, stress propagation, density-based subduction. Toy physics, good visual results. |
 | 2 | GPlates | 5 (kinematics only) | loose | C++/Qt | GPL-2.0 | Finite-rotation / Euler-pole algebra and rotation-model handling (`src/app-logic/Reconstruction*`, `RotationUtils.h`). Reconstructs *given* motion; does not generate a world. |
-| 3 | VPLanet | 2 | tangled | C | MIT | Parameterized thermal-interior and plate scaling (`thermint.c`), useful for deciding whether plate tectonics is plausible on a given planet. |
+| 3 | tectonics.js (new) | 3 | loose | JS | CC-BY-4.0 | The only forward plate-evolution code in browser JS: rigid plates as 3×3 rotations, subduction by overlap, rifting by gap-fill, age-dependent crust density, Airy isostasy (`Lithosphere.js`, `Plate.js`, `Tectonophysics.js`). Runs; 40,962 cells max (Uint16 ids); 54 ms/step median, measured. The author's own comment calls its velocity model "mostly wrong"; no collision/orogeny/event logic; wall-clock time steps; plate set re-segmented every 150 Myr. Licence is not a blocker (FSF: CC BY 4.0 is GPL-compatible), but the code is of limited use for note 13. Algorithm reference only. |
+| 4 | VPLanet | 2 | tangled | C | MIT | Parameterized thermal-interior and plate scaling (`thermint.c`), useful for deciding whether plate tectonics is plausible on a given planet. |
+| - | SongsOfFOSS (new) | none | n/a | Lua | MIT (Lua) | Terrain and plates come from a closed Windows binary `libSOTE.dll` (no source). A legacy Lua plate seeder (`game/world-gen/plate-gen.lua`) is dev-only and has no plate interactions. Nothing to use. |
 | - | ASPECT | 5 (physics) / 2 (fit) | tangled | C++/MPI | GPL-2.0+ | Mantle convection FEM. Not portable, not procedural. Parameter reference only. |
 
 **Pick: orogen** for generation. Re-implement GPlates-style rotation algebra (small, well-defined math) if plate *history* over time is needed. Original code is needed for forward plate evolution; see Gaps.
+
+Added after the first pass: `tectonics.js` (see `audit/tectonics.js.md`, `docs/spikes/NEW_UPSTREAMS.md`) does not change this pick. It supplies ideas for note 13's detection mesh and crust pools, but not its event schedule, force balance, fast/slow split or keyed RNG.
 
 ### 2. Heightmap generation
 
@@ -185,6 +189,7 @@ Each row ranks the candidates that actually matter and gives my pick. Repos that
 | 2 | UrbanSim | 3-4 | loose | BSD-style | Discrete-choice location models, relocation, cohort transition (`models/dcm.py`, `transition.py`). Python/pandas. Design reference. |
 | 3 | RangeShiftR | 4 | loose | GPL-3.0 | Individual-based dynamics and dispersal kernels; C++20 + R. Species-ecology oriented. |
 | 4 | SLiM | 5 | tangled | GPL-3.0 | Reference individual-based model; C++, no browser path. |
+| 5 | SongsOfFOSS (new) | 2 | loose | MIT | Lua. Individual `POP` objects with monthly Bernoulli births and deaths from fixed rates (`society/pop-growth.lua`); carrying-capacity variables are computed but unused. "Migration" is leader-driven colonisation and invasion events (up to 6 families per move), not a demographic model. Unseeded RNG. Contrast case for note 9, not a source. |
 | - | FLAMEGPU2, GAMA, LIAM2, OpenSpiel | 2-3 | tangled / n/a | various | Frameworks without a settlement model. |
 
 **Pick: Azgaar** for initial placement. **Dynamic demography is original code**, informed by UrbanSim and RangeShiftR.
@@ -204,7 +209,8 @@ Each row ranks the candidates that actually matter and gives my pick. Repos that
 | Rank | Repo | Rating | Note |
 |---|---|---|---|
 | 1 | Azgaar | 3 | `names-generator.ts`: culture-specific phonological name generation. |
-| 2 | SLiM | 2 | Recipes show cultural-trait transmission; no linguistic structure. |
+| 2 | SongsOfFOSS (new) | 2 | `entities/language.lua` (187 lines, MIT, loose): phoneme inventory from a fixed frequency-ordered list with geometric drop-off, 7 syllable templates, random suffixes for province, realm and adjective names. Static, unseeded, no sonority rules or lexicon. Culture and religion are colour-and-name labels (66 and 59 lines). |
+| 3 | SLiM | 2 | Recipes show cultural-trait transmission; no linguistic structure. |
 
 **Pick: Azgaar for names.** **Actual language evolution (phonology, vocabulary and grammar drift, family trees) is a gap.**
 
@@ -232,6 +238,7 @@ Each row ranks the candidates that actually matter and gives my pick. Repos that
 | Candidates | Verdict |
 |---|---|
 | Azgaar (pre-generated flavor), Eurace (EULA; economics only), SLiM / FLAMEGPU2 / LIAM2 / OpenSpiel (frameworks, no domain model), MESSAGEix (energy LP), UrbanSim (forecasting only) | **None cover war, politics, or history.** |
+| SongsOfFOSS (new, MIT, Lua; game, not a history engine) | **Partial, usable pieces only.** `Army:attack` (`entities/army.lua`, ~130 lines with `Warband:get_total_strength`): generalised Lanchester attrition with exponent 0.1 between linear and square law, defender advantage, 0.7 rout threshold; no terrain, fortification or supply (3/5, loose). Per-province price ODE with stockpile pressure and neighbour coupling (`economy/realm-economic-update.lua:149-234`, ~40 lines; 3/5, tangled). Monthly bucketed tick order (`world.lua:368-689`). **Absent**: stability, legitimacy, revolt, collapse (zero grep hits), war claims enforcement (`war.claims` never read), currencies, trade routes, religion dynamics, epidemics. RNG is unseeded (196 `love.math.random` calls). |
 
 **Gap: original code.** This is the largest single piece of new work. Ideas can be borrowed from UrbanSim (discrete choice), SLiM (individual-based populations), and the Azgaar generators (initial state), but there is no extractable simulation core.
 

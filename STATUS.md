@@ -24,6 +24,13 @@ Updated at every checkpoint.
 - **Cost (2.56M cells, Node 24 arm64, median of 5):** mesh build +6% at f64 and +13% at f32; point generation 1.39×; `pow` is 4.2× per call, other functions 1.05–2×. Details in the Q3 row of `docs/ARCHITECTURE.md`.
 - **Triangle flips:** none. Float64 points differ between modes by up to 29 ULP at 1M cells, but the triangle arrays are identical at 200k, 1M and 2.56M cells.
 
+## New upstreams: tectonics.js and SongsOfFOSS (2026-10-03)
+
+- **Added** to `upstream/` and `upstream-manifest.json` (restore script unchanged; tested from a scratch copy). Audits: `audit/tectonics.js.md`, `audit/SongsOfFOSS.md`. Report: `docs/spikes/NEW_UPSTREAMS.md`. Four rows of `audit/CAPABILITY_MATRIX.md` updated; **no pick changed**, no code extracted, shell untouched. Phase 4a not started.
+- **Licences:** tectonics.js is CC BY 4.0 (the FSF lists it as GPL-compatible; attribution needed). SongsOfFOSS is MIT except `sote/emblems`, `engine`, `icons`, `music`, `data`; its terrain generator is a closed binary, `libSOTE.dll`.
+- **Findings:** tectonics.js is a crude forward plate model (40,962 cells max, 54 ms/step measured, no collision/orogeny/events); reference for note 13 only. SongsOfFOSS has no stability, revolt, currency, trade-route or language-change models and an unseeded RNG; its `Army:attack` Lanchester-style step and price rule are the only pieces note 1 can learn from.
+- **Caution:** both audits were rewritten after the first subagent drafts proved partly wrong (details in `NEW_UPSTREAMS.md` §5).
+
 ## Known issues for later phases
 
 - **Phase 12 (save streaming):** the v0 snapshot copies world data (about double peak memory) and writes the container with `zipSync`. Move to streaming writes and chunk-at-a-time hashing, so peak memory stays near one chunk.
