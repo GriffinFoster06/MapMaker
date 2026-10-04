@@ -199,8 +199,25 @@ const koppenStage: Stage = {
   },
 };
 
+const LABELS: Record<string, string> = {
+  [STAGE.mesh]: 'Shaping the world', [STAGE.tectonics]: 'Plates and plate physics', [STAGE.elevation]: 'Raising mountains',
+  [STAGE.erosion]: 'Eroding terrain', [STAGE.climate]: 'Wind, currents, precipitation, temperature', [STAGE.koppen]: 'Köppen classification',
+};
+
+/** Reports stage start and end to the runner's progress channel (the vendored code itself reports nothing). */
+const reporting = (s: Stage): Stage => ({
+  ...s,
+  run(ctx) {
+    ctx.progress(0, LABELS[s.id]);
+    const r = s.run(ctx);
+    if (r instanceof Promise) return r.then(() => ctx.progress(1));
+    ctx.progress(1);
+    return undefined;
+  },
+});
+
 /** The six stages in pipeline order. Register the layers with registerOrogenLayers() first. */
-export const orogenStages: Stage[] = [meshStage, tectonicsStage, elevationStage, erosionStage, climateStage, koppenStage];
+export const orogenStages: Stage[] = [meshStage, tectonicsStage, elevationStage, erosionStage, climateStage, koppenStage].map(reporting);
 
 /** Koppen class codes by orogen class id (0 = ocean). The canonical `enum:koppen` layer stores these ids as they are. */
 export const KOPPEN_CODES: string[] = KOPPEN_CLASSES.map((c) => c.code);

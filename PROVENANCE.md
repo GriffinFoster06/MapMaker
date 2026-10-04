@@ -82,6 +82,8 @@ Written for MapMaker. Where a published algorithm was implemented from its refer
 | `packages/core/src/rng/splitmix64.ts` | SplitMix64, Sebastiano Vigna (<https://prng.di.unimi.it/splitmix64.c>), implemented from the reference. The test uses the published seed-0 vector. | Public domain |
 | `tools/fdlibm-vectors/vectors.json` | Generated data: output of the unmodified netlib fdlibm 5.3 and FreeBSD `e_log2.c` (see the `fdlibm.ts` rows), produced by `tools/fdlibm-vectors/gen.sh` (compiles the C and runs `driver.c`). Inputs come from a fixed xorshift64 stream plus a list of special values. Not an extraction of code. | Numerical results of the Sun-licensed sources; no separate license |
 | `packages/core/src/mesh/spatial-index.ts` | Cube-map buckets plus a greedy Delaunay-graph walk (standard technique). Tested against brute force. | n/a |
+| `tools/tuning/ab/sphere.mjs` | Moved unchanged from `spikes/lib/sphere.mjs` (Phase 1 spike code, original to this project): CSR adjacency, dual areas, Delaunay-walk locator, 1° grid sampling, point sets, priority-flood basins. | n/a |
+| `tools/tuning/ab/ab.mjs` | Ported from `spikes/1c/ab.mjs` (original to this project) to run on the shell pipeline. Adds the three Checkpoint 2 metrics (hypsometry KS on native preview land cells, river-mouth distance for the top-10 basins; Köppen on the 1° grid was already measured). Test: `tools/tuning/ab/ab.test.ts` reproduces spike 1c's committed numbers exactly. | n/a |
 | `packages/gen-orogen/src/**` (except `orchestration.ts`) | The orogen adapter (F1–F4): layer descriptors, per-world scratch, the six stages, the stock-shape view and the stock oracle runner. Defined as new work by ARCHITECTURE §3.6. | n/a |
 | `packages/core/src/**` (everything else), `packages/engine/src/**`, `tools/**`, `apps/web/src/**` | Shell infrastructure defined as new work by ARCHITECTURE §3–§6: frame, units, `dmath`, layer registry, entity tables, timeline, event log, `World`, save format, stage runner, worker protocol, probe, provenance checker. | n/a |
 
@@ -91,6 +93,7 @@ Written for MapMaker. Where a published algorithm was implemented from its refer
 |---|---|---|---|
 | delaunator | 5.0.1 | ISC | Spherical Delaunay through stereographic projection (same version orogen loads) |
 | fflate | 0.8.2 | MIT | ZIP container for `.mapmaker` |
+| three | 0.160.0 | MIT | Globe rendering (WebGL2). Same version orogen loads |
 | pngjs | 7.0.0 | MIT | PNG decode for the Earth heightmap in the tuning harness (`tools/tuning`) |
 
 ## Development dependencies (Phase 3)
@@ -101,6 +104,7 @@ Written for MapMaker. Where a published algorithm was implemented from its refer
 | eslint | 9.36.0 | MIT | Lint, including the `Math.random` and `dmath` bans |
 | typescript-eslint | 8.44.1 | MIT | Lint |
 | typescript | 5.9.2 | Apache-2.0 | Strict type checking |
+| @types/three | 0.160.0 | MIT | Types for three |
 | vite | 7.1.7 | MIT | Web build |
 | vitest | 3.2.4 | MIT | Unit tests |
 | @playwright/test | 1.55.1 | Apache-2.0 | Cross-engine tests (Chromium 140, Firefox 141, WebKit 26) |

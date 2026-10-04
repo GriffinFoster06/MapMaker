@@ -1,4 +1,5 @@
 import { initRealm } from '@mapmaker/core';
+import { startApp } from './app';
 
 initRealm();
 const $ = (id: string) => document.getElementById(id)!;
@@ -34,3 +35,5 @@ function startProbe(): Window['__probe'] {
 $('run').addEventListener('click', () => { window.__probe = startProbe(); });
 // Automation hook: ?probe starts the probe on load.
 if (new URLSearchParams(location.search).has('probe')) window.__probe = startProbe();
+
+startApp();

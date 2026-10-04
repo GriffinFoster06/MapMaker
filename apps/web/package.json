@@ -11,10 +11,13 @@
   },
   "dependencies": {
     "@mapmaker/core": "*",
+    "@mapmaker/determinism": "*",
     "@mapmaker/engine": "*",
-    "@mapmaker/determinism": "*"
+    "three": "0.160.0",
+    "@mapmaker/gen-orogen": "*"
   },
   "devDependencies": {
+    "@types/three": "0.160.0",
     "coi-serviceworker": "0.1.7"
   }
 }
