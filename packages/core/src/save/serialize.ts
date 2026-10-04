@@ -35,8 +35,10 @@ function need(files: FileMap, path: string): Uint8Array {
 export function worldToFiles(w: World): { files: FileMap; units: Map<string, string> } {
   const files: FileMap = new Map();
   const units = new Map<string, string>();
+  // Copy synchronously: saving is async (hashing yields), and a running stage may keep mutating the live arrays.
+  // The file map is therefore a consistent snapshot of the instant this function was called.
   const putArr = (path: string, a: TypedArray, unit?: string) => {
-    files.set(path, bytesOf(a));
+    files.set(path, bytesOf(a).slice());
     if (unit) units.set(path, unit);
   };
 

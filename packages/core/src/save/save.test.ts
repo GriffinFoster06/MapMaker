@@ -63,6 +63,16 @@ describe('save / load v0', () => {
     expect(world.entities.get('settlements')!.spec.agent).toBe(true);
   });
 
+  it('a save is a consistent snapshot even if arrays keep changing while it is written', async () => {
+    const w = makeWorld();
+    const before = await hashWorld(w);
+    const p = saveWorld(w, { engine: 't' });
+    w.layers.get('global', 'elevation').fill(7); // mutate immediately, before the async save finishes
+    w.checkpoint!.chunks['acc']![0] = 99;
+    const { world } = await loadWorld(await p);
+    expect(await hashWorld(world)).toBe(before);
+  });
+
   it('hash changes when any state changes', async () => {
     const w = makeWorld();
     const h0 = await hashWorld(w);
