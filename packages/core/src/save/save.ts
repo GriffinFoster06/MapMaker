@@ -1,12 +1,13 @@
 // .mapmaker container: a ZIP written with fflate (ARCHITECTURE §5). Original shell code.
 // v0 deviation: written with zipSync, not the streaming API. Streaming for large worlds is Phase 12.
 import { unzipSync, zipSync, type Zippable } from 'fflate';
+import { dmath, type DmathMode } from '../dmath';
 import { sha256 } from '../hash';
 import type { World, WorldManifest } from '../world';
 import { FORMAT_VERSION, migrateToCurrent, type FileMap } from './migrations';
 import { type ChunkEntry, chunkTable, filesToWorld, worldToFiles } from './serialize';
 
-export interface DeterminismProfile { dmath: 'native' | 'fdlibm'; engine: string }
+export interface DeterminismProfile { dmath: DmathMode; engine: string }
 
 export interface SaveManifest extends WorldManifest {
   format: string;
@@ -20,11 +21,11 @@ const dec = new TextDecoder();
 // comparisons use the chunk sha256 table, never the container bytes.
 const FIXED_MTIME = Date.UTC(1980, 0, 1, 12);
 
-export async function saveWorld(w: World, opts: { engine: string; dmathMode?: 'native' | 'fdlibm'; now?: Date } = { engine: 'unknown' }): Promise<Uint8Array> {
+export async function saveWorld(w: World, opts: { engine: string; /** Defaults to the current dmath.mode. */ dmathMode?: DmathMode; now?: Date } = { engine: 'unknown' }): Promise<Uint8Array> {
   const { files, units } = worldToFiles(w);
   const chunks = await chunkTable(files, units);
   w.manifest.modified = (opts.now ?? new Date()).toISOString();
-  const manifest: SaveManifest = { ...w.manifest, format: FORMAT_VERSION, chunks, determinism: { dmath: opts.dmathMode ?? 'native', engine: opts.engine } };
+  const manifest: SaveManifest = { ...w.manifest, format: FORMAT_VERSION, chunks, determinism: { dmath: opts.dmathMode ?? dmath.mode, engine: opts.engine } };
   const z: Zippable = {};
   z['manifest.json'] = [enc.encode(JSON.stringify(manifest, null, 1)), { level: 6, mtime: FIXED_MTIME }];
   for (const [path, bytes] of files) z[path] = [bytes, { level: path.endsWith('.gz') ? 0 : 6, mtime: FIXED_MTIME }];

@@ -16,11 +16,14 @@ export function compareHashes(actual: Record<string, string>, golden: Record<str
 }
 
 /**
- * Keys whose value depends on libm transcendental results in Float64 (dmath sweeps, Float64 mesh points, and areas or
+ * Native-mode keys whose value depends on libm transcendental results (dmath sweeps, Float64 mesh points, and areas or
  * circumcentres derived from atan2/sqrt on them). Spike 1a saw no divergence only because orogen rounds to Float32;
- * the Phase 3 probe found 1-2 ULP differences between engines here. Everything else is strict.
+ * the Phase 3 probe found 1-2 ULP differences between engines here, so these are report-only.
+ * Keys prefixed `fd.` are computed with dmath.mode = 'fdlibm' (pure IEEE arithmetic) and are always strict.
+ * Everything else (RNG, topology, history) is strict.
  */
 export function isTranscendental(key: string): boolean {
+  if (key.startsWith('fd.')) return false;
   return key.startsWith('dmath.') || /^mesh\.\d+\.f64\./.test(key) || /\.(area|circ)$/.test(key);
 }
 

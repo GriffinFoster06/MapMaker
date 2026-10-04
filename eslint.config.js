@@ -25,6 +25,8 @@ export default tseslint.config(
         { object: 'Math', property: 'random', message: 'Math.random is banned in engine packages; use ctx.rng(name) (ARCHITECTURE §3.5).' },
         ...TRANSCENDENTALS.map((property) => ({ object: 'Math', property, message: `Use dmath.${property} (ARCHITECTURE §3.5).` })),
       ],
+      // `x ** y` is Math.pow in disguise (engine-dependent for non-integer exponents).
+      'no-restricted-syntax': ['error', { selector: "BinaryExpression[operator='**'], AssignmentExpression[operator='**=']", message: 'Use dmath.pow, or multiply (ARCHITECTURE §3.5).' }],
     },
   },
 );

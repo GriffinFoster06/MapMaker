@@ -28,7 +28,9 @@ jobs:
 
   # Q3: cross-engine bit-exactness is a CI-tested goal. The same probe runs in Node and in Chromium, Firefox and
   # WebKit on Linux, macOS and Windows/x64 (the one platform spike 1a could not test), and is compared with
-  # tools/determinism/golden.json. Strict keys must match everywhere; transcendental-dependent keys are reported.
+  # tools/determinism/golden.json. Strict keys must match everywhere: RNG, topology, history, and every `fd.` key (the
+  # whole probe re-run with dmath.mode = 'fdlibm', including Float64 points, areas, circumcentres, the dmath sweep and
+  # a 1M-cell mesh). Native-mode libm-dependent keys are reported only.
   determinism:
     name: determinism (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

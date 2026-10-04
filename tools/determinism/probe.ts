@@ -1,11 +1,15 @@
 // Determinism probe (ARCHITECTURE §3.5, Q3): runs the shell's own deterministic outputs and hashes them. The same
 // code runs in Node and in browser workers; CI compares the hashes with golden.json on every engine and OS.
 // Phase 3 covers shell outputs only; Phase 4a adds orogen arrays to the same probe.
+//
+// The probe runs twice. Keys without a prefix are computed with dmath.mode = 'native' (orogen parity): their
+// libm-dependent values are report-only. Keys prefixed `fd.` are computed with dmath.mode = 'fdlibm' and are ALL
+// strict: dmath sweeps, Float64 mesh points, areas, circumcentres, topology (up to 1M cells) and the history chain.
 import { Alea, OrogenLcg, RngService, Sfc32, SphereMesh, bytesOf, dmath, hashArrays, loadWorld, saveWorld, sha256, hashWorld, type TypedArray } from '@mapmaker/core';
 import { dummyHistoryStage, registerDummyHistoryLayers, runPipeline } from '@mapmaker/engine';
 import { Timeline, World } from '@mapmaker/core';
 
-export const PROBE_VERSION = 1;
+export const PROBE_VERSION = 2;
 
 export interface ProbeResult {
   version: number;
@@ -46,22 +50,30 @@ const SWEEPS: Record<string, (i: number) => number> = {
   sqrt: (i) => dmath.sqrt(T(i) * 1000),
 };
 
-function dmathArrays(): Record<string, Float64Array> {
+function dmathArrays(prefix: string): Record<string, Float64Array> {
   const out: Record<string, Float64Array> = {};
   for (const [name, f] of Object.entries(SWEEPS)) {
     const a = new Float64Array(SWEEP_N);
     for (let i = 0; i < SWEEP_N; i++) a[i] = f(i);
-    out[`dmath.${name}`] = a;
+    out[`${prefix}dmath.${name}`] = a;
   }
   return out;
 }
 
-function meshArrays(): Record<string, TypedArray> {
+type MeshSpec = readonly [N: number, precision: 'f32' | 'f64'];
+const NATIVE_MESHES: readonly MeshSpec[] = [[20000, 'f32'], [20000, 'f64'], [200000, 'f32']];
+/** fdlibm mode adds Float64 at 200k and at 1M cells: a 1-ULP point difference could flip a near-degenerate Delaunay triangle at scale. */
+const FD_MESHES: readonly MeshSpec[] = [...NATIVE_MESHES, [200000, 'f64'], [1_000_000, 'f64']];
+
+/** Keys of the 1M-cell mesh are hashed but not kept for element-wise diffs (memory). */
+const keepKey = (key: string): boolean => !key.includes('.1000000.');
+
+function meshArrays(prefix: string, specs: readonly MeshSpec[]): Record<string, TypedArray> {
   const out: Record<string, TypedArray> = {};
-  for (const [N, prec] of [[20000, 'f32'], [20000, 'f64'], [200000, 'f32']] as const) {
+  for (const [N, prec] of specs) {
     const rng = new OrogenLcg('mesh', 12345);
     const m = SphereMesh.build({ N, jitter: 0.75, rng: () => rng.next(), precision: prec });
-    const p = `mesh.${N}.${prec}`;
+    const p = `${prefix}mesh.${N}.${prec}`;
     out[`${p}.points`] = m.points;
     out[`${p}.triangles`] = m.triangles;
     out[`${p}.adjList`] = m.adjList;
@@ -84,7 +96,7 @@ function rngArrays(): Record<string, TypedArray> {
   return out;
 }
 
-async function historyHashes(): Promise<Record<string, string>> {
+async function historyHashes(prefix: string): Promise<Record<string, string>> {
   const w = new World({
     params: { masterSeed: '00112233445566778899aabbccddeeff', ticks: 40, keyframeEvery: 8 },
     manifest: { appVersion: '0.0.0', created: '2026-10-03T00:00:00.000Z', modified: '2026-10-03T00:00:00.000Z', stageVersions: {} },
@@ -96,15 +108,32 @@ async function historyHashes(): Promise<Record<string, string>> {
   await runPipeline(w, [dummyHistoryStage]);
   const bytes = await saveWorld(w, { engine: 'probe', now: new Date(0) });
   const { manifest, world } = await loadWorld(bytes);
-  const out: Record<string, string> = { 'history.world': await hashWorld(world) };
-  for (const c of manifest.chunks) out[`history.chunk.${c.path}`] = c.sha256;
+  const out: Record<string, string> = { [`${prefix}history.world`]: await hashWorld(world) };
+  for (const c of manifest.chunks) out[`${prefix}history.chunk.${c.path}`] = c.sha256;
   return out;
 }
 
 export async function runProbe(opts: { keepArrays?: boolean } = {}): Promise<ProbeResult> {
-  const arrays: Record<string, TypedArray> = { ...dmathArrays(), ...meshArrays(), ...rngArrays() };
-  const hashes = await hashArrays(arrays);
-  Object.assign(hashes, await historyHashes());
+  const prev = dmath.mode;
+  let arrays: Record<string, TypedArray>;
+  const hashes: Record<string, string> = {};
+  try {
+    dmath.setMode('native');
+    arrays = { ...dmathArrays(''), ...meshArrays('', NATIVE_MESHES), ...rngArrays() };
+    Object.assign(hashes, await hashArrays(arrays), await historyHashes(''));
+
+    dmath.setMode('fdlibm');
+    // One mesh at a time, so the 1M-cell arrays are hashed and released before the next build.
+    const fd = dmathArrays('fd.');
+    Object.assign(hashes, await hashArrays(fd));
+    for (const [k, a] of Object.entries(fd)) arrays[k] = a;
+    for (const spec of FD_MESHES) {
+      const part = meshArrays('fd.', [spec]);
+      Object.assign(hashes, await hashArrays(part));
+      for (const [k, a] of Object.entries(part)) if (keepKey(k)) arrays[k] = a;
+    }
+    Object.assign(hashes, await historyHashes('fd.'));
+  } finally { dmath.setMode(prev); }
   hashes['probe.version'] = await sha256(bytesOf(new Uint32Array([PROBE_VERSION])));
   const sorted: Record<string, string> = {};
   for (const k of Object.keys(hashes).sort()) sorted[k] = hashes[k]!;

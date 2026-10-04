@@ -17,6 +17,8 @@ describe('strict vs transcendental-dependent keys', () => {
   it('classifies keys', () => {
     for (const k of ['dmath.sin', 'mesh.20000.f64.points', 'mesh.20000.f32.area', 'mesh.20000.f32.circ']) expect(isTranscendental(k)).toBe(true);
     for (const k of ['mesh.20000.f32.points', 'mesh.20000.f32.triangles', 'rng.sfc32', 'rng.counter', 'history.world']) expect(isTranscendental(k)).toBe(false);
+    // fdlibm-mode keys are never report-only, even where the native-mode twin is.
+    for (const k of ['fd.dmath.sin', 'fd.mesh.20000.f64.points', 'fd.mesh.1000000.f64.area', 'fd.mesh.20000.f32.circ', 'fd.history.world']) expect(isTranscendental(k)).toBe(false);
     const { strict, soft } = splitMismatches([{ key: 'dmath.exp' }, { key: 'rng.alea' }]);
     expect([strict.map((x) => x.key), soft.map((x) => x.key)]).toEqual([['rng.alea'], ['dmath.exp']]);
   });
