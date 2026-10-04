@@ -1,6 +1,5 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "noEmit": false, "outDir": "dist", "rootDir": ".", "tsBuildInfoFile": "dist/.tsbuildinfo", "allowImportingTsExtensions": false },
-  "include": ["*.ts"],
-  "references": [{ "path": "../../packages/core" }, { "path": "../../packages/engine" }]
+  "compilerOptions": { "outDir": "dist", "rootDir": ".", "tsBuildInfoFile": "dist/.tsbuildinfo", "types": ["node"] },
+  "include": ["*.ts"]
 }
