@@ -7,7 +7,7 @@ const GOLDEN = JSON.parse(readFileSync(resolve(dirname(fileURLToPath(import.meta
 
 // Q3: cross-engine bit-exactness is a CI-tested goal. Each engine's worker must reproduce the Node golden hashes.
 test('determinism probe matches golden hashes in this engine', async ({ page, browserName }, info) => {
-  await page.goto('/?probe');
+  await page.goto('./?probe');
   const result = await page.evaluate(async () => {
     const r = await (window as unknown as { __probe: Promise<{ version: number; hashes: Record<string, string>; ua: string }> }).__probe;
     return r;

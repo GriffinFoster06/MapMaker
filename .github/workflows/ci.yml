@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: lint, types, unit tests, build, provenance (ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run provenance:check
+
+  # Q3: cross-engine bit-exactness is a CI-tested goal. The same probe runs in Node and in Chromium, Firefox and
+  # WebKit on Linux, macOS and Windows/x64 (the one platform spike 1a could not test), and is compared with
+  # tools/determinism/golden.json. Strict keys must match everywhere; transcendental-dependent keys are reported.
+  determinism:
+    name: determinism (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Unit tests (include the mesh and RNG golden hashes)
+        run: npm test
+      - name: Node probe
+        shell: bash
+        run: npm run probe 2>&1 | tee probe-node-${{ matrix.os }}.txt
+      - name: Install browsers
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then npx playwright install --with-deps chromium firefox webkit; else npx playwright install chromium firefox webkit; fi
+      - name: Browser probes and COOP/COEP shim tests
+        run: npx playwright test
+      - name: Divergence report
+        if: always()
+        shell: bash
+        run: |
+          echo "## Determinism: ${{ matrix.os }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat probe-node-${{ matrix.os }}.txt >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: determinism-${{ matrix.os }}
+          path: |
+            probe-node-${{ matrix.os }}.txt
+            test-results/
+            playwright-report/
+          retention-days: 30

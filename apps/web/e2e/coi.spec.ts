@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 // ARCHITECTURE §3.7: GitHub Pages cannot set COOP/COEP headers. Default is transferable ArrayBuffers; the
 // coi-serviceworker shim is an optional upgrade to SharedArrayBuffer.
 test('without the shim: not isolated, transferable buffers work', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   expect(await page.evaluate(() => self.crossOriginIsolated)).toBe(false);
   const moved = await page.evaluate(async () => {
     const w = new Worker(URL.createObjectURL(new Blob(['onmessage=e=>{const a=new Float64Array(e.data);postMessage(a.reduce((s,x)=>s+x,0))}'])));
@@ -17,7 +17,7 @@ test('without the shim: not isolated, transferable buffers work', async ({ page 
 });
 
 test('with the shim: page becomes cross-origin isolated and SharedArrayBuffer works in a worker', async ({ page, browserName }, info) => {
-  await page.goto('/?coi');
+  await page.goto('./?coi');
   let isolated = false;
   try {
     await page.waitForFunction(() => self.crossOriginIsolated === true, null, { timeout: 20_000 });

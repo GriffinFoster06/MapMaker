@@ -10,7 +10,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: process.env['CI'] ? [['list'], ['html', { open: 'never' }]] : 'list',
-  use: { baseURL: remote ?? `http://127.0.0.1:${PORT}` },
+  use: { baseURL: remote ? (remote.endsWith('/') ? remote : remote + '/') : `http://127.0.0.1:${PORT}/` },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
