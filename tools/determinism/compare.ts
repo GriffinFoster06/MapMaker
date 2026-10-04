@@ -24,6 +24,8 @@ export function compareHashes(actual: Record<string, string>, golden: Record<str
  */
 export function isTranscendental(key: string): boolean {
   if (key.startsWith('fd.')) return false;
+  // orogen output: the vendored code calls Math.* directly (Phase 4a). Report-only until per-OS results are in.
+  if (key.startsWith('orogen.')) return true;
   return key.startsWith('dmath.') || /^mesh\.\d+\.f64\./.test(key) || /\.(area|circ)$/.test(key);
 }
 

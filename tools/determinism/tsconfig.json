@@ -2,5 +2,5 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "outDir": "dist", "rootDir": ".", "tsBuildInfoFile": "dist/.tsbuildinfo", "module": "ESNext", "types": ["node"] },
   "include": ["*.ts"],
-  "references": [{ "path": "../../packages/core" }, { "path": "../../packages/engine" }]
+  "references": [{ "path": "../../packages/core" }, { "path": "../../packages/engine" }, { "path": "../../packages/gen-orogen" }]
 }

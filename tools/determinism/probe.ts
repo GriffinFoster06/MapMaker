@@ -1,6 +1,7 @@
 // Determinism probe (ARCHITECTURE §3.5, Q3): runs the shell's own deterministic outputs and hashes them. The same
 // code runs in Node and in browser workers; CI compares the hashes with golden.json on every engine and OS.
-// Phase 3 covers shell outputs only; Phase 4a adds orogen arrays to the same probe.
+// Phase 4a adds the orogen pipeline's output arrays (`orogen.<N>.*`): the vendored orogen code calls Math.* directly,
+// so these are report-only until the first per-OS results are in (they answer whether orogen is identical across OS and CPU).
 //
 // The probe runs twice. Keys without a prefix are computed with dmath.mode = 'native' (orogen parity): their
 // libm-dependent values are report-only. Keys prefixed `fd.` are computed with dmath.mode = 'fdlibm' and are ALL
@@ -8,8 +9,9 @@
 import { Alea, OrogenLcg, RngService, Sfc32, SphereMesh, bytesOf, dmath, hashArrays, loadWorld, saveWorld, sha256, hashWorld, type TypedArray } from '@mapmaker/core';
 import { dummyHistoryStage, registerDummyHistoryLayers, runPipeline } from '@mapmaker/engine';
 import { Timeline, World } from '@mapmaker/core';
+import { createOrogenWorld, orogenStages, orogenView } from '@mapmaker/gen-orogen';
 
-export const PROBE_VERSION = 2;
+export const PROBE_VERSION = 3;
 
 export interface ProbeResult {
   version: number;
@@ -66,7 +68,22 @@ const NATIVE_MESHES: readonly MeshSpec[] = [[20000, 'f32'], [20000, 'f64'], [200
 const FD_MESHES: readonly MeshSpec[] = [...NATIVE_MESHES, [200000, 'f64'], [1_000_000, 'f64']];
 
 /** Keys of the 1M-cell mesh are hashed but not kept for element-wise diffs (memory). */
-const keepKey = (key: string): boolean => !key.includes('.1000000.');
+const keepKey = (key: string): boolean => !key.includes('.1000000.') && !key.startsWith('orogen.200000.');
+
+/** orogen runs at these sizes: its 69 output arrays plus the canonical layers derived from them. */
+const OROGEN_SIZES = [20000, 200000] as const;
+const OROGEN_SEED = 12345;
+
+async function orogenArrays(N: number): Promise<Record<string, TypedArray>> {
+  const w = createOrogenWorld({ N, seed: OROGEN_SEED, debugLayers: true });
+  await runPipeline(w, orogenStages, { strict: false });
+  const out: Record<string, TypedArray> = {};
+  for (const [k, a] of Object.entries(orogenView(w))) out[`orogen.${N}.${k}`] = a;
+  out[`orogen.${N}.canon.elevation`] = w.layers.get('global', 'elevation');
+  out[`orogen.${N}.canon.koppen`] = w.layers.get('global', 'koppen');
+  out[`orogen.${N}.canon.points`] = w.meshes.get('global')!.mesh.points;
+  return out;
+}
 
 function meshArrays(prefix: string, specs: readonly MeshSpec[]): Record<string, TypedArray> {
   const out: Record<string, TypedArray> = {};
@@ -135,6 +152,13 @@ export async function runProbe(opts: { keepArrays?: boolean } = {}): Promise<Pro
       for (const [k, a] of Object.entries(part)) if (keepKey(k)) arrays[k] = a;
     }
     Object.assign(hashes, await historyHashes('fd.'));
+
+    // orogen: vendored Math.* calls run in native mode inside the parity stages; the runner needs the default fdlibm mode outside them.
+    for (const N of OROGEN_SIZES) {
+      const part = await orogenArrays(N);
+      Object.assign(hashes, await hashArrays(part));
+      for (const [k, a] of Object.entries(part)) if (keepKey(k)) arrays[k] = a;
+    }
   } finally { dmath.setMode(prev); }
   hashes['probe.version'] = await sha256(bytesOf(new Uint32Array([PROBE_VERSION])));
   const sorted: Record<string, string> = {};
