@@ -1,0 +1,38 @@
+{
+  "_note": "Earth K\u00f6ppen objective of the shell's orogen climate (seed 1234, jitter 0.75), identical to spike 1a's stock-harness numbers. Needs the Kottek data (tools/tuning/climate/fetch-kottek.sh).",
+  "commit": "4f9d98b",
+  "runs": {
+    "40000": {
+      "objective": 0.6778483507683707,
+      "gradedAcc": 0.8243711516999953,
+      "exactAcc": 0.3998845456044862,
+      "majorAcc": 0.7213425696849745,
+      "macroF1": 0.21450211731525795,
+      "groupBalance": 0.9458189015338941,
+      "watchlistF1": 0.12009669569583442,
+      "scored": 12126,
+      "maskStats": {
+        "simLandFrac": 0.31334216644583884,
+        "truthLandFrac": 0.3115422114447139,
+        "scoredFrac": 0.303142421439464,
+        "landAgreement": 0.9674485399712781
+      }
+    },
+    "160000": {
+      "objective": 0.6682970803981967,
+      "gradedAcc": 0.8195439304283791,
+      "exactAcc": 0.3822838539520316,
+      "majorAcc": 0.7191749773345422,
+      "macroF1": 0.19124101164660853,
+      "groupBalance": 0.958377977416962,
+      "watchlistF1": 0.07588541639255299,
+      "scored": 48532,
+      "maskStats": {
+        "simLandFrac": 0.3140042874732033,
+        "truthLandFrac": 0.31141055368403947,
+        "scoredFrac": 0.30332310423059855,
+        "landAgreement": 0.9659839573256902
+      }
+    }
+  }
+}

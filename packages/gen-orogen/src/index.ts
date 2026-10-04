@@ -6,3 +6,6 @@ export * from './scratch';
 export * from './view';
 export * from './create';
 export * from './host';
+export * from './plates-spec';
+export * from './import-heightmap';
+// './stock' (the stock-orogen oracle) is deliberately not exported here: shipped code never imports it.

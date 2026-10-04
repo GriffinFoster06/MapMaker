@@ -1,0 +1,1 @@
+{ "name": "@mapmaker/tuning", "version": "0.0.0", "private": true, "type": "module", "license": "GPL-3.0-only", "dependencies": { "@mapmaker/core": "*", "@mapmaker/engine": "*", "@mapmaker/gen-orogen": "*", "pngjs": "7.0.0" } }

@@ -35,3 +35,8 @@ test-results/
 coverage/
 *.tsbuildinfo
 dist-types/
+
+# Köppen ground truth, downloaded at tuning time (Q8)
+tools/tuning/climate/data/
+tools/tuning/climate/maps/
+tools/tuning/results/

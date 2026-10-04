@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint';
 const TRANSCENDENTALS = ['sin','cos','tan','asin','acos','atan','atan2','sinh','cosh','tanh','asinh','acosh','atanh','exp','expm1','log','log2','log10','log1p','pow','cbrt','hypot'];
 
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/dist-types/**', 'upstream/**', 'spikes/**', 'audit/**', '.tools/**', 'node_modules/**', '**/vendor/**', '**/public/**', 'playwright-report/**', 'test-results/**'] },
+  { ignores: ['**/dist/**', '**/dist-types/**', 'upstream/**', 'spikes/**', 'audit/**', '.tools/**', 'node_modules/**', '**/vendor/**', 'tools/tuning/**/*.mjs', '**/public/**', 'playwright-report/**', 'test-results/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

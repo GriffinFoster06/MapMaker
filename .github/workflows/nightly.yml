@@ -21,7 +21,9 @@ jobs:
       - run: npm ci
       - name: Restore upstream/ (orogen and Azgaar only; the full set is about 17 GB)
         run: scripts/restore-upstream.sh orogen Azgaars-Fantasy-Map-Generator
-      - name: Tests with upstream present (parity tests run, not skipped)
+      - name: Köppen ground truth (downloaded, never committed; SHA-256 checked against PROVENANCE.md)
+        run: tools/tuning/climate/fetch-kottek.sh
+      - name: Tests with upstream present (parity tests, stock-harness comparison; not skipped)
         env:
           REQUIRE_UPSTREAM: '1'
         run: npm test

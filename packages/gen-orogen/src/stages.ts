@@ -7,6 +7,7 @@ import { type World, OrogenLcg, SphereMesh, dmath } from '@mapmaker/core';
 import type { Stage, StageContext } from '@mapmaker/engine';
 import { DEBUG_FIELDS, STAGE, debugId, isRequiredDebug, registerOrogenLayers, writesOf } from './layers';
 import { STAGE_PARAMS, readParams } from './params';
+import { PLATES_SPEC } from './plates-spec';
 import { computeDetailDampenField, computeOrogenicField, runPostProcessing } from './orchestration';
 import { computeTectonics, dropScratch, getScratch, newNoise, peekScratch } from './scratch';
 import {
@@ -71,10 +72,7 @@ const tectonicsStage: Stage = {
 
     put(ctx, 'plate', tect.r_plate);
     world.entities.delete('plates');
-    const plates = ctx.table('plates', {
-      name: 'plates', timeAxis: 'geo',
-      columns: { plateId: 'i32', oceanic: 'u8', density: 'f32', poleX: 'f64', poleY: 'f64', poleZ: 'f64', omega: 'f64' },
-    });
+    const plates = ctx.table('plates', PLATES_SPEC);
     for (const id of tect.plateSeeds) {
       const v = tect.plateVec[id]!;
       // Euler pole in the canonical frame (F1): X = z_o, Y = x_o, Z = y_o. validFrom 0 Myr: the present-day snapshot.
