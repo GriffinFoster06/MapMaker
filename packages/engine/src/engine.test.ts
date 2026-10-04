@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hashWorld, loadWorld, saveWorld } from '@mapmaker/core';
+import { dmath, hashWorld, loadWorld, saveWorld } from '@mapmaker/core';
 import { type Stage, dummyHistoryStage, runPipeline, checkProducers } from './index';
 
 import { makeWorld } from './test-helpers';
@@ -89,6 +89,44 @@ describe('runner', () => {
     expect(w.timeline.tick).toBe(10);
     expect(w.pipeline.current).toEqual({ stageId: 'dummy-history' });
     expect(w.checkpoint?.meta).toEqual({ tick: 10 });
+  });
+});
+
+describe('dmath mode guard (Checkpoint 3b)', () => {
+  const stage = (over: Partial<Stage>, run: () => void): Stage => ({ id: 'g', version: '1', reads: [], writes: [], run, ...over });
+
+  it('canonical stages run in fdlibm mode by default', async () => {
+    expect(dmath.mode).toBe('fdlibm');
+    const w = makeWorld();
+    const seen: string[] = [];
+    await runPipeline(w, [stage({}, () => { seen.push(dmath.mode); })]);
+    expect(seen).toEqual(['fdlibm']);
+    expect(w.pipeline.completed[0]!.dmath).toEqual(['fdlibm']);
+  });
+
+  it('fails if a canonical stage starts in native mode', async () => {
+    const w = makeWorld();
+    dmath.setMode('native');
+    try { await expect(runPipeline(w, [stage({}, () => {})])).rejects.toThrow(/native|fdlibm/); }
+    finally { dmath.setMode('fdlibm'); }
+  });
+
+  it('fails if a canonical stage enters native mode, even inside withMode', async () => {
+    const w = makeWorld();
+    await expect(runPipeline(w, [stage({}, () => { dmath.withMode('native', () => dmath.sin(1)); })])).rejects.toThrow(/canonical stage g ran in dmath 'native'/);
+    expect(dmath.mode).toBe('fdlibm');
+  });
+
+  it('lets a parity stage use withMode("native") and records it', async () => {
+    const w = makeWorld();
+    await runPipeline(w, [stage({ parity: true }, () => { dmath.withMode('native', () => dmath.sin(1)); })]);
+    expect(w.pipeline.completed[0]!.dmath).toEqual(['fdlibm', 'native']);
+  });
+
+  it('rejects a parity stage that leaves native mode switched on', async () => {
+    const w = makeWorld();
+    try { await expect(runPipeline(w, [stage({ parity: true }, () => { dmath.setMode('native'); })])).rejects.toThrow(/left dmath/); }
+    finally { dmath.setMode('fdlibm'); }
   });
 });
 

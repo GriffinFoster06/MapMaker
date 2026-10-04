@@ -20,6 +20,8 @@ function build(N: number, seed: number, precision: 'f32' | 'f64' = 'f32') {
   return SphereMesh.build({ N, jitter: JITTER, rng: () => rng.next(), precision });
 }
 
+const buildNative = (N: number, seed: number, precision: 'f32' | 'f64' = 'f32') => dmath.withMode('native', () => build(N, seed, precision));
+
 describe.skipIf(!HAVE_UPSTREAM)('SphereMesh vs upstream orogen sphere-mesh.js @ cc2662b', () => {
   for (const [N, seed] of [[20000, 12345], [20000, 777], [200000, 12345]] as const) {
     it(`byte-identical topology and permuted f32 points at N=${N} seed=${seed}`, async () => {
@@ -27,7 +29,7 @@ describe.skipIf(!HAVE_UPSTREAM)('SphereMesh vs upstream orogen sphere-mesh.js @ 
       const { makeRng } = await import(pathToFileURL(OROGEN_RNG).href);
       om.setDelaunator(Delaunator);
       const ref = om.buildSphere(N, JITTER, makeRng(seed));
-      const mine = build(N, seed, 'f32');
+      const mine = buildNative(N, seed, 'f32'); // parity path: native mode, as orogen runs
       expect(Buffer.from(mine.triangles.buffer)).toEqual(Buffer.from(ref.mesh.triangles.buffer));
       expect(Buffer.from(mine.halfedges.buffer)).toEqual(Buffer.from(ref.mesh.halfedges.buffer));
       expect(Buffer.from(mine.adjOffset.buffer)).toEqual(Buffer.from(ref.mesh.adjOffset.buffer));
@@ -51,6 +53,11 @@ describe('SphereMesh', () => {
     const m = build(20000, 12345, 'f32');
     const h = await hashArrays({ triangles: m.triangles, halfedges: m.halfedges, adjList: m.adjList, points: m.points });
     expect(h).toEqual(GOLDEN_20K);
+  });
+
+  it('the golden hash is the same in native mode (f32 points and topology are mode-independent)', async () => {
+    const m = buildNative(20000, 12345, 'f32');
+    expect(await hashArrays({ triangles: m.triangles, halfedges: m.halfedges, adjList: m.adjList, points: m.points })).toEqual(GOLDEN_20K);
   });
 
   it('f64 points differ from f32 only at f32 rounding scale', () => {
@@ -86,10 +93,10 @@ describe('SphereMesh', () => {
 });
 
 describe('SphereMesh in fdlibm mode', () => {
-  const fdBuild = (N: number, seed: number, precision: 'f32' | 'f64') => dmath.withMode('fdlibm', () => {
+  const fdBuild = (N: number, seed: number, precision: 'f32' | 'f64') => {
     const m = build(N, seed, precision);
     return { m, area: m.cellArea_sr, circ: m.circumcentres };
-  });
+  };
 
   it('matches committed golden hashes for Float64 points, topology, areas and circumcentres (every OS and engine)', async () => {
     const { m, area, circ } = fdBuild(20000, 12345, 'f64');
@@ -101,11 +108,11 @@ describe('SphereMesh in fdlibm mode', () => {
     const a = fdBuild(5000, 3, 'f64'), b = fdBuild(5000, 3, 'f64');
     expect(Buffer.from(a.m.points.buffer)).toEqual(Buffer.from(b.m.points.buffer));
     expect(Buffer.from(a.area.buffer)).toEqual(Buffer.from(b.area.buffer));
-    expect(dmath.mode).toBe('native');
+    expect(dmath.mode).toBe('fdlibm');
   });
 
   it('agrees with native mode to within a few ULP, with the same f32 topology at N=20k', () => {
-    const fd = fdBuild(20000, 12345, 'f32').m, nat = build(20000, 12345, 'f32');
+    const fd = fdBuild(20000, 12345, 'f32').m, nat = buildNative(20000, 12345, 'f32');
     expect(Buffer.from(fd.triangles.buffer)).toEqual(Buffer.from(nat.triangles.buffer));
     expect(Buffer.from(fd.adjList.buffer)).toEqual(Buffer.from(nat.adjList.buffer));
     let worst = 0;

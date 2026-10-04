@@ -1,10 +1,12 @@
 // Deterministic-math hook (ARCHITECTURE §3.5, Q3). All simulation code calls dmath.* instead of Math.*.
 //
 // Two modes:
-//  - 'native'  passes straight through to Math.*. Needed for orogen parity (orogen calls Math.*), and the default.
-//              Transcendental results differ by 1-2 ULP between engines and between arm64 and x64 (Checkpoint 3).
-//  - 'fdlibm'  uses the vendored fdlibm port in ./fdlibm.ts: pure IEEE double arithmetic, bit-identical on every
-//              engine and CPU. Canonical Float64 state (mesh geometry, history simulation) must use this mode.
+//  - 'fdlibm'  the DEFAULT, set at module load in every realm (shell, workers). Uses the vendored fdlibm port in
+//              ./fdlibm.ts: pure IEEE double arithmetic, bit-identical on every engine and CPU. All canonical state
+//              (mesh geometry, history simulation) runs in this mode.
+//  - 'native'  passes straight through to Math.*. Used only inside explicit withMode('native') blocks in the orogen
+//              parity path (orogen calls Math.*). Results differ by 1-2 ULP between engines and between arm64 and x64
+//              (Checkpoint 3). The stage runner rejects any non-parity stage that enters this mode (Checkpoint 3b).
 //
 // setMode() swaps the function properties in place, so call sites keep writing `dmath.sin(x)`. Do not destructure
 // dmath at module load. The mode is per realm: every worker must set it before computing anything.
@@ -61,6 +63,8 @@ const fdlibmTable: Table = {
 
 export interface DMath extends Table {
   mode: DmathMode;
+  /** Number of times 'native' mode has been entered in this realm. The runner uses it to catch canonical stages that go native. */
+  nativeEntries: number;
   setMode(mode: DmathMode): void;
   /** Runs fn with the given mode and restores the previous one, even if fn throws. Synchronous code only. */
   withMode<T>(mode: DmathMode, fn: () => T): T;
@@ -69,10 +73,12 @@ export interface DMath extends Table {
 }
 
 export const dmath: DMath = {
-  mode: 'native',
+  mode: 'fdlibm',
+  nativeEntries: 0,
   setMode(mode: DmathMode): void {
     if (mode !== 'native' && mode !== 'fdlibm') throw new Error(`unknown dmath mode: ${String(mode)}`);
     Object.assign(dmath, mode === 'fdlibm' ? fdlibmTable : nativeTable);
+    if (mode === 'native' && dmath.mode !== 'native') dmath.nativeEntries++;
     dmath.mode = mode;
   },
   withMode<T>(mode: DmathMode, fn: () => T): T {
@@ -80,8 +86,17 @@ export const dmath: DMath = {
     dmath.setMode(mode);
     try { return fn(); } finally { dmath.setMode(prev); }
   },
-  ...nativeTable,
+  ...fdlibmTable,
   sqrt: Math.sqrt,
 };
+
+/**
+ * Called first in every worker and in the main thread. The default is already 'fdlibm'; this asserts it, so a stray
+ * setMode('native') at load time fails loudly instead of silently breaking cross-engine determinism.
+ */
+export function initRealm(): { dmath: DmathMode } {
+  if (dmath.mode !== 'fdlibm') throw new Error(`dmath must be 'fdlibm' at realm start, found '${dmath.mode}'`);
+  return { dmath: dmath.mode };
+}
 
 export { fdlibm };

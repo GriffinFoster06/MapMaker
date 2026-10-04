@@ -88,6 +88,17 @@ describe('worker pool (real worker_threads)', () => {
     } finally { await pool.terminate(); }
   });
 
+  it('every worker realm starts in fdlibm mode, and its snapshots record it', async () => {
+    const worker = new Worker(entry);
+    const client = new EngineClient(nodeWorkerPort(worker) as never);
+    try {
+      expect(await client.kernel('dmathMode', null)).toBe('fdlibm');
+      await client.load(await saveWorld(makeWorld(), { engine: 't' }));
+      const { manifest } = await loadWorld(await client.snapshot());
+      expect(manifest.determinism.dmath).toBe('fdlibm');
+    } finally { await worker.terminate(); }
+  });
+
   it('a worker_threads engine host runs the dummy history and matches the in-process hash', async () => {
     const worker = new Worker(entry);
     const client = new EngineClient(nodeWorkerPort(worker) as never);

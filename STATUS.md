@@ -7,7 +7,8 @@ Updated at every checkpoint.
 | 1 (Phase 1 spikes) | Done |
 | 2 (Phase 2 design notes) | Done |
 | 3 (Phase 3 shell) | Done |
-| 3b (Checkpoint 3 decisions: `dmath` fdlibm mode) | **Reached. Waiting for review.** Phase 4a not started. |
+| 3b (Checkpoint 3 decisions: `dmath` fdlibm mode) | Reached and reviewed. |
+| 4a (Phase 4a orogen in the shell, globe) | **In progress** |
 
 ## Phase 3 results (2026-10-04)
 
@@ -39,5 +40,5 @@ Updated at every checkpoint.
 
 ## Open decisions for review
 
-1. Whether canonical Float64 paths should switch `dmath` to `'fdlibm'` by default at module load, or only per stage (current: per stage, default `'native'`). Phase 4a decides this when orogen generation is wired in.
+1. ~~Whether canonical Float64 paths should switch `dmath` to `'fdlibm'` by default.~~ **Resolved (Phase 4a):** the default is `'fdlibm'` at module load in the shell and every worker; `'native'` only inside `withMode('native')` in the orogen parity path, enforced by the stage runner.
 2. The deviations listed in the Checkpoint 3 report.

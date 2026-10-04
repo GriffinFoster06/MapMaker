@@ -41,17 +41,20 @@ describe('fdlibm port vs reference C vectors', () => {
 });
 
 describe('dmath modes', () => {
-  it('starts in native mode', () => {
-    expect(dmath.mode).toBe('native');
-    expect(dmath.sin).toBe(Math.sin);
+  it('starts in fdlibm mode', () => {
+    expect(dmath.mode).toBe('fdlibm');
+    expect(dmath.sin).toBe(fdlibm.sin);
+    expect(dmath.sin).not.toBe(Math.sin);
   });
 
   it('setMode / withMode swap the functions and restore on exit, even on throw', () => {
-    expect(dmath.withMode('fdlibm', () => [dmath.mode, dmath.sin === fdlibm.sin])).toEqual(['fdlibm', true]);
-    expect(dmath.mode).toBe('native');
-    expect(() => dmath.withMode('fdlibm', () => { throw new Error('x'); })).toThrow('x');
-    expect(dmath.mode).toBe('native');
-    expect(dmath.sin).toBe(Math.sin);
+    expect(dmath.withMode('native', () => [dmath.mode, dmath.sin === Math.sin])).toEqual(['native', true]);
+    expect(dmath.mode).toBe('fdlibm');
+    const entries = dmath.nativeEntries;
+    expect(() => dmath.withMode('native', () => { throw new Error('x'); })).toThrow('x');
+    expect(dmath.nativeEntries).toBe(entries + 1);
+    expect(dmath.mode).toBe('fdlibm');
+    expect(dmath.sin).toBe(fdlibm.sin);
     expect(() => dmath.setMode('bogus' as never)).toThrow(/unknown dmath mode/);
   });
 

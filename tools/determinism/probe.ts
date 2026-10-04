@@ -120,9 +120,11 @@ export async function runProbe(opts: { keepArrays?: boolean } = {}): Promise<Pro
   try {
     dmath.setMode('native');
     arrays = { ...dmathArrays(''), ...meshArrays('', NATIVE_MESHES), ...rngArrays() };
-    Object.assign(hashes, await hashArrays(arrays), await historyHashes(''));
+    Object.assign(hashes, await hashArrays(arrays));
 
+    // The stage runner rejects canonical stages in native mode (Checkpoint 3b), so history runs only in fdlibm.
     dmath.setMode('fdlibm');
+    Object.assign(hashes, await historyHashes(''));
     // One mesh at a time, so the 1M-cell arrays are hashed and released before the next build.
     const fd = dmathArrays('fd.');
     Object.assign(hashes, await hashArrays(fd));

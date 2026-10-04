@@ -18,6 +18,8 @@ export interface Stage {
   pass?: 'R' | 'D';
   /** Mesh the stage's layers live on. Default 'global'. */
   mesh?: string;
+  /** Orogen-parity stage: may enter dmath 'native' mode, but only through dmath.withMode('native', ...). Canonical stages may not. */
+  parity?: true;
   /** Layer ids, or `table:<name>` for entity tables. */
   reads: string[];
   writes: string[];

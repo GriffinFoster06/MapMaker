@@ -1,3 +1,6 @@
+import { initRealm } from '@mapmaker/core';
+
+initRealm();
 const $ = (id: string) => document.getElementById(id)!;
 
 // ?coi loads the COOP/COEP service-worker shim (GitHub Pages cannot set headers). It reloads the page once.

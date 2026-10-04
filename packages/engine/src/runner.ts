@@ -1,6 +1,6 @@
 // Stage runner (ARCHITECTURE §4): variants, the one-producer check, input hashing, skipping, invalidation,
 // mid-stage checkpoints and cooperative cancellation. Original shell code.
-import { type EntityTable, type TableSpec, type TypedArray, type World, EntityTable as Table, arrayIds, hashString, canonicalJson } from '@mapmaker/core';
+import { type EntityTable, type TableSpec, type TypedArray, type World, EntityTable as Table, arrayIds, hashString, canonicalJson, dmath } from '@mapmaker/core';
 import { hashInputs, hashTable, snapshotHashes } from './hash-state';
 import { CancelledError, type CancelFlag, type Stage, type StageContext } from './stage';
 
@@ -94,6 +94,8 @@ export async function runPipeline(world: World, allStages: Stage[], opts: RunOpt
     if (!resume) { world.checkpoint = undefined; world.pipeline.current = undefined; }
 
     const ctx = makeContext(world, stage, mesh, signal, resume, opts);
+    if (dmath.mode !== 'fdlibm') throw new Error(`stage ${stage.id} started with dmath mode '${dmath.mode}'; canonical stages run in 'fdlibm'`);
+    const nativeBefore = dmath.nativeEntries;
     try {
       await stage.run(ctx);
     } catch (e) {
@@ -106,6 +108,10 @@ export async function runPipeline(world: World, allStages: Stage[], opts: RunOpt
     }
     world.pipeline.current = undefined;
     world.checkpoint = undefined;
+
+    if (dmath.mode !== 'fdlibm') throw new Error(`stage ${stage.id} left dmath in '${dmath.mode}' mode`);
+    const wentNative = dmath.nativeEntries !== nativeBefore;
+    if (wentNative && !stage.parity) throw new Error(`canonical stage ${stage.id} ran in dmath 'native' mode; only parity stages may (Q3)`);
 
     if (strict) {
       const after = await snapshotHashes(world, writeKeys);
@@ -120,7 +126,7 @@ export async function runPipeline(world: World, allStages: Stage[], opts: RunOpt
       const tv = world.timeVarying.get(`${mesh}/${w}`);
       if (tv) outputHashes[`tv:${mesh}/${w}`] = await hashString(canonicalJson({ cur: Array.from(tv.current), kf: [...tv.keyframes.keys()] }));
     }
-    const rec: { stageId: string; version: string; inputHash: string; outputHashes: Record<string, string>; referenceHash?: string } = { stageId: stage.id, version: stage.version, inputHash, outputHashes };
+    const rec: { stageId: string; version: string; inputHash: string; outputHashes: Record<string, string>; referenceHash?: string; dmath: string[] } = { stageId: stage.id, version: stage.version, inputHash, outputHashes, dmath: wentNative ? ['fdlibm', 'native'] : ['fdlibm'] };
     if (stage.pass === 'D') {
       rec.referenceHash = await hashString(canonicalJson(world.pipeline.completed.filter((r) => stages.find((s) => s.id === r.stageId)?.pass === 'R').map((r) => [r.stageId, r.outputHashes])));
     }

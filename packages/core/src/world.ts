@@ -24,6 +24,8 @@ export interface StageRecord {
   /** array key (`${mesh}/${arrayId}`) or entity table name -> sha256 */
   outputHashes: Record<string, string>;
   referenceHash?: string;
+  /** dmath modes the stage ran in: ['fdlibm'] for canonical stages, ['fdlibm','native'] for parity stages that used withMode('native'). */
+  dmath?: string[];
 }
 
 export interface PipelineState {

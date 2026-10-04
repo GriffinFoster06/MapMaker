@@ -50,13 +50,16 @@ describe('units and dmath', () => {
     expect(isUnit('furlong')).toBe(false);
   });
 
-  it('dmath is a pass-through to Math in native mode', () => {
-    expect(dmath.mode).toBe('native');
+  it('dmath defaults to fdlibm, and native mode is a pass-through to Math', () => {
+    expect(dmath.mode).toBe('fdlibm');
+    dmath.withMode('native', () => nativePassThrough());
+  });
+  const nativePassThrough = () => {
     for (const x of [0, 0.5, 1, 2.5, -3.7, 1e-8, 700]) {
       expect(dmath.sin(x)).toBe(Math.sin(x));
       expect(dmath.exp(x / 100)).toBe(Math.exp(x / 100));
       expect(dmath.atan2(x, 1.3)).toBe(Math.atan2(x, 1.3));
       expect(dmath.pow(Math.abs(x), 0.37)).toBe(Math.pow(Math.abs(x), 0.37));
     }
-  });
+  };
 });

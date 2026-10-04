@@ -1,5 +1,7 @@
 import { runProbe } from '@mapmaker/determinism/probe';
-import type { TypedArray } from '@mapmaker/core';
+import { initRealm, type TypedArray } from '@mapmaker/core';
+
+initRealm();
 
 let arrays: Record<string, TypedArray> | undefined;
 

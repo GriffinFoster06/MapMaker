@@ -51,7 +51,7 @@ describe('save / load v0', () => {
     const { world, manifest, viewOnly } = await loadWorld(bytes, { stageVersions: { terrain: '1', history: '1' } });
     expect(viewOnly).toBe(false);
     expect(manifest.format).toBe('0.1.0');
-    expect(manifest.determinism).toEqual({ dmath: 'native', engine: 'test' });
+    expect(manifest.determinism).toEqual({ dmath: 'fdlibm', engine: 'test' });
     expect(await hashWorld(world)).toBe(await hashWorld(w));
     // And continuing the restored world matches continuing the original.
     expect(world.rng.stream('a').next()).toBe(w.rng.stream('a').next());
