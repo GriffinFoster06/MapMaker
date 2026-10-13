@@ -136,7 +136,7 @@ Step 0p.5 records this note's decision.
 - **Plate statistics:** Bird (2003), *G³* 4(3) (PB2002 size distribution). The dataset is downloaded at tuning time if used, with its license checked (Q8).
 - **Ridge detection:** Lindeberg (1998), *IJCV* 30.
 - **Seam blending:** Pérez, Gangnet & Blake (2003), "Poisson image editing", *SIGGRAPH*.
-- **GPlates:** the partial-plate-circuit *concept* only. Its audit says inference of missing rotations is not implemented, and GPlates code is not used (GPL-2.0-only).
+- **GPlates:** the partial-plate-circuit *concept* only. Its audit says inference of missing rotations is not implemented, and GPlates code was not used (GPL-2.0-only). Since ARCHITECTURE.md Q12, GPlates code may be ported.
 
 ## 5. Validation
 

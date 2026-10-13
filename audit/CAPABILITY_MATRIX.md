@@ -365,6 +365,8 @@ These are the capabilities with **no usable implementation in any upstream repo*
 
 ## License and risk notes
 
+**Since 2026-10-13 (ARCHITECTURE.md Q12), licences do not restrict use:** MapMaker is a personal, non-commercial project. The flags below are kept as a record, not as rules.
+
 | Repo | License (verified in audits) | Flag |
 |---|---|---|
 | orogen | GPL-3.0 | Core of the plan. |

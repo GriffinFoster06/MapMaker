@@ -1,12 +1,26 @@
 # Requirements
 
+## Vision
+
+MapMaker is a personal, non-commercial project. The goal is the most complete realistic worldbuilder for fictional worlds that can be built:
+
+- **Realism deep enough to recover Earth.** Every system goes as deep as it usefully can, in every direction. If Earth's starting conditions were set up properly, the simulation should produce Earth or something close to it. Since tectonics, climate and history are chaotic, this is tested in layers rather than as an exact match:
+  1. *Statistical Earth:* an Earth-parameter world matches Earth's statistics (land fraction, hypsometry, Köppen shares, plate sizes and speeds, river and drainage statistics).
+  2. *Physics given Earth:* given Earth's real elevation (and plates where needed), the downstream climate, Köppen zones, biomes, hydrology and soils match real Earth data.
+  3. *Deep-time Earth:* evolving from a Pangaea-like supercontinent with Earth parameters gives Earth-like statistics over deep time.
+- **Ultimate user customisability.** Every parameter is exposed (with presets and simple/advanced levels). The user can hand-edit any layer or entity: terrain, coastlines, plates, rivers, climate, settlements, borders, cultures, and history. Downstream systems re-simulate around those edits. Edits are part of the saved state, so exact resume still holds.
+- **Beautiful maps, not only simulation.** Besides data views, the app renders styled, artistic maps with editing tools (styles, brushes, icons and symbols, labels and fonts, frames, legends), aiming to cover what Azgaar, Inkarnate and Wonderdraft offer, on top of a simulated world.
+- **Aggregate open source.** Use every upstream we have, extracting and adapting the best implementation of each subsystem, and build on it.
+
+The scope below is the current list, not a ceiling. Further domains (for example flora and fauna, moons and tides, and fantasy elements) can be added as the project grows.
+
 ## Deliverable
 
 - A browser app, deployable on GitHub Pages if feasible.
 - A desktop wrapper only where performance demands it (i.e., the browser build is the default target; desktop is a fallback, not a parallel product).
 - Must work on Windows and Mac.
 - Offline support is not required.
-- Open source and free. License conflicts between extracted subsystems are ignored for now, but the license of every extracted repo must be recorded (see `upstream-manifest.json`).
+- Open source, free and personal (non-commercial). Licences do not restrict which upstream code is used, but the licence of every extracted repo is still recorded (see `upstream-manifest.json` and `PROVENANCE.md`).
 
 ## Scope
 
@@ -26,6 +40,8 @@ Everything involved in simulating a fantasy world, end to end:
 - Political borders
 - Trade
 - A long-run simulation of war, economics, politics, and full human history across thousands of years
+- Artistic map rendering and styling (see Vision)
+- Hand-editing of every layer and entity, with re-simulation around the edits (see Vision)
 
 ## Planet and map
 
@@ -67,7 +83,7 @@ Support importing heightmaps and other existing maps/layers as a starting point 
 
 ## Calibration
 
-Calibrate all generation parameters against real Earth data — elevation, climate, Köppen climate zones — so that parameter scales are anchored to reality. If a parameter value of `1.0` represents Earthlike conditions, the effect of values like `0` or `1.5` should be known and documented.
+Calibrate all generation parameters against real Earth data — elevation, climate, Köppen climate zones — so that parameter scales are anchored to reality. The layered Earth tests in Vision are the end goal of calibration. If a parameter value of `1.0` represents Earthlike conditions, the effect of values like `0` or `1.5` should be known and documented.
 
 ## Provenance
 
@@ -82,6 +98,6 @@ Every module extracted or adapted from an upstream repo must be logged with:
 
 ## Engineering approach
 
-- Prefer extracting and adapting real, working code from the best available open-source implementation of each subsystem over writing original code from scratch. Write original code only when no suitable existing implementation can be found.
+- Prefer extracting and adapting real, working code from the best available open-source implementation of each subsystem over writing original code from scratch. Every repo in `upstream/` is eligible, regardless of licence. Write original code only when no suitable existing implementation can be found.
 - `audit/CAPABILITY_MATRIX.md` lists the capabilities with no usable upstream implementation (history/war/economics simulation, language evolution, partial-world inference, soils, mineral resources, regional-patch refinement, STL export, parameter-scale documentation, and others). Original code is expected there, and each such item gets a short design note before it is built.
 - Work autonomously where possible, but in checkpointed steps that are reviewed before continuing to the next step.

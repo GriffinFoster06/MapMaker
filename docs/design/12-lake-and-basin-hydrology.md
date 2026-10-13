@@ -97,7 +97,7 @@ Azgaar's `lakes.ts` and `features-generator.ts` run through the facade on *our* 
   - Barnes, Callaghan & Wickert (2020), *Earth Surf. Dynam.* 8, "Computing water flow through complex landscapes", Parts 2 (depression hierarchies) and 3 (fill–spill–merge);
   - Budyko (1974); Fu (1981); Zhang et al. (2004), *WRR* 40;
   - Braun & Willett (2013), *Geomorphology* 180.
-- **WRF-Hydro:** excluded.
+- **WRF-Hydro:** excluded when written; allowed since ARCHITECTURE.md Q12. Revisit its lake and channel-routing schemes in Phase 7.
 
 ## 5. Validation
 

@@ -10,7 +10,21 @@ Updated at every checkpoint.
 | 3b (Checkpoint 3 decisions: `dmath` fdlibm mode) | Reached and reviewed. |
 | 4a (Phase 4a orogen in the shell, globe) | **In progress** |
 
-## Current handoff — 2026-10-13, Codex
+## Current handoff — 2026-10-13, Claude Code (vision and licence decision)
+
+**Task:** align the docs with the user's product vision. Documentation only; no code, tests, upstream or vendor files changed. Phase 4a remains in progress, and its open work (below, from the Codex handoff) is unchanged.
+
+**Changes:**
+- `docs/REQUIREMENTS.md`: new **Vision** section. MapMaker is a personal, non-commercial, fully customisable realistic worldbuilder. Its realism should be deep enough that Earth conditions produce an Earth-like world, tested in three layers: statistical, physics given Earth, and deep time. It covers hand-editing with re-simulation, artistic map styling (aiming at Azgaar/Inkarnate/Wonderdraft), and aggregating every upstream. Scope gains map art and hand-editing.
+- `docs/ARCHITECTURE.md`: new resolved decision **Q12**. Licences no longer restrict upstream use: Eurace and WRF-Hydro are allowed, and GPlates code may be ported. Licences are still logged in `PROVENANCE.md`. The §2 integration rows, F10, the status-of-claims licence rules and the Phase 2 template are updated to match. A new Known-gaps row lists the vision items that have no design note or phase yet.
+- `AGENTS.md`: the source-restriction rule is replaced by Q12, and the project description points to the Vision.
+- Design notes 1, 3, 12 and 13, `docs/design/README.md` and `audit/CAPABILITY_MATRIX.md`: "excluded / no code" notes are marked as superseded by Q12.
+
+**Checks:** none run (docs only).
+
+**Next:** unchanged for Phase 4a (see below). Separately, at a checkpoint, agree on design notes and phase slots for the new vision items, and decide which licence-decided upstream picks to re-decide (GPlates for notes 3 and 13, WRF-Hydro for Phase 7, Eurace for Phase 13b).
+
+## Previous handoff — 2026-10-13, Codex
 
 **Task:** repository onboarding and shared Claude Code/Codex workflow. Started from a clean working tree at `2dcd3f2` on `main`. Phase 4a remains in progress; this session does not complete its checkpoint or start Phase 4b.
 

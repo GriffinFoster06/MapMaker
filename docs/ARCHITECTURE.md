@@ -19,6 +19,7 @@ The open decisions in §8 were resolved on 2026-10-03. At Checkpoint 1 (also 202
 | Q9 | Tectonic history | **Changed.** The static tectonic snapshot still comes first. Forward plate evolution over deep time (hundreds of Myr) is a **core feature**: it has a fast rough pass and a slow detailed pass from the same seed. Design note 13 (Phase 2) specifies it. **Checkpoint 2:** it is built in **Phase 6b**, after Phase 6 and before Phase 7, with its own checkpoint. Default duration 300 Myr; the maximum is never capped below 800 Myr (initially 1,000 Myr). |
 | Q10 | Climate fidelity | **Approved.** orogen heuristics, forced by the VPLanet subset. |
 | Q11 | Node 24 | **Approved, project-local only.** fnm runs from `.tools/` with `FNM_DIR=.tools/fnm`, and the version is pinned in `.nvmrc`. System Node and global tools are not changed. |
+| Q12 | Licence restrictions on upstreams | **Lifted (2026-10-13, user decision).** MapMaker is a personal, non-commercial project. Licences no longer restrict which upstream is used: Eurace and WRF-Hydro may be extracted or used as references, and GPlates code may be ported directly instead of re-implemented from published formulas. Choices that licences decided are reopened and re-decided on quality, fit and browser feasibility (Fortran/C++/HPC codes still usually need porting rather than direct use). Every extraction is still logged in `PROVENANCE.md` with its licence. Q2 (GPL-3.0-only) is unchanged. Supersedes the licence rules under "Status of claims", the GPlates/Eurace/WRF-Hydro rows of §2, and "excluded" entries in the design notes. Candidates to revisit: GPlates for plate kinematics, reconstruction and partial plate circuits (notes 3, 13); WRF-Hydro for channel routing (notes 12, Phase 7); Eurace for economics (note 1, Phase 13b). |
 | D5 | Fidelity slider | **Redesign adopted (Checkpoint 1).** Structural decisions (mountain kernels and belts, hotspots, the macro land mask, major drainage divides) are made at a fixed reference resolution, with counter-based randomness keyed to reference-cell ids. Higher N adds only band-limited detail. See §3.1, §3.5, §4 (Fidelity slider) and design note 14. |
 | D6 | Phase 4 split | **Adopted (Checkpoint 1).** Phase 4a: orogen in the shell, parity test, globe, benchmarks. Phase 4b: the preview restructure (D5) behind the Q7 A/B gate. Each has its own checkpoint (§7). |
 | D7 | Climate at L0, downscaled | **Approved with a gate (Checkpoint 2).** Phase 4b must show that the downscaled climate scores within a stated tolerance of orogen's full-resolution climate on the Earth tuning harness, at the same N. The tolerance starts at **0.02 of the objective**: the downscaled score may be at most 0.02 lower. If it is not, the climate solve moves to the **80k-cell climate mesh fallback** (L0′, note 14 §3.6). |
@@ -31,6 +32,7 @@ The open decisions in §8 were resolved on 2026-10-03. At Checkpoint 1 (also 202
 | Gap | Status | Revisit |
 |---|---|---|
 | Tidally locked planets | Generated, but marked unsupported by the parameter mapping (design note 10 §3.4). orogen's banded circulation cannot represent a substellar-antistellar climate. | After Phase 8 |
+| Vision items not yet in the phase plan (added 2026-10-13, `docs/REQUIREMENTS.md` Vision) | Artistic map rendering and styling tools; hand-editing of every layer and entity with re-simulation and edits stored in the save; the layered Earth tests (statistical, physics given Earth, deep time); exposing every parameter; further domains (flora and fauna, moons and tides, fantasy elements). None has a design note or phase yet. | Needs design notes and phase slots; to be agreed with the user at a checkpoint |
 
 **Changes from the Phase 2 design notes (approved at Checkpoint 2).**
 
@@ -47,10 +49,8 @@ The open decisions in §8 were resolved on 2026-10-03. At Checkpoint 1 (also 202
 
 - The capability ratings this document builds on came from **code reading**. Phase 1 then built and ran the ones that decide this architecture. Results are in `docs/spikes/PHASE1_REPORT.md`; revised ratings are in `audit/CAPABILITY_MATRIX.md`.
 - **`†`** marks a claim I could not confirm from source, or one that depends on a measurement that has not been made yet.
-- Q1–Q11 are resolved (see above). The following decisions are also settled and are not reopened here: D1/D3 (sphere is canonical, inverse-projection rendering, d3-geo for projection math), D2 (requirements corrected), D4 (fast pass = orogen erosion, slow pass = Badlands-style re-implementation, still to be validated), the RNG-state save requirement, and the license rules:
-  - Eurace and WRF-Hydro are never extracted.
-  - GPlates is GPL-2.0-only (confirmed in spike 1a) and is a math reference only, permanently.
-  - All other license conflicts are deferred.
+- Q1–Q12 are resolved (see above). The following decisions are also settled and are not reopened here: D1/D3 (sphere is canonical, inverse-projection rendering, d3-geo for projection math), D2 (requirements corrected), D4 (fast pass = orogen erosion, slow pass = Badlands-style re-implementation, still to be validated), and the RNG-state save requirement.
+- **Licence rules (superseded by Q12, 2026-10-13):** licences no longer restrict upstream use. The earlier rules (Eurace and WRF-Hydro never extracted; GPlates a math reference only) are kept here as history only. GPlates is GPL-2.0-only (confirmed in spike 1a); that is recorded, not enforced.
 
 ### Facts checked against `upstream/` while writing this
 
@@ -67,7 +67,7 @@ These affect the design and are not all in the audits.
 | F7 | Azgaar **overwrites the global `Math.random`** with a re-seeded Alea at several points, and calls `Math.random()` directly in 11 generators. | `src/generators/grid-generator.ts:20`, `heightmap-generator.ts:558`, `precipitation-generator.ts:34`, `routes-generator.ts:210`, `provinces-generator.ts:82`, `src/components/seed.ts:20` | RNG state cannot be captured while this pattern exists. Every extracted Azgaar generator receives an injected stream instead. |
 | F8 | Azgaar uses two global graphs: `grid` (a jittered square grid) and `pack` (re-graphed from it). Generators read `cells.c` (neighbours), `cells.p` (planar xy), `cells.h` (0–100, sea level 20), `cells.area`, `cells.b` (border flag), `cells.g` (link to grid cell), and use quadtree `findCell`. | `src/types/PackedGraph.ts`, `src/generators/generation-pipeline.ts` | Planar geometry is concentrated in a few fields. A sphere-backed `PackedGraph` facade is feasible. Spike 1b tests it. |
 | F9 | Azgaar requires Node ≥ 24. This machine has Node 22.19.0. | `package.json` (per audit); `node --version` | Spike 1a uses a project-local Node 24 through fnm in `.tools/`, pinned in `.nvmrc` (Q11 resolved). System Node is unchanged. |
-| F10 | GPlates headers read "GNU General Public License, version 2", and a grep of all of `src/` finds no "any later version" wording. | `upstream/GPlates/src/maths/*.h`, `COPYING` | **Confirmed GPL-2.0-only** in spike 1a: the `COPYING` preamble says "version 2, dated June 1991, not any later version". GPlates is math-reference only, permanently. |
+| F10 | GPlates headers read "GNU General Public License, version 2", and a grep of all of `src/` finds no "any later version" wording. | `upstream/GPlates/src/maths/*.h`, `COPYING` | **Confirmed GPL-2.0-only** in spike 1a: the `COPYING` preamble says "version 2, dated June 1991, not any later version". GPlates was math-reference only until Q12 (2026-10-13) lifted licence restrictions. |
 
 ---
 
@@ -106,13 +106,13 @@ What is kept from orogen besides generation:
 | **Azgaar** (TS, MIT) | **Source-level adaptation** of selected generators | Extract `river-generator`, `lakes`, `features-generator`, `biomes-generator`, `population-generator`, `cultures-generator`, `names-generator`, `burgs-generator`, `states-generator`, `provinces-generator`, `routes-generator`, `religions-generator`, `goods-generator`, `production-generator`, `markets-generator`. Replace globals (`pack`, `grid`, `options`) with an explicit context and replace `Math.random` with injected streams (F7). Run them over a sphere-backed `PackedGraph` facade (§3.6). Azgaar's renderers, UI and `.map` format are references only. |
 | **VPLanet** (C, MIT) | **TypeScript re-implementation of a small subset**, validated against the native binary | Port only what MapMaker needs: insolation by latitude and day of year from orbital elements and obliquity (DistOrb/DistRot steady-state formulas, not secular evolution), and the POISE energy-balance core (annual and seasonal modes, OLR parameterisation, ice-albedo). A full WASM port is rejected: `poise.c` is tangled with `evolve.c` and the body struct, and we need a fraction of it. Native `vplanet` is built locally and its `examples/EarthClimate` output is used as golden data in tests. |
 | **Badlands** (Python/Fortran, GPL-3.0) | **Re-implementation in TypeScript** on the sphere mesh | Braun–Willett O(n) receiver and stack ordering, implicit stream-power incision (detachment-limited first, with transport-limited variants later), and linear and nonlinear hillslope diffusion, all using spherical cell areas. Validated against a Python Badlands run on a planar benchmark (Phase 7). Flexure (gFlex) is not ported; Airy isostasy if needed. |
-| **GPlates** (C++, GPL-2.0-only) | **Math reference only** | Finite rotations, Euler poles and quaternion composition are written from published formulas (for example Cox & Hart, *Plate Tectonics: How It Works*), not from GPlates source. GPlates file paths are cited as reference only. |
+| **GPlates** (C++, GPL-2.0-only) | **Port where useful (Q12)** | Previously math reference only. Since Q12, finite rotations, Euler poles, quaternion composition and reconstruction code may be ported from GPlates source to TypeScript; published formulas (for example Cox & Hart, *Plate Tectonics: How It Works*) remain the validation reference. |
 | **d3-geo, d3-geo-projection** | npm dependency | All projection math (D1). License recorded in `PROVENANCE.md`†. |
 | **proj4js** | npm dependency, only if needed | Only if a required projection is missing from d3-geo-projection. |
 | **three** | npm dependency | Globe rendering (WebGL2). |
 | **delaunator** | npm dependency | Spherical Delaunay through stereographic projection, as orogen does it. |
 | **fflate** | npm dependency | ZIP container for the save format and streaming compression. |
-| **Eurace, WRF-Hydro** | **Never extracted** | No code and no close paraphrase. Not even consulted as an algorithm reference for new code. |
+| **Eurace, WRF-Hydro** | **Allowed since Q12** | Previously never extracted. Now eligible for porting or as algorithm references (Eurace for economics in Phase 13b; WRF-Hydro channel routing in Phase 7), chosen on quality and fit. |
 
 **WASM** is reserved for hot kernels, after profiling shows JS is the bottleneck. Likely candidates are flow routing and the stream-power solve at 2.56M cells, and history-sim inner loops. Such kernels would be written in Rust with wasm-bindgen. WASM is *not* a route for porting upstream C, C++ or Fortran.
 
@@ -643,7 +643,7 @@ Each note goes in `docs/design/` and uses one template:
 - problem;
 - canonical inputs and outputs (layers, entities, events);
 - approach and algorithm choice;
-- upstream references (algorithm-level only; Eurace and WRF-Hydro excluded);
+- upstream references (algorithm-level at the time; since Q12 any upstream may also be ported);
 - validation method;
 - open questions;
 - size estimate.
@@ -671,7 +671,7 @@ Added by decision Q9:
 13. **Forward plate evolution over deep time.** The note uses the standard template and must cover:
     - **Scope.** Forward evolution of plates over hundreds of millions of years from an initial configuration. The initial configuration is either orogen's static snapshot or a supercontinent seed. The output is the present-day tectonic state plus its history.
     - **Algorithm.**
-      - Kinematics: Euler poles and rates per plate, and finite rotations as composed unit quaternions (§3.6, GPlates math re-implemented).
+      - Kinematics: Euler poles and rates per plate, and finite rotations as composed unit quaternions (§3.6, GPlates math; since Q12 GPlates code may be ported).
       - Plate interactions: rifting and new ocean crust at divergent boundaries; subduction and slab consumption at convergent oceanic boundaries; collision and suturing of continents; plate break-up and merging.
       - Driving forces: a heuristic model, for example slab pull and ridge push weighted by boundary type. The note must say where it comes from, at the algorithm level only.
       - Remeshing: crust is advected on the sphere, and per-cell state is resampled onto the fixed mesh each step.

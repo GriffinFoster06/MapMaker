@@ -6,7 +6,7 @@ Every note uses the template from `docs/ARCHITECTURE.md` §7, Phase 2:
 1. problem;
 2. canonical inputs and outputs (layers, entities, events);
 3. approach and algorithm choice;
-4. upstream references (algorithm level only; Eurace and WRF-Hydro excluded);
+4. upstream references (algorithm level only; Eurace and WRF-Hydro were excluded when these notes were written, but ARCHITECTURE.md Q12 has since lifted licence restrictions, so any upstream may now be ported or referenced);
 5. validation method;
 6. open questions;
 7. size estimate.

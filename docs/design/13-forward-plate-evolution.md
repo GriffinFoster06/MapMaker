@@ -206,7 +206,7 @@ Cost is linear in T. Geologic keyframes at L0 are small (about 0.3 MB each), so 
 
 ## 4. Upstream references (algorithm level)
 
-- **Finite rotations and quaternions:** Cox & Hart, *Plate Tectonics: How It Works* (1986); GPlates `src/maths` as a citation only (GPL-2.0-only, so no code).
+- **Finite rotations and quaternions:** Cox & Hart, *Plate Tectonics: How It Works* (1986); GPlates `src/maths` was a citation only (GPL-2.0-only, so no code); since ARCHITECTURE.md Q12 its code may be ported.
 - **Procedural tectonics on a sphere:** Cortial, Peytavie, Galin & Guérin (2019), "Procedural Tectonic Planets", *Computer Graphics Forum* 38(2). Plates as point sets, subduction, collision, rifting. Algorithm level only.
 - **Driving forces:** Forsyth & Uyeda (1975), *GJI* 43; Conrad & Lithgow-Bertelli (2002), *Science* 298.
 - **Wilson and supercontinent cycles:** Nance, Murphy & Santosh (2014), *Gondwana Research* 25.

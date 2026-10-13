@@ -117,7 +117,7 @@ Each event records `causes`, the ids of events that pushed a decisive term past 
 - **LIAM2:** process ordering and alignment in microsimulation, as an idea.
 - **OpenSpiel:** game and state abstractions for diplomacy, as a reference only.
 - **MESSAGEix:** cost-minimising commodity flow, as an idea for trade; not used.
-- **Eurace:** excluded.
+- **Eurace:** excluded when written; allowed since ARCHITECTURE.md Q12. Revisit its market and agent-economy models for 13b.
 - **Literature:** Lanchester (1916); Turchin & Nefedov, *Secular Cycles* (2009); Turchin, *Historical Dynamics* (2003); Cederman (1997) agent-based state formation.
 
 ## 5. Validation
