@@ -13,7 +13,7 @@ These instructions apply repository-wide to Codex, Claude Code, and other coding
 3. Inspect `git status --short --branch` and recent commits. Preserve existing edits, including work left by the other agent. A change of agent is not authorization to discard or redo work.
 4. Use `docs/DEVELOPMENT.md` for the code map and local workflow.
 
-At each checkpoint or handoff, update the current handoff section of `STATUS.md`: what changed, checks actually run and their results, remaining failures, and the next concrete step. Label historical results and unverified claims. Keep durable decisions in the architecture/design documents and extraction records in `PROVENANCE.md`, rather than relying on chat history or private agent memory.
+Update the current handoff section of `STATUS.md` **only when the user says they are switching agents** (or explicitly asks for it); do not spend time on handoff notes otherwise. Until then, the record lives in commit messages, the PR description and the files the work itself produces. When a handoff is requested, write one complete section covering everything since the last handoff: what changed, checks actually run and their results, remaining failures, and the next concrete step. Label historical results and unverified claims. Keep durable decisions in the architecture/design documents and extraction records in `PROVENANCE.md`, rather than relying on chat history or private agent memory.
 
 Default to one agent editing a checkout at a time. If the user requests simultaneous work, use separate branches/worktrees and agree on ownership; do not switch or reset a checkout another session is using. Do not commit or push merely to hand off unless requested.
 
@@ -23,7 +23,7 @@ Default to one agent editing a checkout at a time. If the user requests simultan
 - **Extract instead of writing original code.** Copy or port from `upstream/` where a usable implementation exists. Write original code only for what the architecture defines as new, or where no upstream has it.
 - **Log every extraction in `PROVENANCE.md`**: source path, commit, license, destination, test. Original code from a published algorithm is logged too.
 - **Each extraction needs a test** that checks it against the upstream behaviour or a golden value.
-- **Update `STATUS.md` at every checkpoint.**
+- **Update `STATUS.md` when the user announces an agent switch** (see Session start and handoff), not at every checkpoint.
 - **Stop at each phase boundary and wait for the user.** Do not start the next phase. Routine work within an authorized phase does not need a new approval at each step.
 - No `Math.random` in `packages/**`. Simulation math goes through `dmath`. **Exception:** `packages/gen-orogen/vendor/` is verbatim upstream code (lint-ignored). It calls `Math.*` and `Math.random` directly (the latter only in `planet-worker.js`, a test-only oracle), so it runs only in stages flagged `parity`, inside `dmath.withMode('native')`. Tests make `Math.random` throw during pipeline runs.
 - `dmath` defaults to `'fdlibm'` in every realm. The stage runner fails any non-parity stage that enters `'native'`.

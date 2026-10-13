@@ -92,7 +92,7 @@ Browser measurements write `docs/benchmarks/phase4a-*.json`; the report writes `
 
 Both tools read the same rules: Codex discovers root `AGENTS.md`; Claude Code imports it through `CLAUDE.md`. Use `STATUS.md` as the shared working memory rather than duplicating a separate per-agent task list.
 
-Before handing off, update its current handoff section with:
+When the user says they are switching agents (and only then), update its current handoff section with:
 
 - The task and phase worked on, resulting behavior, and relevant files.
 - Commands actually run, results, and input/environment limitations.
