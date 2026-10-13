@@ -117,3 +117,12 @@ The climate solve is at L0 (note 14), so the mapping is applied once per world. 
 | Report and UI flags | ~200 |
 | Tests (identity, golden, monotonicity) | ~600 |
 | **Total** | **~1,800**, excluding the VPLanet subset itself |
+
+## 8. User controls and edit points
+
+- **Parameters:** every physical input (radius, gravity, day length, obliquity, eccentricity, stellar luminosity, atmosphere), with the mapping documented.
+- **Edits:** a preset ("Earth", "super-Earth", "Mars-like", "tidally locked") is a parameter set; any mapped constant can be overridden at the expert level, and the override is recorded.
+
+## 9. Earth-recovery test
+
+T1: with Earth's physical parameters, the mapping must reproduce orogen's Earth-tuned constants (or better scores), so the climate objective on the Earth harness does not regress.

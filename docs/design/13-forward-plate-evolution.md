@@ -206,13 +206,13 @@ Cost is linear in T. Geologic keyframes at L0 are small (about 0.3 MB each), so 
 
 ## 4. Upstream references (algorithm level)
 
-- **Finite rotations and quaternions:** Cox & Hart, *Plate Tectonics: How It Works* (1986); GPlates `src/maths` was a citation only (GPL-2.0-only, so no code); since ARCHITECTURE.md Q12 its code may be ported.
+- **Finite rotations and quaternions:** Cox & Hart, *Plate Tectonics: How It Works* (1986); GPlates `src/maths` (finite rotations, unit quaternions, rotation interpolation) and `src/app-logic/Reconstruction*` were a citation only when written (GPL-2.0-only); since ARCHITECTURE.md Q12 they are the preferred source to port for the kinematics, with Cox & Hart kept as the validation reference.
 - **Procedural tectonics on a sphere:** Cortial, Peytavie, Galin & Guérin (2019), "Procedural Tectonic Planets", *Computer Graphics Forum* 38(2). Plates as point sets, subduction, collision, rifting. Algorithm level only.
 - **Driving forces:** Forsyth & Uyeda (1975), *GJI* 43; Conrad & Lithgow-Bertelli (2002), *Science* 298.
 - **Wilson and supercontinent cycles:** Nance, Murphy & Santosh (2014), *Gondwana Research* 25.
 - **Seafloor age:** Müller et al. (2008), *G³* 9, for the age-area distribution used in validation. Data, if used, is downloaded at tuning time.
 - **orogen** `plate-physics.js` (ported formulas), `coarse-plates.js`, `ocean-land.js` (initial state).
-- **Badlands, ASPECT:** not used. ASPECT's mantle convection is out of scope for a heuristic model.
+- **Badlands, ASPECT:** not used here. ASPECT-derived parameterisations of mantle plumes and heat flow belong to note 21 (Phase 6c), which feeds hotspot tracks and plume-driven rifting into this stage's event schedule.
 
 ## 5. Validation
 
@@ -248,3 +248,13 @@ Cost is linear in T. Geologic keyframes at L0 are small (about 0.3 MB each), so 
 | Geologic timeline and keyframes | ~300 |
 | Tests and Earth-likeness harness | ~1,500 |
 | **Total** | **~6,000** |
+
+## 8. User controls and edit points
+
+- **Parameters:** duration, plate count, mean rate, continental fraction, starting mode (snapshot or supercontinent), event frequencies.
+- **Edits:** place rift or collision events on the schedule; pin a plate's motion; draw a starting supercontinent; force a terrane accretion. Events are *seed* edits on the event schedule, so the fast and slow passes stay consistent.
+- **Switches:** plate evolution on or off (the `plateEvolution` variant).
+
+## 9. Earth-recovery test
+
+T3: starting from a Pangaea-like configuration with Earth parameters, the present-day statistics (plate size distribution, seafloor-age distribution, the share of continental crust by age, the number of active orogens) should match Earth's within stored tolerances (§5 already lists the statistics).

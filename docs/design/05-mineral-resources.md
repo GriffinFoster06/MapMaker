@@ -113,3 +113,13 @@ No upstream repo models ore genesis (matrix gap 5). References:
 | Hydrocarbons and coal | ~200 |
 | Tests and Earth harness | ~600 |
 | **Total** | **~2,500** |
+
+## 8. User controls and edit points
+
+- **Parameters:** deposit abundance per class, grade distribution, discovery difficulty.
+- **Edits:** place, remove or resize a deposit (seed or pin); mark a deposit as known at t0.
+- **Switches:** minerals `simulate | manual | off`.
+
+## 9. Earth-recovery test
+
+T1/T2: with Earth's tectonic settings, the counts of major deposit classes per setting (porphyry copper on arcs, banded iron in cratons, placer gold downstream of orogens) should match the patterns in USGS mineral-deposit models and the global distribution of known deposits, within factors set at Phase 9.

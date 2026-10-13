@@ -170,3 +170,13 @@ Step 0p.5 records this note's decision.
 | Laplace margin blend | ~300 |
 | Tests and Earth hold-out harness | ~1,500 |
 | **Total** | **~5,500** |
+
+## 8. User controls and edit points
+
+- **Inputs:** the imported region, its placement (lat/lon, extent, rotation) and the world conditions.
+- **Edits:** accept or reject candidate contexts (the top alternatives are kept); pin a plate boundary or a continent outline outside the region; adjust the margin band.
+- **Switches:** inference `search | manual` (manual: the user sketches the surrounding continents and the inference only fits plates).
+
+## 9. Earth-recovery test
+
+T2-style: cut real Earth regions (for example the Alps, Japan, the East African Rift, the Andes), hide the rest of the planet, run inference, and score the inferred boundary types, continent placement and the region's climate against the real Earth. This is the most direct measure of whether partial-world mode is "logically consistent with a plausible planet".

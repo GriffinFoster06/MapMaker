@@ -101,3 +101,12 @@ This is the only export that bends the sphere into a plane, and it is explicit i
 | 3MF | ~200 |
 | Tests | ~400 |
 | **Total** | **~1,750** |
+
+## 8. User controls and edit points
+
+- **Parameters:** vertical exaggeration, base thickness, size, resolution, hollow or solid.
+- **Edits:** none to the world; STL export is a view. Users choose the region, the styling (for colour formats) and the print settings.
+
+## 9. Earth-recovery test
+
+Not applicable (export). Verified by geometry tests (watertightness, scale) in §5.

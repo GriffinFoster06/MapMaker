@@ -83,7 +83,7 @@ Soils are per L1 cell, computed from layers that are already anchored (note 14).
 
 ## 4. Upstream references (algorithm level)
 
-- **LPJmL** `src/soil/` (soil water, texture classes, hydraulic parameters): an algorithm reference. AGPL-3.0, so no code.
+- **LPJmL** `src/soil/` (soil water, texture classes, hydraulic parameters): an algorithm reference when written (AGPL-3.0); since ARCHITECTURE.md Q12 it may be ported, and note 25 ports LPJmL's soil-water routines with the vegetation model.
 - **CTSM** soil hydrology and texture → hydraulic parameters (Clapp & Hornberger 1978 style): reference only.
 - **Literature:**
   - Jenny, *Factors of Soil Formation* (1941);
@@ -119,3 +119,13 @@ Soils are per L1 cell, computed from layers that are already anchored (note 14).
 | Earth comparison harness | ~400 |
 | Tests | ~500 |
 | **Total** | **~2,200** |
+
+## 8. User controls and edit points
+
+- **Parameters:** weathering rate, soil-production rate, the climate and organism weights per factor.
+- **Edits:** paint soil orders, fertility or depth (pin or soft), for example a fertile valley the user wants regardless of the model.
+- **Switches:** soils `simulate | manual | off`.
+
+## 9. Earth-recovery test
+
+T2: with Earth's elevation, climate and (from note 25) vegetation, the soil-order shares and the area-weighted agreement against a global USDA soil-order map, as in §5, become a stored-tolerance regression gate.

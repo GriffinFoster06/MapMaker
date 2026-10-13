@@ -135,3 +135,13 @@ Control of each province (or cell) by a polity follows an influence field: power
 | Borders and provinces | ~1,000 |
 | Tests and stylised-facts harness | ~1,800 |
 | **Total** | **~8,000** |
+
+## 8. User controls and edit points
+
+- **Parameters:** growth rates, carrying-capacity weights, migration propensity, trade costs.
+- **Edits:** found, grow, shrink or abandon a settlement; draw or delete a route; set a border; set a population at a tick.
+- **Switches:** dynamic population `simulate | manual | off`.
+
+## 9. Earth-recovery test
+
+Part of T4: settlement-size distributions should follow Zipf's law within the tolerance of historical data; population density should correlate with soil fertility and climate as in historical estimates (for example HYDE); trade routes should follow the low-cost corridors that real routes used (river valleys, passes, coasts).
