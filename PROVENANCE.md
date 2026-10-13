@@ -115,6 +115,13 @@ Written for MapMaker. Where a published algorithm was implemented from its refer
 | alea | 1.0.1 | MIT | Reference implementation for the Alea parity test |
 | coi-serviceworker | 0.1.7 | MIT | Source of the copied COOP/COEP shim |
 
+## CI deployment tools (not npm dependencies)
+
+| Tool | Version | License | Purpose |
+|---|---|---|---|
+| cloudflare/wrangler-action | v3 | MIT OR Apache-2.0 | GitHub Action that deploys `apps/web/dist` to Cloudflare Pages (`.github/workflows/cloudflare.yml`) |
+| wrangler | 4.143.0 | MIT OR Apache-2.0 | Cloudflare CLI, run by the action and by `npx` in the same workflow; never bundled |
+
 ## Phase 1 spike dependencies
 
 These are used only in `spikes/` and are not shipped.
