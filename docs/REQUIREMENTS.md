@@ -150,10 +150,10 @@ Given a regional map plus a set of world conditions, infer the most likely tecto
 ## Realism and performance
 
 - Prioritize realism over speed.
-- **Optimize only where there is no discernible difference.** This applies to every system (data, numerics, storage, rendering, simulation, exports), not to one format. A lightly compressed image that cannot be told from the original is fine; one that shows artefacts is not. The bar is no discernible loss, not "small" loss: an optimization that makes any measured quality metric worse, even by 1%, is rejected.
-  - **Precision is never cut for convenience.** Constants and arithmetic keep the full precision of the number type in use (no π to 5 digits); where float64 is not enough for a result, use higher-precision arithmetic rather than accept the error.
-  - Every optimization that changes output (lower resolution, coarser solves, quantized storage, approximations, skipped detail) must be measured against the full-quality result before it is adopted (Q7 A/B metrics, Earth tests, visual comparison). When in doubt, keep the quality.
-  - Optimizations that do not change output (faster code, same answer) are always welcome.
+- **Quality is never traded for size or speed.** This is a general rule for every part of MapMaker, in every medium: simulation, numerics, data, storage, images, maps, rendering, audio, text, exports, anything added later. Optimize freely where the result is indistinguishable from the full-quality result; never where the difference can be discerned, by eye or by measurement, however small ("only 1% worse" is still worse).
+  - *Illustrations, not the rule itself:* an image compressed so lightly that no one can tell is fine, one with visible artefacts is not; a constant or calculation keeps full precision rather than a rounded stand-in (π is not rounded to 5 digits). The same judgement applies to every analogous choice: resolution, sampling, time steps, solver tolerances, model simplifications, quantization, level of detail, caching and approximation.
+  - Output-changing optimizations are measured against the full-quality result before adoption (Q7 A/B metrics, Earth tests, visual comparison, whatever fits the medium). When in doubt, keep the quality.
+  - Optimizations that do not change the result at all are always welcome.
 - Provide a fidelity/speed slider before each generation run: a fast, rough seed preview, followed by a slow, detailed run using the same seed. The preview must be a true preview of the final result, not a different generation.
 - Whether low-resolution output is a faithful preview of high-resolution output must be verified by an A/B test early in the build, not assumed.
 - Deep-time and long-history runs may take a long time. They run in the background with progress, pause, resume and checkpoints, and the app stays usable while they run (note 38).
