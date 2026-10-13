@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dmath, hashWorld, loadWorld, saveWorld } from '@mapmaker/core';
+import { OrogenLcg, SphereMesh, dmath, hashWorld, loadWorld, saveWorld } from '@mapmaker/core';
 import { type Stage, dummyHistoryStage, runPipeline, checkProducers } from './index';
 
 import { makeWorld } from './test-helpers';
@@ -71,6 +71,24 @@ describe('runner', () => {
     expect(w2.layers.get('global', 'crustAge')[0]).toBe(2);
     // both stages in one variant -> error
     expect(() => checkProducers(w2, [crust, { ...evo, variants: undefined }], 'plateEvolution')).toThrow();
+  });
+
+  it('mesh-qualified reads hash and read the named mesh; a change there reruns the reader', async () => {
+    const w = simpleWorld();
+    w.registry.register(L('r', 'sr'));
+    w.registry.register(L('d', 'sd'));
+    const rng = new OrogenLcg('m', 3);
+    w.addMesh({ id: 'coarse', mesh: SphereMesh.build({ N: 200, jitter: 0.75, rng: () => rng.next(), precision: 'f32' }) });
+    const log: string[] = [];
+    const sr: Stage = { id: 'sr', version: '1', mesh: 'coarse', reads: [], writes: ['r'], params: ['fillR'], run(ctx) { log.push('sr'); ctx.writeLayer('r')[0]!.fill((ctx.world.params['fillR'] as number | undefined) ?? 3); } };
+    const sd: Stage = { id: 'sd', version: '1', reads: ['coarse/r'], writes: ['d'], run(ctx) { log.push('sd'); const r = ctx.layer('coarse/r')[0]!; ctx.writeLayer('d')[0]!.fill(r[0]! + 1); } };
+    await runPipeline(w, [sr, sd]);
+    expect(w.layers.get('global', 'd')[0]).toBe(4);
+    expect((await runPipeline(w, [sr, sd])).skipped).toEqual(['sr', 'sd']);
+    w.params['fillR'] = 7;
+    expect((await runPipeline(w, [sr, sd])).ran).toEqual(['sr', 'sd']);
+    expect(w.layers.get('global', 'd')[0]).toBe(8);
+    expect(log).toEqual(['sr', 'sd', 'sr', 'sd']);
   });
 
   it('records a referenceHash for detail-pass stages', async () => {

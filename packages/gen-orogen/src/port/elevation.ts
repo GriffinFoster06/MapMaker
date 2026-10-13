@@ -163,7 +163,12 @@ export interface ElevationResult {
     debugLayers: ElevationDebugLayers;
     _timing: { stage: string; ms: number }[];
 }
-interface PhasorKernel { x: number; y: number; z: number; dx: number; dy: number; dz: number; phase: number; stressNorm: number }
+export interface PhasorKernel { x: number; y: number; z: number; dx: number; dy: number; dz: number; phase: number; stressNorm: number }
+/**
+ * Structural placements shared across resolutions (Phase 4b, design note 14 §3.3). Pass an empty object to record
+ * the placements orogen makes; pass a filled one to reuse them. Omitted: stock behaviour.
+ */
+export interface ElevationStructure { phasorKernels?: PhasorKernel[] }
 interface ArcCandidate { r: number; x: number; y: number; z: number; stressNorm: number; score: number }
 interface VolcCandidate { r: number; x: number; y: number; z: number; score: number; stressLocal: number }
 /** Volcano; invS2 is attached after placement. */
@@ -1429,7 +1434,7 @@ function applyDetailTexture(mesh: PortMesh, r_xyz: Xyz, r_elevation: Float32Arra
 //  result is scale-invariant in physical units (independent of mesh
 //  resolution per CLAUDE.md guidance).
 // ─────────────────────────────────────────────────────────────────────────
-function applyPhasorRidges(mesh: PortMesh, r_xyz: Xyz, r_elevation: Float32Array, tect: Tect, sf: Fields, tt: Terrain, noiseMag: number, seed: number, debugLayers: ElevationDebugLayers): void {
+function applyPhasorRidges(mesh: PortMesh, r_xyz: Xyz, r_elevation: Float32Array, tect: Tect, sf: Fields, tt: Terrain, noiseMag: number, seed: number, debugLayers: ElevationDebugLayers, structure?: ElevationStructure): void {
     const { numRegions, adjOffset, adjList } = mesh;
     const { r_stress, r_stressDir, r_subductFactor, maxStress } = tect;
     const { r_isOcean } = sf;
@@ -1451,125 +1456,135 @@ function applyPhasorRidges(mesh: PortMesh, r_xyz: Xyz, r_elevation: Float32Array
     const envelopeCutoffSq = 9 * bandwidthRad * bandwidthRad;
     // exp(-0.5 * envelopeCutoffSq / bandwidthRad²) ≈ exp(-4.5) ≈ 0.011
 
-    const rng = makeRng(seed + 1313);
+    // Phase 4b M4 (design note 14 §3.3): with `structure.phasorKernels` given, the kernels chosen on the reference
+    // mesh are reused, so the ridge field is the same function of position at every N; otherwise orogen's own
+    // selection runs (unchanged) and, when `structure` is given, records its kernels.
+    let liveKernels: PhasorKernel[];
+    if (structure?.phasorKernels) {
+        liveKernels = structure.phasorKernels;
+        if (liveKernels.length === 0) return;
+    } else {
+        const rng = makeRng(seed + 1313);
 
-    // ── Pre-smooth stress direction over the active stressed region ──
-    // Smoothing pass count is derived from a target physical radius
-    // (PHASOR_DIRECTION_SMOOTHING_KM) divided by avg edge length, so the
-    // smoothing covers the same physical distance regardless of detail.
-    // Without this, the same constant pass count produced very different
-    // physical radii at different mesh resolutions, making mountains
-    // visibly less coherent at high detail.
-    const avgEdgeKm = (Math.PI * 6371) / Math.sqrt(numRegions);
-    const smoothingPasses = Math.max(2, Math.round(PHASOR_DIRECTION_SMOOTHING_KM / avgEdgeKm));
+        // ── Pre-smooth stress direction over the active stressed region ──
+        // Smoothing pass count is derived from a target physical radius
+        // (PHASOR_DIRECTION_SMOOTHING_KM) divided by avg edge length, so the
+        // smoothing covers the same physical distance regardless of detail.
+        // Without this, the same constant pass count produced very different
+        // physical radii at different mesh resolutions, making mountains
+        // visibly less coherent at high detail.
+        const avgEdgeKm = (Math.PI * 6371) / Math.sqrt(numRegions);
+        const smoothingPasses = Math.max(2, Math.round(PHASOR_DIRECTION_SMOOTHING_KM / avgEdgeKm));
 
-    const stressActiveFloor = PHASOR_STRESS_THRESHOLD * maxStress;
-    let curDir = new Float32Array(r_stressDir);
-    if (smoothingPasses > 0) {
-        let nextDir = new Float32Array(numRegions * 3);
-        for (let pass = 0; pass < smoothingPasses; pass++) {
-            // Carry forward all values; active cells will be overwritten below.
-            nextDir.set(curDir);
-            for (let r = 0; r < numRegions; r++) {
-                if (r_stress[r]! < stressActiveFloor) continue;
-                const w0 = r_stress[r]!;
-                let ax = curDir[3*r]! * w0;
-                let ay = curDir[3*r+1]! * w0;
-                let az = curDir[3*r+2]! * w0;
-                for (let ni = adjOffset[r]!, niEnd = adjOffset[r+1]!; ni < niEnd; ni++) {
-                    const nb = adjList[ni]!;
-                    if (r_stress[nb]! < stressActiveFloor) continue;
-                    const w = r_stress[nb]!;
-                    ax += curDir[3*nb]! * w;
-                    ay += curDir[3*nb+1]! * w;
-                    az += curDir[3*nb+2]! * w;
+        const stressActiveFloor = PHASOR_STRESS_THRESHOLD * maxStress;
+        let curDir = new Float32Array(r_stressDir);
+        if (smoothingPasses > 0) {
+            let nextDir = new Float32Array(numRegions * 3);
+            for (let pass = 0; pass < smoothingPasses; pass++) {
+                // Carry forward all values; active cells will be overwritten below.
+                nextDir.set(curDir);
+                for (let r = 0; r < numRegions; r++) {
+                    if (r_stress[r]! < stressActiveFloor) continue;
+                    const w0 = r_stress[r]!;
+                    let ax = curDir[3*r]! * w0;
+                    let ay = curDir[3*r+1]! * w0;
+                    let az = curDir[3*r+2]! * w0;
+                    for (let ni = adjOffset[r]!, niEnd = adjOffset[r+1]!; ni < niEnd; ni++) {
+                        const nb = adjList[ni]!;
+                        if (r_stress[nb]! < stressActiveFloor) continue;
+                        const w = r_stress[nb]!;
+                        ax += curDir[3*nb]! * w;
+                        ay += curDir[3*nb+1]! * w;
+                        az += curDir[3*nb+2]! * w;
+                    }
+                    const len = Math.sqrt(ax*ax + ay*ay + az*az);
+                    if (len > 1e-6) {
+                        nextDir[3*r] = ax / len;
+                        nextDir[3*r+1] = ay / len;
+                        nextDir[3*r+2] = az / len;
+                    }
                 }
-                const len = Math.sqrt(ax*ax + ay*ay + az*az);
-                if (len > 1e-6) {
-                    nextDir[3*r] = ax / len;
-                    nextDir[3*r+1] = ay / len;
-                    nextDir[3*r+2] = az / len;
-                }
+                const tmp = curDir; curDir = nextDir; nextDir = tmp;
             }
-            const tmp = curDir; curDir = nextDir; nextDir = tmp;
         }
-    }
-    const r_stressDirSmoothed = curDir;
+        const r_stressDirSmoothed = curDir;
 
-    // Collect candidate land cells with sufficient stress, a clear stress
-    // direction, AND on the overriding side (sf below threshold). Real
-    // fold-and-thrust belts form on the overriding plate, not the subducting
-    // one — biasing kernel placement to (1 - sf) reflects that.
-    const candidates: number[] = [];
-    const stressFloor = PHASOR_STRESS_THRESHOLD;
-    for (let r = 0; r < numRegions; r++) {
-        if (r_isOcean[r]!) continue;
-        if (r_stress[r]! / maxStress < stressFloor) continue;
-        if (r_subductFactor[r]! > PHASOR_SF_KERNEL_MAX) continue;
-        const sdx = r_stressDirSmoothed[3*r]!, sdy = r_stressDirSmoothed[3*r+1]!, sdz = r_stressDirSmoothed[3*r+2]!;
-        const sdLen2 = sdx*sdx + sdy*sdy + sdz*sdz;
-        if (sdLen2 < 0.25) continue;
-        candidates.push(r);
-    }
-
-    if (candidates.length === 0) return;
-
-    // Fisher-Yates shuffle to pick first N without replacement
-    for (let i = candidates.length - 1; i > 0; i--) {
-        const j = Math.floor(rng() * (i + 1));
-        const tmp = candidates[i]!;
-        candidates[i] = candidates[j]!;
-        candidates[j] = tmp;
-    }
-
-    const numKernels = Math.min(PHASOR_NUM_KERNELS, candidates.length);
-    const kernels = new Array<PhasorKernel | undefined>(numKernels);
-
-    for (let ki = 0; ki < numKernels; ki++) {
-        const r = candidates[ki]!;
-        const px = r_xyz[3*r]!, py = r_xyz[3*r+1]!, pz = r_xyz[3*r+2]!;
-
-        // Project (smoothed) stress direction to tangent plane at kernel position.
-        let dx = r_stressDirSmoothed[3*r]!, dy = r_stressDirSmoothed[3*r+1]!, dz = r_stressDirSmoothed[3*r+2]!;
-        const radial = dx*px + dy*py + dz*pz;
-        dx -= radial * px; dy -= radial * py; dz -= radial * pz;
-        const dLen = Math.sqrt(dx*dx + dy*dy + dz*dz);
-        if (dLen < 1e-6) continue;
-        dx /= dLen; dy /= dLen; dz /= dLen;
-
-        // Optionally rotate 90° in tangent plane: d' = position × d.
-        // The stress direction points from the boundary toward the plate
-        // interior. In phasor noise, ridges form perpendicular to d_k —
-        // mathematically they should be parallel to the boundary using
-        // raw stressDir, but observed visual is 90° off, so this flag
-        // rotates so stripes line up parallel to the orogen strike.
-        if (PHASOR_DIRECTION_PERP) {
-            const rx = py * dz - pz * dy;
-            const ry = pz * dx - px * dz;
-            const rz = px * dy - py * dx;
-            dx = rx; dy = ry; dz = rz;
-            // already unit (cross of two unit vectors with 90° between them)
+        // Collect candidate land cells with sufficient stress, a clear stress
+        // direction, AND on the overriding side (sf below threshold). Real
+        // fold-and-thrust belts form on the overriding plate, not the subducting
+        // one — biasing kernel placement to (1 - sf) reflects that.
+        const candidates: number[] = [];
+        const stressFloor = PHASOR_STRESS_THRESHOLD;
+        for (let r = 0; r < numRegions; r++) {
+            if (r_isOcean[r]!) continue;
+            if (r_stress[r]! / maxStress < stressFloor) continue;
+            if (r_subductFactor[r]! > PHASOR_SF_KERNEL_MAX) continue;
+            const sdx = r_stressDirSmoothed[3*r]!, sdy = r_stressDirSmoothed[3*r+1]!, sdz = r_stressDirSmoothed[3*r+2]!;
+            const sdLen2 = sdx*sdx + sdy*sdy + sdz*sdz;
+            if (sdLen2 < 0.25) continue;
+            candidates.push(r);
         }
 
-        // Orientation jitter (Rodrigues around p; since d ⊥ p, d' = d·cos + (p×d)·sin)
-        const jitter = (rng() - 0.5) * 2 * PHASOR_ORIENTATION_JITTER;
-        const cosJ = dmath.cos(jitter), sinJ = dmath.sin(jitter);
-        const cx = py * dz - pz * dy;
-        const cy = pz * dx - px * dz;
-        const cz = px * dy - py * dx;
-        const ndx = dx * cosJ + cx * sinJ;
-        const ndy = dy * cosJ + cy * sinJ;
-        const ndz = dz * cosJ + cz * sinJ;
+        if (candidates.length === 0) { if (structure) structure.phasorKernels = []; return; }
 
-        kernels[ki] = {
-            x: px, y: py, z: pz,
-            dx: ndx, dy: ndy, dz: ndz,
-            phase: rng() * 2 * Math.PI,
-            stressNorm: Math.min(1, r_stress[r]! / maxStress),
-        };
+        // Fisher-Yates shuffle to pick first N without replacement
+        for (let i = candidates.length - 1; i > 0; i--) {
+            const j = Math.floor(rng() * (i + 1));
+            const tmp = candidates[i]!;
+            candidates[i] = candidates[j]!;
+            candidates[j] = tmp;
+        }
+
+        const numKernels = Math.min(PHASOR_NUM_KERNELS, candidates.length);
+        const kernels = new Array<PhasorKernel | undefined>(numKernels);
+
+        for (let ki = 0; ki < numKernels; ki++) {
+            const r = candidates[ki]!;
+            const px = r_xyz[3*r]!, py = r_xyz[3*r+1]!, pz = r_xyz[3*r+2]!;
+
+            // Project (smoothed) stress direction to tangent plane at kernel position.
+            let dx = r_stressDirSmoothed[3*r]!, dy = r_stressDirSmoothed[3*r+1]!, dz = r_stressDirSmoothed[3*r+2]!;
+            const radial = dx*px + dy*py + dz*pz;
+            dx -= radial * px; dy -= radial * py; dz -= radial * pz;
+            const dLen = Math.sqrt(dx*dx + dy*dy + dz*dz);
+            if (dLen < 1e-6) continue;
+            dx /= dLen; dy /= dLen; dz /= dLen;
+
+            // Optionally rotate 90° in tangent plane: d' = position × d.
+            // The stress direction points from the boundary toward the plate
+            // interior. In phasor noise, ridges form perpendicular to d_k —
+            // mathematically they should be parallel to the boundary using
+            // raw stressDir, but observed visual is 90° off, so this flag
+            // rotates so stripes line up parallel to the orogen strike.
+            if (PHASOR_DIRECTION_PERP) {
+                const rx = py * dz - pz * dy;
+                const ry = pz * dx - px * dz;
+                const rz = px * dy - py * dx;
+                dx = rx; dy = ry; dz = rz;
+                // already unit (cross of two unit vectors with 90° between them)
+            }
+
+            // Orientation jitter (Rodrigues around p; since d ⊥ p, d' = d·cos + (p×d)·sin)
+            const jitter = (rng() - 0.5) * 2 * PHASOR_ORIENTATION_JITTER;
+            const cosJ = dmath.cos(jitter), sinJ = dmath.sin(jitter);
+            const cx = py * dz - pz * dy;
+            const cy = pz * dx - px * dz;
+            const cz = px * dy - py * dx;
+            const ndx = dx * cosJ + cx * sinJ;
+            const ndy = dy * cosJ + cy * sinJ;
+            const ndz = dz * cosJ + cz * sinJ;
+
+            kernels[ki] = {
+                x: px, y: py, z: pz,
+                dx: ndx, dy: ndy, dz: ndz,
+                phase: rng() * 2 * Math.PI,
+                stressNorm: Math.min(1, r_stress[r]! / maxStress),
+            };
+        }
+        // Trim any holes from skipped kernels
+        liveKernels = kernels.filter((k): k is PhasorKernel => !!k);
+        if (structure) structure.phasorKernels = liveKernels;
     }
-    // Trim any holes from skipped kernels
-    const liveKernels = kernels.filter((k): k is PhasorKernel => !!k);
 
     // Spatial grid for fast lookup (lat × lon binning, like volcanos).
     // Bandwidth ~110 km → angular ~0.017 rad → covers ~1° lat. With 36×72
@@ -2560,7 +2575,7 @@ function fixupTopology(mesh: PortMesh, r_elevation: Float32Array, r_isOcean: Uin
 // ─────────────────────────────────────────────────────────────────────────
 //  Main orchestrator
 // ─────────────────────────────────────────────────────────────────────────
-export function assignElevation(mesh: PortMesh, r_xyz: Xyz, plateIsOcean: ReadonlySet<number>, r_plate: ArrayLike<number>, plateVec: PlateMap<PlateVec>, plateSeeds: Iterable<number>, noise: Noise, noiseMag: number, seed: number, spread: number, plateDensity: PlateMap<number>, superPlateData?: SuperPlateData | null, r_mantleField?: ArrayLike<number> | null): ElevationResult {
+export function assignElevation(mesh: PortMesh, r_xyz: Xyz, plateIsOcean: ReadonlySet<number>, r_plate: ArrayLike<number>, plateVec: PlateMap<PlateVec>, plateSeeds: Iterable<number>, noise: Noise, noiseMag: number, seed: number, spread: number, plateDensity: PlateMap<number>, superPlateData?: SuperPlateData | null, r_mantleField?: ArrayLike<number> | null, structure?: ElevationStructure): ElevationResult {
     const { numRegions } = mesh;
     const _timing: ElevationResult['_timing'] = [];
     let _t0 = performance.now();
@@ -2608,7 +2623,7 @@ export function assignElevation(mesh: PortMesh, r_xyz: Xyz, plateIsOcean: Readon
     _timing.push({ stage: '4. Skeleton', ms: performance.now() - _t0 }); _t0 = performance.now();
 
     // Stage 5 — phasor ridges (shaped, directional; replaces v1 fold ridges)
-    applyPhasorRidges(mesh, r_xyz, r_elevation, tect, sf, tt, noiseMag, seed, debugLayers);
+    applyPhasorRidges(mesh, r_xyz, r_elevation, tect, sf, tt, noiseMag, seed, debugLayers, structure);
     _timing.push({ stage: '5. Phasor ridges', ms: performance.now() - _t0 }); _t0 = performance.now();
 
     // Stage 6 — discrete edifices (shaped: arcs, stratovolcanoes, hotspots, LIPs).

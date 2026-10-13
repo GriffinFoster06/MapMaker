@@ -1,4 +1,5 @@
 import { type EntityTable, type World, bytesOf, canonicalJson, hashString, sha256 } from '@mapmaker/core';
+import { splitRead } from './stage';
 
 export async function hashTable(t: EntityTable): Promise<string> {
   const c = t.toChunks();
@@ -27,9 +28,10 @@ export async function hashInputs(world: World, stage: { id: string; version: str
       const t = world.entities.get(r.slice(6));
       reads[r] = t ? await hashTable(t) : 'absent';
     } else {
-      const d = world.registry.get(r);
-      const ids = d.kind === 'vector-en' ? [`${r}.east`, `${r}.north`] : [r];
-      for (const id of ids) reads[`${mesh}/${id}`] = world.layers.has(mesh, id) ? await world.layers.hash(mesh, id) : 'absent';
+      const { mesh: m, id: layer } = splitRead(r, mesh);
+      const d = world.registry.get(layer);
+      const ids = d.kind === 'vector-en' ? [`${layer}.east`, `${layer}.north`] : [layer];
+      for (const id of ids) reads[`${m}/${id}`] = world.layers.has(m, id) ? await world.layers.hash(m, id) : 'absent';
     }
   }
   const params: Record<string, unknown> = { masterSeed: world.params.masterSeed };

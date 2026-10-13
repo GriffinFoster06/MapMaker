@@ -171,3 +171,21 @@ describe.each([[20000, 12345], [20000, 777], [200000, 12345]] as const)('elevati
     }));
   }
 }, 300_000);
+
+describe('shared structure (Phase 4b M4)', () => {
+  it('recording the phasor kernels changes nothing; replaying them on the same mesh reproduces the field exactly', () => {
+    const inp = buildInputs(20000, 12345);
+    const run = (structure?: p.ElevationStructure) => {
+      const a = copyArgs(inp, true, true);
+      return p.assignElevation(inp.pmesh, a[0], a[1], a[2], a[3], a[4], new SimplexNoise(12345), 0.4, 12345, 5, a[5], a[6], a[7], structure);
+    };
+    const stock = run();
+    const structure: p.ElevationStructure = {};
+    const rec = run(structure);
+    expect(bytes(rec.r_elevation)).toEqual(bytes(stock.r_elevation));
+    expect(structure.phasorKernels!.length).toBeGreaterThan(100);
+    const replay = run({ phasorKernels: structure.phasorKernels! });
+    expect(bytes(replay.r_elevation)).toEqual(bytes(stock.r_elevation));
+    expect(bytes(replay.debugLayers.phasorRidge)).toEqual(bytes(stock.debugLayers.phasorRidge));
+  });
+});

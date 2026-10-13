@@ -70,11 +70,17 @@ export function orogenLayerSpecs(): Spec[] {
 }
 
 /** Registers every layer the orogen stages write. Safe to call once per world. */
+/** Canonical layers that the structured pipeline's detail pass produces in place of the stock stages (Phase 4b). */
+export const STRUCTURED_DETAIL_STAGE = 'detail.pass';
+const STRUCTURED_CANONICAL = /^(elevation|plate|stress|koppen|(wind|current|temp|precip|pressure)\.(summer|winter))$/;
+
 export function registerOrogenLayers(world: World): void {
   for (const s of orogenLayerSpecs()) {
     if (world.registry.has(s.id)) continue;
+    const producers: Record<string, string> = { '*': s.stage };
+    if (STRUCTURED_CANONICAL.test(s.id)) producers['structured'] = STRUCTURED_DETAIL_STAGE;
     world.registry.register({
-      id: s.id, dtype: s.dtype, unit: s.unit, kind: s.kind, producers: { '*': s.stage }, deps: s.deps,
+      id: s.id, dtype: s.dtype, unit: s.unit, kind: s.kind, producers, deps: s.deps,
       sample: s.sample ?? 'barycentric', timeVarying: false, ...(s.priv ? { visibility: 'private' as const } : {}),
     });
   }

@@ -9,6 +9,7 @@
 import { type Drainage, type MajorBasins, type SphereMesh, buildReferenceMesh, majorBasins, priorityFlood } from '@mapmaker/core';
 import type { OrogenParams } from '../params';
 import * as port from '../port';
+import type { ElevationStructure } from '../port/elevation';
 import { computeDetailDampenField, computeOrogenicField, runPostProcessing } from '../orchestration';
 import { type OMesh, type OrogenLib, type Scratch, type Tectonics, computeTectonics } from '../scratch';
 
@@ -30,6 +31,8 @@ export interface ReferenceState {
   omesh: OMesh;
   r_xyz: Float32Array;
   tect: Tectonics;
+  /** Structural placements made on L0 and reused by the detail pass at every N (phasor kernels). */
+  structure: ElevationStructure;
   /** orogen raw elevation before and after the reference erosion. */
   elevPre: Float32Array;
   elevRaw: Float32Array;
@@ -53,7 +56,8 @@ export function runReferencePass(p: OrogenParams): ReferenceState {
 
   const tect = computeTectonics(s, p, lib);
   const noise = new port.SimplexNoise(p.seed);
-  const res = port.assignElevation(omesh, r_xyz, tect.plateIsOcean, tect.r_plate, tect.plateVec, tect.plateSeeds, noise, p.nMag, p.seed, 5, tect.plateDensity, tect.superPlateData, tect.r_mantleField);
+  const structure: ElevationStructure = {};
+  const res = port.assignElevation(omesh, r_xyz, tect.plateIsOcean, tect.r_plate, tect.plateVec, tect.plateSeeds, noise, p.nMag, p.seed, 5, tect.plateDensity, tect.superPlateData, tect.r_mantleField, structure);
   const debug = res.debugLayers as Record<string, Float32Array>;
   const elevPre = res.r_elevation as Float32Array;
 
@@ -74,5 +78,5 @@ export function runReferencePass(p: OrogenParams): ReferenceState {
   const drainage = priorityFlood(elevRaw, mesh.adjOffset, mesh.adjList, areaKm2);
   const basins = majorBasins(drainage, mesh.adjOffset, mesh.adjList, A_MAJOR_KM2);
 
-  return { mesh, omesh, r_xyz, tect, elevPre, elevRaw, stress: res.r_stress as Float32Array, debug, erosionDelta, climate: { wind, ocean, precip, temp }, koppen, drainage, basins };
+  return { mesh, omesh, r_xyz, tect, structure, elevPre, elevRaw, stress: res.r_stress as Float32Array, debug, erosionDelta, climate: { wind, ocean, precip, temp }, koppen, drainage, basins };
 }

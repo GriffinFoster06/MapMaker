@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { type World, hashWorld, loadWorld, saveWorld } from '@mapmaker/core';
 import { runPipeline } from '@mapmaker/engine';
 import { createOrogenWorld, orogenStages } from '../index';
-import { REF_MESH, REF_STAGE, STRUCTURED, refLayerSpecs } from './layers';
+import { DETAIL_STAGE, REF_MESH, REF_STAGE, STRUCTURED, refLayerSpecs } from './layers';
 import { referenceState, structuredStages } from './stages';
 
 const allStages = [...orogenStages, ...structuredStages];
@@ -21,7 +21,7 @@ describe('reference pass (ref.pass)', () => {
   it('runs only in the structured variant, in fdlibm, on the 20k reference mesh', async () => {
     vi.spyOn(Math, 'random').mockImplementation(() => { throw new Error('Math.random called during generation'); });
     const w = await structuredWorld(5000);
-    expect(w.pipeline.completed.map((r) => r.stageId)).toEqual(['mesh', REF_STAGE]);
+    expect(w.pipeline.completed.map((r) => r.stageId)).toEqual(['mesh', REF_STAGE, DETAIL_STAGE]);
     for (const r of w.pipeline.completed) expect(r.dmath).toEqual(['fdlibm']);
     expect(w.meshes.get(REF_MESH)!.mesh.numRegions).toBe(20001);
     expect(w.meshes.get('global')!.mesh.numRegions).toBe(5001);

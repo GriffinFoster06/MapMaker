@@ -5,7 +5,8 @@ import type { Stage, StageContext } from '@mapmaker/engine';
 import { STAGE_PARAMS, readParams } from '../params';
 import { PLATES_SPEC } from '../plates-spec';
 import { elevToHeightKm } from '../port';
-import { REF_DEBUG_FIELDS, REF_MESH, REF_STAGE, REF_WRITES, STRUCTURED } from './layers';
+import { DETAIL_STAGE, REF_DEBUG_FIELDS, REF_MESH, REF_STAGE, REF_WRITES, STRUCTURED, detailLayerSpecs } from './layers';
+import { runClimateDetail, runDrainageDetail, runElevationDetail } from './detail';
 import { type ReferenceState, runReferencePass } from './reference';
 
 export const STRUCTURED_STAGE_VERSION = '1';
@@ -86,5 +87,53 @@ const refStage: Stage = {
   },
 };
 
-/** Structured-pipeline stages, in order. The detail pass (Phase 4b M4) follows the reference pass. */
-export const structuredStages: Stage[] = [refStage];
+const DETAIL_WRITES = [
+  'elevation', 'plate', 'stress', 'koppen',
+  ...['summer', 'winter'].flatMap((s) => [`wind.${s}`, `current.${s}`, `temp.${s}`, `precip.${s}`, `pressure.${s}`]),
+  ...detailLayerSpecs().map((s) => s.id),
+];
+
+const detailStage: Stage = {
+  id: DETAIL_STAGE,
+  version: STRUCTURED_STAGE_VERSION,
+  variants: [STRUCTURED],
+  pass: 'D',
+  mesh: 'global',
+  // Everything the pass consumes from L0, mesh-qualified so the input hash covers it (the in-memory reference state is
+  // recomputed from the same params and equals these layers).
+  reads: REF_WRITES().filter((w) => !w.startsWith('table:')).map((w) => `${REF_MESH}/${w}`).concat('table:plates'),
+  writes: DETAIL_WRITES,
+  params: STAGE_PARAMS,
+  run(ctx) {
+    const { world } = ctx;
+    const p = readParams(world);
+    const L1 = world.meshes.get('global')!.mesh;
+    const ref = referenceState(world);
+    ctx.progress(0, 'Detail: elevation at full resolution');
+    const d = runElevationDetail(L1, ref, p);
+    ctx.progress(0.6, 'Detail: climate');
+    const c = runClimateDetail(ref, d);
+    ctx.progress(0.9, 'Detail: drainage');
+    const dr = runDrainageDetail(ref, d, L1);
+
+    put(ctx, 'elevation', d.elevation_m);
+    put(ctx, 'detail.elevRaw', d.elevRaw);
+    put(ctx, 'plate', d.tect.r_plate);
+    put(ctx, 'stress', d.stress);
+    for (const season of ['summer', 'winter'] as const) {
+      const sc = c[season];
+      put(ctx, `wind.${season}`, sc.windEast, 0); put(ctx, `wind.${season}`, sc.windNorth, 1);
+      put(ctx, `current.${season}`, sc.currentEast, 0); put(ctx, `current.${season}`, sc.currentNorth, 1);
+      put(ctx, `temp.${season}`, sc.temp); put(ctx, `precip.${season}`, sc.precip); put(ctx, `pressure.${season}`, sc.pressure);
+    }
+    put(ctx, 'koppen', c.koppen);
+    put(ctx, 'receiver', dr.receiver);
+    put(ctx, 'basin', dr.basin);
+    const area = ctx.writeLayer('drainageArea')[0] as Float64Array;
+    for (let i = 0; i < area.length; i++) area[i] = dr.drainageArea[i]! * 1e6; // km² → m²
+    ctx.progress(1);
+  },
+};
+
+/** Structured-pipeline stages, in order: the reference pass on L0, then the detail pass at N. */
+export const structuredStages: Stage[] = [refStage, detailStage];
