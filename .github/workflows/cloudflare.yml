@@ -71,6 +71,19 @@ jobs:
     if: needs.deploy.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     steps:
+      # A new project's or deployment's TLS certificate can take a few minutes to issue (the first deploy failed every
+      # test with a TLS handshake error). Wait until the URL serves 200 over TLS with the COEP header.
+      - name: Wait for the deployment
+        env:
+          URL: ${{ needs.deploy.outputs.url }}
+        run: |
+          for i in $(seq 1 40); do
+            if curl -fsS -o /dev/null -D headers.txt "$URL" && grep -qi '^cross-origin-embedder-policy:' headers.txt; then
+              echo "Ready after $i attempt(s): $URL"; exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::$URL did not serve 200 with COOP/COEP within 10 minutes"; exit 1
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
