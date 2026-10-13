@@ -150,6 +150,7 @@ Given a regional map plus a set of world conditions, infer the most likely tecto
 ## Realism and performance
 
 - Prioritize realism over speed.
+- **Optimize up to the point of noticeable loss, and no further.** Like compressing a PNG: reduce size, memory and run time wherever the result is indistinguishable, but never accept a quality loss that a user would notice. Every optimization that changes output (lower resolution, coarser solves, quantized storage, approximations, skipped detail) must be measured against the full-quality result, with metrics such as the Q7 A/B set, Earth tests or visual comparison, before it is adopted. When in doubt, keep the quality. Optimizations that do not change output (faster code, same answer) are always welcome.
 - Provide a fidelity/speed slider before each generation run: a fast, rough seed preview, followed by a slow, detailed run using the same seed. The preview must be a true preview of the final result, not a different generation.
 - Whether low-resolution output is a faithful preview of high-resolution output must be verified by an A/B test early in the build, not assumed.
 - Deep-time and long-history runs may take a long time. They run in the background with progress, pause, resume and checkpoints, and the app stays usable while they run (note 38).
