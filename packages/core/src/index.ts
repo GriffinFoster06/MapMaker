@@ -4,6 +4,7 @@ export * from './units';
 export * from './hash';
 export * from './mesh';
 export * from './multilevel';
+export * from './hydro';
 export * from './rng';
 export * from './typed';
 export * from './layers';
