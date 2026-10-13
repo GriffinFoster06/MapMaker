@@ -38,6 +38,8 @@ Code ported from, or copied out of, an upstream. Each has a test that pins it to
 | `packages/gen-orogen/src/port/sphere-mesh.ts` | orogen | `js/sphere-mesh.js` | `cc2662b` | GPL-3.0 | `gen-orogen/src/port/foundation.test.ts`: bit-identical to the vendored JS in dmath native mode (5k, 20k). Phase 4b M2 port; changes: Math.asin/sin/cos → dmath, Delaunator imported, `adjTriList` alias added |
 | `packages/gen-orogen/src/port/climate-util.ts` | orogen | `js/climate-util.js` | `cc2662b` | GPL-3.0 | `gen-orogen/src/port/foundation.test.ts`: bit-identical to the vendored JS in dmath native mode. Phase 4b M2 port; changes: Math.log/exp → dmath |
 | `packages/gen-orogen/src/port/color-map.ts` | orogen | `js/color-map.js` | `cc2662b` | GPL-3.0 | `gen-orogen/src/port/foundation.test.ts`: bit-identical to the vendored JS in dmath native mode. Phase 4b M2 port; changes: types only |
+| `packages/gen-orogen/src/port/plate-physics.ts` | orogen | `js/plate-physics.js` | `cc2662b` | GPL-3.0 | `gen-orogen/src/port/plate-physics.test.ts`: bit-identical to the vendored JS in dmath native mode, full tectonics chain (coarse physics, super-plates, hi-res physics, debug expansion) at seeds 12345/777 N = 20k, 200k, plus P = 10/200 and degenerate worlds. Phase 4b M2 port; changes: Math.pow/acos/cos/sin → dmath, types, two unused imports dropped |
+| `packages/gen-orogen/src/port/super-plates.ts` | orogen | `js/super-plates.js` | `cc2662b` | GPL-3.0 | `gen-orogen/src/port/plate-physics.test.ts` (as above, plus the plateVec fallback paths). Phase 4b M2 port; changes: types only |
 
 ## Vendored files (verbatim copies)
 
