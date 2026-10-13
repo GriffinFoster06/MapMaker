@@ -67,7 +67,7 @@ scripts/node24.sh npm run e2e
 
 `npm test` covers core/engine behavior, stock-orogen parity, save/resume, deterministic probes, calibration, and the A/B harness. Tests needing optional upstreams or ground truth can skip when those inputs are absent. `REQUIRE_UPSTREAM=1` enables the nightly job's required-input check. Record passed, failed, and skipped counts; an installed toolchain does not imply a green suite.
 
-`npm run e2e` builds and serves on port 4173 and runs Chromium, Firefox, and WebKit: determinism, isolation shim, and globe/layer checks. It may reuse an existing server locally; ensure that server serves the current checkout. `E2E_BASE_URL` targets a remote site. `npm run build` produces `apps/web/dist`; Vite may warn about bundle size.
+`npm run e2e` builds and serves on port 4173 and runs Chromium, Firefox, and WebKit: determinism, isolation shim, and globe/layer checks. It may reuse an existing server locally; ensure that server serves the current checkout. `E2E_BASE_URL` targets a remote site. On Linux, headless Firefox has no WebGL, so its globe test fails headless; run `FIREFOX_HEADED=1 xvfb-run -a scripts/node24.sh npm run e2e` (CI does the same on Linux). `npm run build` produces `apps/web/dist`; Vite may warn about bundle size.
 
 For an isolated test, use `scripts/node24.sh npx vitest run <test-file>`. The Node-only probe entry is `scripts/node24.sh npm run probe`.
 
