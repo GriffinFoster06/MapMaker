@@ -53,7 +53,10 @@ export function makeLocator(xyz, adj, nR) {
     let improved = true, steps = 0;
     while (improved && steps++ < cap) {
       improved = false;
-      for (let i = adj.off[cur]; i < adj.off[cur + 1]; i++) {
+      // Scan the neighbours of the cell at the start of the pass. (Re-reading off[cur + 1] after `cur` moved swept every
+      // adjacency entry between the two cells: same answer, but ~50x slower on orogen's index-scattered meshes.)
+      const c0 = cur, end = adj.off[c0 + 1];
+      for (let i = adj.off[c0]; i < end; i++) {
         const n = adj.list[i];
         const d = px * xyz[3 * n] + py * xyz[3 * n + 1] + pz * xyz[3 * n + 2];
         if (d > best) { best = d; cur = n; improved = true; }

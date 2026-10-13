@@ -72,7 +72,9 @@ for (const tier of wanted) {
   });
 }
 
-test.afterAll((_fixtures, info) => {
+// Playwright reads fixture names from the destructuring pattern, so the unused first argument must be `{}`.
+// eslint-disable-next-line no-empty-pattern
+test.afterAll(({}, info) => {
   mkdirSync(OUT, { recursive: true });
   const meta = {
     browser: info.project.name, platform: `${platform()} ${arch()}`, cpu: cpus()[0]?.model ?? 'unknown', cores: cpus().length,

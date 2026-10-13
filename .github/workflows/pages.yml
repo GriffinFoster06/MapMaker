@@ -53,8 +53,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium firefox webkit
-      - run: npx playwright test
+      # Headless Firefox on Linux has no WebGL, so Firefox runs headed on a virtual display (playwright.config.ts).
+      - run: xvfb-run -a npx playwright test
         env:
+          FIREFOX_HEADED: '1'
           E2E_BASE_URL: ${{ needs.deploy.outputs.page_url || 'https://griffinfoster06.github.io/MapMaker/' }}
       - uses: actions/upload-artifact@v4
         if: always()

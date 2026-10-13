@@ -1,0 +1,339 @@
+{
+ "_note": "Q7 baseline of stock orogen run through the shell (Phase 4a). Reference = L0 (orogen coarse mesh, seed+137). No gate yet: Phase 4b defines regression against this file.",
+ "commit": "b370476",
+ "previews": [
+  50000,
+  200000
+ ],
+ "finals": [
+  1000000,
+  2560000
+ ],
+ "refMode": "L0",
+ "platform": {
+  "os": "linux x64",
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.80GHz",
+  "node": "v24.21.0",
+  "date": "2026-10-13T16:56:37.152Z"
+ },
+ "seeds": {
+  "1": {
+   "runs": [
+    {
+     "N": 50000,
+     "numRegions": 50001,
+     "ms": 3613,
+     "cellKm": 101,
+     "landFrac": 0.2872,
+     "coastCells": 2691
+    },
+    {
+     "N": 200000,
+     "numRegions": 200001,
+     "ms": 11692,
+     "cellKm": 50.5,
+     "landFrac": 0.2878,
+     "coastCells": 8181
+    },
+    {
+     "N": 1000000,
+     "numRegions": 1000001,
+     "ms": 70646,
+     "cellKm": 22.6,
+     "landFrac": 0.2919,
+     "coastCells": 27562
+    },
+    {
+     "N": 2560000,
+     "numRegions": 2560001,
+     "ms": 241687,
+     "cellKm": 14.1,
+     "landFrac": 0.2937,
+     "coastCells": 59402
+    }
+   ],
+   "vsFinal": {
+    "1000000": {
+     "50000": {
+      "landIoU": 0.857315647439702,
+      "landIoU1deg": 0.8542434610044508,
+      "coastP95PreviewCells": 3.3240792411744837,
+      "coastP95Km": 335.7334089555455,
+      "koppenAgreement": 0.5506396773771399,
+      "precipCorrelationLand": 0.8402928109913249,
+      "mountainIoU": 0.22391495381000293,
+      "hypsometryKS": 0.13823953327517935,
+      "basinsMatchedAt50": 2,
+      "basinMeanIoU": 0.30639999999999995,
+      "hypsometryKSNative": 0.02783736804302328,
+      "koppenAgreement1deg": 0.5314888829086243,
+      "riverMouthMeanKm": 3056.6897746833192,
+      "riverMouthMedianKm": 2040.3949397811962
+     },
+     "200000": {
+      "landIoU": 0.9175906532018361,
+      "landIoU1deg": 0.8859722924095085,
+      "coastP95PreviewCells": 3.990053524956158,
+      "coastP95Km": 201.50005783923996,
+      "koppenAgreement": 0.6257410145240471,
+      "precipCorrelationLand": 0.8694892303906038,
+      "mountainIoU": 0.28354516657117196,
+      "hypsometryKS": 0.07720361630982411,
+      "basinsMatchedAt50": 4,
+      "basinMeanIoU": 0.3973,
+      "hypsometryKSNative": 0.01969276567569933,
+      "koppenAgreement1deg": 0.599986835100109,
+      "riverMouthMeanKm": 1510.7639018922805,
+      "riverMouthMedianKm": 1189.4026571497545
+     }
+    },
+    "2560000": {
+     "50000": {
+      "landIoU": 0.853567388586073,
+      "landIoU1deg": 0.8492883572742742,
+      "coastP95PreviewCells": 4.677213264483731,
+      "coastP95Km": 472.4005174865782,
+      "koppenAgreement": 0.5517075570770579,
+      "precipCorrelationLand": 0.8600143078096376,
+      "mountainIoU": 0.20212099386842725,
+      "hypsometryKS": 0.240102979682278,
+      "basinsMatchedAt50": 2,
+      "basinMeanIoU": 0.29589999999999994,
+      "hypsometryKSNative": 0.1088259143965723,
+      "koppenAgreement1deg": 0.5355151945941796,
+      "riverMouthMeanKm": 3322.2696456533936,
+      "riverMouthMedianKm": 3327.9146812190293
+     },
+     "200000": {
+      "landIoU": 0.9252009450711178,
+      "landIoU1deg": 0.8865651265583369,
+      "coastP95PreviewCells": 4.695913090681379,
+      "coastP95Km": 237.14638248887624,
+      "koppenAgreement": 0.6174814124853966,
+      "precipCorrelationLand": 0.8848265084713309,
+      "mountainIoU": 0.2504526195909708,
+      "hypsometryKS": 0.1744518206793395,
+      "basinsMatchedAt50": 4,
+      "basinMeanIoU": 0.3621,
+      "hypsometryKSNative": 0.085694759152936,
+      "koppenAgreement1deg": 0.5907086259530697,
+      "riverMouthMeanKm": 2456.877961651858,
+      "riverMouthMedianKm": 2602.3262202833484
+     }
+    }
+   }
+  },
+  "777": {
+   "runs": [
+    {
+     "N": 50000,
+     "numRegions": 50001,
+     "ms": 2992,
+     "cellKm": 101,
+     "landFrac": 0.2609,
+     "coastCells": 2472
+    },
+    {
+     "N": 200000,
+     "numRegions": 200001,
+     "ms": 11502,
+     "cellKm": 50.5,
+     "landFrac": 0.2713,
+     "coastCells": 7200
+    },
+    {
+     "N": 1000000,
+     "numRegions": 1000001,
+     "ms": 71372,
+     "cellKm": 22.6,
+     "landFrac": 0.2731,
+     "coastCells": 25934
+    },
+    {
+     "N": 2560000,
+     "numRegions": 2560001,
+     "ms": 241750,
+     "cellKm": 14.1,
+     "landFrac": 0.2767,
+     "coastCells": 55244
+    }
+   ],
+   "vsFinal": {
+    "1000000": {
+     "50000": {
+      "landIoU": 0.8609760646070389,
+      "landIoU1deg": 0.8563240164028042,
+      "coastP95PreviewCells": 5.163643762935446,
+      "coastP95Km": 521.5302035188033,
+      "koppenAgreement": 0.5230688986344773,
+      "precipCorrelationLand": 0.8204414544840454,
+      "mountainIoU": 0.31154036494347576,
+      "hypsometryKS": 0.09318619438687967,
+      "basinsMatchedAt50": 3,
+      "basinMeanIoU": 0.39330000000000004,
+      "hypsometryKSNative": 0.10269641458354906,
+      "koppenAgreement1deg": 0.5042972126762382,
+      "riverMouthMeanKm": 3005.8934006983727,
+      "riverMouthMedianKm": 1662.8842889854363
+     },
+     "200000": {
+      "landIoU": 0.9063480664002934,
+      "landIoU1deg": 0.8769066367868279,
+      "coastP95PreviewCells": 5.687970616687108,
+      "coastP95Km": 287.24587303949585,
+      "koppenAgreement": 0.586191797898657,
+      "precipCorrelationLand": 0.8214603133403774,
+      "mountainIoU": 0.3118808928538374,
+      "hypsometryKS": 0.08205230507893418,
+      "basinsMatchedAt50": 3,
+      "basinMeanIoU": 0.4831,
+      "hypsometryKSNative": 0.021739629902237878,
+      "koppenAgreement1deg": 0.5613839280799438,
+      "riverMouthMeanKm": 1693.026224747011,
+      "riverMouthMedianKm": 741.9767562271434
+     }
+    },
+    "2560000": {
+     "50000": {
+      "landIoU": 0.852014504165877,
+      "landIoU1deg": 0.844662992400019,
+      "coastP95PreviewCells": 6.006176887321377,
+      "coastP95Km": 606.6264053494526,
+      "koppenAgreement": 0.5287047568309831,
+      "precipCorrelationLand": 0.8213264140791308,
+      "mountainIoU": 0.28984299366701144,
+      "hypsometryKS": 0.1540340205218995,
+      "basinsMatchedAt50": 2,
+      "basinMeanIoU": 0.32330000000000003,
+      "hypsometryKSNative": 0.049471234007191445,
+      "koppenAgreement1deg": 0.5126186438209149,
+      "riverMouthMeanKm": 3414.065160976571,
+      "riverMouthMedianKm": 2568.459115686172
+     },
+     "200000": {
+      "landIoU": 0.9086432055825668,
+      "landIoU1deg": 0.8732701351745709,
+      "coastP95PreviewCells": 7.115775127305549,
+      "coastP95Km": 359.3508434799375,
+      "koppenAgreement": 0.5961850126769869,
+      "precipCorrelationLand": 0.8360805980574599,
+      "mountainIoU": 0.32064753851749234,
+      "hypsometryKS": 0.14344005869174442,
+      "basinsMatchedAt50": 3,
+      "basinMeanIoU": 0.40490000000000004,
+      "hypsometryKSNative": 0.04580337705693771,
+      "koppenAgreement1deg": 0.5748567476171283,
+      "riverMouthMeanKm": 2742.115182382137,
+      "riverMouthMedianKm": 1878.4236959145849
+     }
+    }
+   }
+  },
+  "12345": {
+   "runs": [
+    {
+     "N": 50000,
+     "numRegions": 50001,
+     "ms": 3606,
+     "cellKm": 101,
+     "landFrac": 0.276,
+     "coastCells": 2387
+    },
+    {
+     "N": 200000,
+     "numRegions": 200001,
+     "ms": 12160,
+     "cellKm": 50.5,
+     "landFrac": 0.275,
+     "coastCells": 7231
+    },
+    {
+     "N": 1000000,
+     "numRegions": 1000001,
+     "ms": 73904,
+     "cellKm": 22.6,
+     "landFrac": 0.2791,
+     "coastCells": 25433
+    },
+    {
+     "N": 2560000,
+     "numRegions": 2560001,
+     "ms": 231865,
+     "cellKm": 14.1,
+     "landFrac": 0.2804,
+     "coastCells": 54882
+    }
+   ],
+   "vsFinal": {
+    "1000000": {
+     "50000": {
+      "landIoU": 0.8773972006871223,
+      "landIoU1deg": 0.8726886992101736,
+      "coastP95PreviewCells": 3.0876074398716815,
+      "coastP95Km": 311.8496570311488,
+      "koppenAgreement": 0.49125420112205165,
+      "precipCorrelationLand": 0.7611832743899287,
+      "mountainIoU": 0.2894386632123171,
+      "hypsometryKS": 0.13662948184209373,
+      "basinsMatchedAt50": 3,
+      "basinMeanIoU": 0.37859999999999994,
+      "hypsometryKSNative": 0.026344923929546904,
+      "koppenAgreement1deg": 0.47869325372788857,
+      "riverMouthMeanKm": 3166.877188241482,
+      "riverMouthMedianKm": 2329.370416081691
+     },
+     "200000": {
+      "landIoU": 0.9345414132004928,
+      "landIoU1deg": 0.896716558217957,
+      "coastP95PreviewCells": 3.737988890847627,
+      "coastP95Km": 188.7706450545696,
+      "koppenAgreement": 0.6351438288732562,
+      "precipCorrelationLand": 0.8375332964441611,
+      "mountainIoU": 0.38328099712068747,
+      "hypsometryKS": 0.1122278813626913,
+      "basinsMatchedAt50": 6,
+      "basinMeanIoU": 0.4729,
+      "hypsometryKSNative": 0.05422587617798863,
+      "koppenAgreement1deg": 0.6049609450643704,
+      "riverMouthMeanKm": 1304.0622389786306,
+      "riverMouthMedianKm": 498.2309284056554
+     }
+    },
+    "2560000": {
+     "50000": {
+      "landIoU": 0.8736452128251326,
+      "landIoU1deg": 0.8626901345175089,
+      "coastP95PreviewCells": 4.616251992062739,
+      "coastP95Km": 466.24340319440034,
+      "koppenAgreement": 0.47441516796670163,
+      "precipCorrelationLand": 0.7746986401450517,
+      "mountainIoU": 0.24672079676447825,
+      "hypsometryKS": 0.21008069578993127,
+      "basinsMatchedAt50": 3,
+      "basinMeanIoU": 0.3984,
+      "hypsometryKSNative": 0.08414777642443216,
+      "koppenAgreement1deg": 0.4660283437787842,
+      "riverMouthMeanKm": 2935.6728199442105,
+      "riverMouthMedianKm": 1566.508104516185
+     },
+     "200000": {
+      "landIoU": 0.9194972834098526,
+      "landIoU1deg": 0.8819615447678443,
+      "coastP95PreviewCells": 5.367879371495273,
+      "coastP95Km": 271.0810762475286,
+      "koppenAgreement": 0.6018445364120131,
+      "precipCorrelationLand": 0.8176548216404372,
+      "mountainIoU": 0.2664335716796158,
+      "hypsometryKS": 0.18968743420848866,
+      "basinsMatchedAt50": 4,
+      "basinMeanIoU": 0.39899999999999997,
+      "hypsometryKSNative": 0.11473438580912171,
+      "koppenAgreement1deg": 0.5743893307913782,
+      "riverMouthMeanKm": 1601.8887337630508,
+      "riverMouthMedianKm": 1828.9111561851694
+     }
+    }
+   }
+  }
+ }
+}

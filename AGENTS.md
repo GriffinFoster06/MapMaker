@@ -13,7 +13,7 @@ These instructions apply repository-wide to Codex, Claude Code, and other coding
 3. Inspect `git status --short --branch` and recent commits. Preserve existing edits, including work left by the other agent. A change of agent is not authorization to discard or redo work.
 4. Use `docs/DEVELOPMENT.md` for the code map and local workflow.
 
-At each checkpoint or handoff, update the current handoff section of `STATUS.md`: what changed, checks actually run and their results, remaining failures, and the next concrete step. Label historical results and unverified claims. Keep durable decisions in the architecture/design documents and extraction records in `PROVENANCE.md`, rather than relying on chat history or private agent memory.
+Update the current handoff section of `STATUS.md` **only when the user says they are switching agents** (or explicitly asks for it); do not spend time on handoff notes otherwise. Until then, the record lives in commit messages, the PR description and the files the work itself produces. When a handoff is requested, write one complete section covering everything since the last handoff: what changed, checks actually run and their results, remaining failures, and the next concrete step. Label historical results and unverified claims. Keep durable decisions in the architecture/design documents and extraction records in `PROVENANCE.md`, rather than relying on chat history or private agent memory.
 
 Default to one agent editing a checkout at a time. If the user requests simultaneous work, use separate branches/worktrees and agree on ownership; do not switch or reset a checkout another session is using. Do not commit or push merely to hand off unless requested.
 
@@ -23,13 +23,14 @@ Default to one agent editing a checkout at a time. If the user requests simultan
 - **Extract instead of writing original code.** Copy or port from `upstream/` where a usable implementation exists. Write original code only for what the architecture defines as new, or where no upstream has it.
 - **Log every extraction in `PROVENANCE.md`**: source path, commit, license, destination, test. Original code from a published algorithm is logged too.
 - **Each extraction needs a test** that checks it against the upstream behaviour or a golden value.
-- **Update `STATUS.md` at every checkpoint.**
+- **Update `STATUS.md` when the user announces an agent switch** (see Session start and handoff), not at every checkpoint.
 - **Stop at each phase boundary and wait for the user.** Do not start the next phase. Routine work within an authorized phase does not need a new approval at each step.
 - No `Math.random` in `packages/**`. Simulation math goes through `dmath`. **Exception:** `packages/gen-orogen/vendor/` is verbatim upstream code (lint-ignored). It calls `Math.*` and `Math.random` directly (the latter only in `planet-worker.js`, a test-only oracle), so it runs only in stages flagged `parity`, inside `dmath.withMode('native')`. Tests make `Math.random` throw during pipeline runs.
 - `dmath` defaults to `'fdlibm'` in every realm. The stage runner fails any non-parity stage that enters `'native'`.
 - Keep `packages/gen-orogen/vendor/` verbatim. Put changes in adapters or adjacent TypeScript ports.
 - Record new third-party dependencies in `PROVENANCE.md` too.
 - The sphere is the source of truth. Canonical frame: +Z north, +X (0°N, 0°E), +Y (0°N, 90°E); canonical elevation is metres. Respect adapter-private `orogen.*` layers and explicit frame/unit conversions.
+- Quality is never traded for size or speed, across every part of the project and every medium: optimize only where the result is indistinguishable from full quality, measured before adoption. The examples in `docs/REQUIREMENTS.md` (Realism and performance) illustrate the principle; they are not its limits.
 - Preserve exact resume and deterministic outputs. Do not refresh golden hashes or calibration baselines simply to make a failing test pass; investigate and explain intentional changes.
 - Do not destructure `dmath` at module load; mode switches replace its functions.
 - Every repo in `upstream/` may be extracted, ported or used as an algorithm reference, whatever its licence (ARCHITECTURE.md Q12). Pick the best implementation on quality and fit. Licences are still recorded in `PROVENANCE.md` for every extraction.

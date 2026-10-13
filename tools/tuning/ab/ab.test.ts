@@ -4,7 +4,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error plain JS module, not type-checked
-import { runAb, weightedKS } from './ab.mjs';
+import { greatCircleKm, runAb, weightedKS } from './ab.mjs';
+// @ts-expect-error plain JS module, not type-checked
+import { R_KM } from './sphere.mjs';
 
 const ROOT = resolve(__dirname, '../../..');
 const strip = (o: unknown) => JSON.parse(JSON.stringify(o, (k, v) => (['finalBelts', 'mouthDistanceKm', 'landNative'].includes(k) ? undefined : v)));
@@ -20,6 +22,15 @@ describe('Q7 A/B harness', () => {
   it('weighted KS is 0 for equal distributions and 1 for disjoint ones', () => {
     expect(weightedKS([1, 2, 3], [1, 1, 1], [1, 2, 3], [1, 1, 1])).toBe(0);
     expect(weightedKS([1, 2], [1, 1], [10, 20], [1, 1])).toBe(1);
+  });
+
+  it('great-circle distance is 0 for identical Float32 vectors, πR/2 for orthogonal ones, and ignores vector length', () => {
+    const u = Float32Array.from([0.6, 0.48, 0.64, 1, 0, 0]);
+    expect(greatCircleKm(u, 0, u, 0)).toBe(0);
+    expect(greatCircleKm(u, 1, Float32Array.from([0, 1, 0]), 0)).toBeCloseTo((Math.PI / 2) * R_KM, 9);
+    const n = Float32Array.from([1, 2, 2, 2, 1, -2]), unit = Float32Array.from([1 / 3, 2 / 3, 2 / 3, 2 / 3, 1 / 3, -2 / 3]);
+    expect(greatCircleKm(n, 0, n, 1)).toBeCloseTo(greatCircleKm(unit, 0, unit, 1), 6);
+    expect(greatCircleKm(n, 0, n, 1)).toBeCloseTo((Math.PI / 2) * R_KM, 6);
   });
 
   it('L0 mode: new metrics are finite and bounded, and a run is repeatable', async () => {

@@ -55,7 +55,10 @@ jobs:
         run: |
           if [ "${{ runner.os }}" = "Linux" ]; then npx playwright install --with-deps chromium firefox webkit; else npx playwright install chromium firefox webkit; fi
       - name: Browser probes and COOP/COEP shim tests
-        run: npx playwright test
+        shell: bash
+        # Headless Firefox on Linux has no WebGL, so on Linux Firefox runs headed on a virtual display (playwright.config.ts).
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then FIREFOX_HEADED=1 xvfb-run -a npx playwright test; else npx playwright test; fi
       - name: Divergence report
         if: always()
         shell: bash
