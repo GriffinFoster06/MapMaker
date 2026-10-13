@@ -1,0 +1,107 @@
+{
+ "meta": {
+  "browser": "chromium",
+  "platform": "linux x64",
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.80GHz",
+  "cores": 4,
+  "ramGB": 16,
+  "date": "2026-10-13T17:43:46.752Z"
+ },
+ "results": [
+  {
+   "tier": "50k",
+   "cells": 50000,
+   "ok": true,
+   "totalMs": 4044,
+   "stagesMs": {
+    "mesh": 163,
+    "orogen.tectonics": 621,
+    "orogen.elevation": 820,
+    "orogen.erosion": 426,
+    "orogen.climate": 1754,
+    "orogen.koppen": 13
+   },
+   "generationMs": 3796,
+   "workingSetMB": 12,
+   "layerArrays": 29,
+   "baselineRssMB": 358,
+   "peakRssMB": 539
+  },
+  {
+   "tier": "200k",
+   "cells": 200000,
+   "ok": true,
+   "totalMs": 14488,
+   "stagesMs": {
+    "mesh": 570,
+    "orogen.tectonics": 1670,
+    "orogen.elevation": 2499,
+    "orogen.erosion": 1301,
+    "orogen.climate": 7720,
+    "orogen.koppen": 30
+   },
+   "generationMs": 13790,
+   "workingSetMB": 47,
+   "layerArrays": 29,
+   "baselineRssMB": 394,
+   "peakRssMB": 635
+  },
+  {
+   "tier": "500k",
+   "cells": 500000,
+   "ok": true,
+   "totalMs": 39014,
+   "stagesMs": {
+    "mesh": 1479,
+    "orogen.tectonics": 3795,
+    "orogen.elevation": 6509,
+    "orogen.erosion": 4265,
+    "orogen.climate": 20579,
+    "orogen.koppen": 29
+   },
+   "generationMs": 36655,
+   "workingSetMB": 119,
+   "layerArrays": 29,
+   "baselineRssMB": 394,
+   "peakRssMB": 840
+  },
+  {
+   "tier": "1M",
+   "cells": 1000000,
+   "ok": true,
+   "totalMs": 79885,
+   "stagesMs": {
+    "mesh": 3083,
+    "orogen.tectonics": 6817,
+    "orogen.elevation": 12164,
+    "orogen.erosion": 7795,
+    "orogen.climate": 47322,
+    "orogen.koppen": 50
+   },
+   "generationMs": 77230,
+   "workingSetMB": 237,
+   "layerArrays": 29,
+   "baselineRssMB": 394,
+   "peakRssMB": 1062
+  },
+  {
+   "tier": "2.56M",
+   "cells": 2560000,
+   "ok": true,
+   "totalMs": 258326,
+   "stagesMs": {
+    "mesh": 9003,
+    "orogen.tectonics": 17097,
+    "orogen.elevation": 31727,
+    "orogen.erosion": 28243,
+    "orogen.climate": 165911,
+    "orogen.koppen": 123
+   },
+   "generationMs": 252103,
+   "workingSetMB": 607,
+   "layerArrays": 29,
+   "baselineRssMB": 426,
+   "peakRssMB": 1813
+  }
+ ]
+}
