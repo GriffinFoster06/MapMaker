@@ -54,8 +54,8 @@ Run checks appropriate to the change and report failures honestly. Full benchmar
 ## Docs
 
 - `docs/DEVELOPMENT.md`: code map, development commands, and Claude Code/Codex handoffs.
-- `docs/ARCHITECTURE.md`: decisions, canonical model, pipeline, phased plan (§7). Read first.
-- `docs/design/README.md`: index of the Phase 2 design notes (1–14).
+- `docs/ARCHITECTURE.md`: decisions, canonical model, pipeline, roadmap (§7.0) and phased plan (§7). Read first.
+- `docs/design/README.md`: index of the design notes (1–38) and their nine-section template.
 - `docs/spikes/PHASE1_REPORT.md`: Phase 1 measurements.
 - `docs/REQUIREMENTS.md`, `audit/CAPABILITY_MATRIX.md`: requirements and upstream audit.
 - `PROVENANCE.md`: provenance and licenses. `STATUS.md`: current phase and checkpoint state.

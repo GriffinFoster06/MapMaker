@@ -10,7 +10,27 @@ Updated at every checkpoint.
 | 3b (Checkpoint 3 decisions: `dmath` fdlibm mode) | Reached and reviewed. |
 | 4a (Phase 4a orogen in the shell, globe) | **In progress** |
 
-## Current handoff — 2026-10-13, Claude Code (vision and licence decision)
+## Current handoff — 2026-10-13, Claude Code (planning overhaul for the full vision)
+
+**Task:** the user asked to overhaul and expand every plan to meet the full vision, however ambitious: all domains ("any and everything": life and ecology, astronomy and deep Earth, a fantasy layer, deep civilization), interleaved delivery (usable editor and maps early), and a full design note for every new system. Documentation only; no code, tests, `upstream/` or vendor files changed, and no phase was started. Phase 4a remains in progress with its open work unchanged (below).
+
+**Changes:**
+- `docs/REQUIREMENTS.md` rewritten as the full product specification: vision, eight guiding principles, a domain catalogue by track (cosmos, geosphere, hydrosphere and cryosphere, atmosphere, biosphere, civilization, fantasy, experience), customisation (parameters, edits, locks, system switches, modules, branches), Earth tests T1–T4, and expanded import and export lists.
+- `docs/ARCHITECTURE.md`: decisions **Q13** (unbounded scope), **Q14** (interleaved delivery), **Q15** (fantasy as modules; empty-module identity test), **Q16** (edits as deterministic inputs), **Q17** (Earth tests as a permanent gate). New §3.8 (edits, locks, constraints), §3.9 (modules), §3.10 (new tables and layer namespaces); an expanded pipeline table in §4; edits, modules, branches, assets, styles and articles in the §5 save format; §6.6 scaling; and §7.0, a roadmap with tracks, an ordered phase table, a dependency diagram and a vision-to-phase-to-note map. New phases: 5b (editor core), 5c (cartography v1, the first usable app), 6a, 6c, 7b, 7c, 8b, 9b–9e, 10b, 11b, 13e–13h, 15–18. Existing phase numbers are unchanged.
+- `docs/design/`: template extended to nine sections (8. user controls and edit points, 9. Earth-recovery test), retrofitted to notes 1–14, with Q12 upstream updates in notes 1, 4, 12 and 13. **24 new notes (15–38)**: Earth test suite, editing, parameter registry, cartography, assets and drawing tools, astronomy, interior, cryosphere, oceans and coasts, atmosphere and paleoclimate, vegetation, fauna, evolution, hazards, disease, human origins, technology, religion and culture, characters and chronicle, town plans, fantasy, worldbuilder tools, plugin API, scaling. Index regrouped by track.
+- `audit/CAPABILITY_MATRIX.md`: new "Expanded scope" section with picks re-decided after Q12 (GPlates, WRF-Hydro, Eurace, LPJmL, RangeShiftR), new domains mapped to upstreams, and candidate upstreams to audit (TownGeneratorOS, mapgen4, mewo2/terrain, gen3sis, ModelE/ROCKE-3D, FastScape, CC0 asset packs, datasets).
+- `README.md`, `AGENTS.md`, `docs/DEVELOPMENT.md`: pointers to the specification, roadmap and 38 notes; planned future packages listed.
+
+**Checks run:**
+- A script check of every relative Markdown link (none broken), that every note 1–38 has sections 1–9 and is indexed, that every new phase has a checkpoint, that Q/D ids are unique, and that notes 15–38 all appear in the §7.0 roadmap: all passed.
+- `npm run lint` and `npm run provenance:check` **could not run** in this container: the project-local Node (`.tools/bin/fnm`) is not installed here. The change touches only Markdown; CI runs both checks on push.
+- Remote CI on PR #1 was red before this work on the two known `tools/tuning/ab/ab.test.ts` failures, which are also red on `main` (below). This change does not affect them.
+
+**Unverified:** upstream file paths cited in notes 15–38 come from the per-repo audits; `upstream/` was not checked out in this session, so they were not re-checked against source. Candidate upstreams are not audited yet.
+
+**Next:** unchanged for Phase 4a (fix the A/B river-mouth metric, generate the Q7 baseline, collect the browser benchmark report, then Checkpoint 4a). The new phases follow §7.0 in order, each stopping at its checkpoint; the roadmap and notes are drafts for the user's review.
+
+## Previous handoff — 2026-10-13, Claude Code (vision and licence decision)
 
 **Task:** align the docs with the user's product vision. Documentation only; no code, tests, upstream or vendor files changed. Phase 4a remains in progress, and its open work (below, from the Codex handoff) is unchanged.
 
