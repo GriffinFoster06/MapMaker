@@ -1,0 +1,82 @@
+# Design note 22: Cryosphere and sea level
+
+| | |
+|---|---|
+| Status | Draft (2026-10-13 overhaul) |
+| Built in | Phase 7b |
+| Depends on | Climate (stage 5, notes 11, 24), elevation and erosion (stage 4), isostasy (note 21), astronomy forcing (note 20) |
+| Used by | Erosion (glacial), sea level (coastlines on every map), climate (albedo feedback), hydrology (meltwater), life (refugia), history (ice-age migrations, land bridges) |
+
+## 1. Problem
+
+orogen has glacial erosion and an `iceCover` classification, but no ice that flows, grows and shrinks, and no sea level that responds. Ice ages reshape coastlines, open land bridges, carve fjords and lakes, and move peoples and species. A realistic world needs ice sheets and glaciers from climate, sea ice, permafrost, and sea level from ice volume and isostasy, on both the present-day snapshot and the geologic axis.
+
+## 2. Canonical inputs and outputs
+
+**Inputs:** temperature and precipitation (seasonal harmonics), elevation, bedrock, geothermal heat flux (note 21), insolation series (note 20).
+
+**Outputs**
+- `ice.thickness` (m), `ice.velocity` (vector, m/yr), `ice.basalTemp`, `ice.massBalance`.
+- `iceSheets`, `glaciers` tables (extent, volume, flow lines).
+- `ice.seaIce` (seasonal fraction), `ice.permafrost` (continuous, discontinuous, sporadic).
+- Sea level: eustatic (from ice volume and ocean-basin volume), with glacial isostatic adjustment applied to elevation; time-varying on the geo and history axes.
+
+## 3. Approach and algorithm choice
+
+### 3.1 Surface mass balance
+
+Positive-degree-day melt from the seasonal temperature harmonics (note 11) and accumulation from snowfall (precipitation below a temperature threshold), with an elevation feedback. CTSM's glacier surface-mass-balance scheme is the reference for a physically based option.
+
+### 3.2 Ice flow
+
+The shallow-ice approximation (SIA) on the sphere for ice sheets and valley glaciers, with Glen's flow law and a basal-sliding law where the bed is temperate; the shallow-shelf approximation (SSA) for ice shelves, as a later option. Solved on L0 for ice sheets, on L1 or patches for valley glaciers. PISM's SIA/SSA formulations and its verification tests are the source.
+
+### 3.3 Coupling
+
+Ice changes albedo and elevation (climate re-run within the stage-6 coupling loop), loads the lithosphere (flexure, note 21), erodes the bed (glacial erosion law, replacing orogen's heuristic when on), and releases meltwater to hydrology.
+
+### 3.4 Sea level
+
+Eustatic sea level from total land-ice volume (and, on the geologic axis, ocean-basin volume from mean seafloor age, note 13). Glacial isostatic adjustment via the flexure solver. The coastline is recomputed from `elevation − seaLevel`, so every map follows it.
+
+### 3.5 Sea ice and permafrost
+
+Sea-ice fraction from SST and air temperature (note 23); permafrost from mean annual ground temperature with snow insulation (CTSM `ActiveLayerMod` as a reference).
+
+## 4. Upstream references (algorithm level)
+
+- **PISM** `src/stressbalance/` (SIA and SSA), `src/energy/` (enthalpy), `src/geometry/` (mass transport), `src/verification/` (exact solutions): port the SIA solver and its verification tests to the sphere.
+- **CTSM** `src/biogeophys/GlacierSurfaceMassBalanceMod.F90`, `SnowSnicarMod.F90`, `ActiveLayerMod.F90`.
+- **orogen** `terrain-post.js` glacial erosion (parity and fast path).
+- **VPLanet** `src/poise.c` ice-sheet module (a 1D latitudinal ice model, for fast paleo runs).
+- **Literature:** Cuffey & Paterson, *The Physics of Glaciers*; Huybrechts (1990s) ice-sheet modelling; Peltier ICE-6G (validation).
+
+## 5. Validation
+
+- PISM's exact-solution tests (Halfar, Bueler) reproduced on the sphere.
+- Mass conservation of ice plus ocean water.
+
+## 6. Open questions
+
+1. Is SSA (ice shelves, marine ice-sheet instability) worth its cost in the first version?
+
+## 7. Size estimate
+
+| Part | LOC |
+|---|---|
+| Mass balance | ~600 |
+| SIA solver on the sphere | ~1,500 |
+| SSA (optional) | ~1,500 |
+| Sea level and GIA coupling | ~800 |
+| Sea ice and permafrost | ~500 |
+| Tests | ~1,200 |
+
+## 8. User controls and edit points
+
+- Parameters: melt factors, flow-law coefficient, sliding, sea-level offset.
+- Edits: pin ice extent or thickness (paint an ice cap), set sea level directly (a pin that overrides the eustatic value), force a glacial or interglacial state.
+- Switch: cryosphere `simulate | manual | off`.
+
+## 9. Earth-recovery test
+
+T2: with Earth's elevation and climate, the present ice extent (Greenland, Antarctica, mountain glaciers) and permafrost zones match observed maps. Under Last Glacial Maximum forcing (orbital elements from note 20, lower CO₂), ice sheets grow over North America and Scandinavia and sea level falls by about 120 m, within tolerance.

@@ -89,3 +89,12 @@ The timeline calendar (§3.4) takes year length (in days of the planet's own rot
 | Calendar | ~150 |
 | Tests | ~600 |
 | **Total** | **~2,150** |
+
+## 8. User controls and edit points
+
+- **Parameters:** number of solved phases per year, harmonics kept.
+- **Edits:** seasonal edits (for example "this region has a wet summer") are soft constraints on the harmonic coefficients.
+
+## 9. Earth-recovery test
+
+T2: the amplitude and phase of the seasonal cycle against an Earth monthly climatology, as in §5, become a stored-tolerance gate.

@@ -117,7 +117,7 @@ Each event records `causes`, the ids of events that pushed a decisive term past 
 - **LIAM2:** process ordering and alignment in microsimulation, as an idea.
 - **OpenSpiel:** game and state abstractions for diplomacy, as a reference only.
 - **MESSAGEix:** cost-minimising commodity flow, as an idea for trade; not used.
-- **Eurace:** excluded.
+- **Eurace:** excluded when written; allowed since ARCHITECTURE.md Q12. Phase 13b evaluates porting its market mechanisms (goods-market price setting, firm and household decision rules, credit) as the economic core, adapted from a national economy to many interacting polities.
 - **Literature:** Lanchester (1916); Turchin & Nefedov, *Secular Cycles* (2009); Turchin, *Historical Dynamics* (2003); Cederman (1997) agent-based state formation.
 
 ## 5. Validation
@@ -150,3 +150,18 @@ Each event records `causes`, the ids of events that pushed a decisive term past 
 | War | ~2,000 |
 | Tests and stylised-facts harness | ~2,500 |
 | **Total (excluding notes 2 and 9)** | **~10,800** |
+
+## 8. User controls and edit points
+
+- **Parameters** (note 17): conflict propensity, trade openness, technology growth rate, era schedule, plus per-polity overrides (aggression, stability, tax policy).
+- **Edits** (note 16): found, merge or dissolve a polity; set a ruler, a war, a treaty or a border at a tick; force or forbid an event ("this war happens", "this empire never falls"). Forced events are *seed* edits: the simulation runs from them, and their causes are marked as authored.
+- **System switches:** history `simulate | manual | off`. In `manual`, the user writes events on the timeline and the engine derives states, borders and populations from them.
+- **Scrub and branch:** any tick can be the fork point of a what-if branch (note 36).
+
+## 9. Earth-recovery test
+
+Part of T4 (note 15). Given Earth's geography and a prehistoric t0 (note 30), the simulation should produce, as statistics rather than as named events:
+- state sizes and lifetimes with a heavy-tailed distribution comparable to historical datasets (for example Taagepera's empire sizes);
+- war frequency per polity-century in the range of historical conflict catalogues;
+- a few large agrarian empires emerging in the river valleys and breadbaskets, not in deserts or tundra.
+Metrics, datasets and tolerances are fixed when Phase 13 starts.

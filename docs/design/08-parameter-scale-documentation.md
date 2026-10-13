@@ -110,3 +110,11 @@ No open questions remain.
 | Document and image generator | ~500 |
 | CI lint and claims checker | ~300 |
 | **Total** | **~2,400**, plus Phase 8 calibration compute |
+
+## 8. User controls and edit points
+
+Note 17 generalises this note into the parameter registry: every parameter documented here is exposed at the simple, advanced or expert level, grouped by domain, and bundled into presets.
+
+## 9. Earth-recovery test
+
+The parameter scale itself is anchored by the Earth tests: at 1.0 for every parameter, the world must pass T1 (note 15). The sweeps document how far each parameter moves T1 metrics, which is what "the effect of 0 or 1.5 is known" means in practice.

@@ -92,12 +92,12 @@ Azgaar's `lakes.ts` and `features-generator.ts` run through the facade on *our* 
 ## 4. Upstream references (algorithm level)
 
 - **Azgaar** `lakes.ts` (`getLakeEvaporation`, the `closed` flag), `features-generator.ts`: feature markup through the facade. MIT.
-- **LPJmL** `src/lpj/drain.c` (lake and reservoir water balance in routing): an algorithm reference; AGPL-3.0, so no code.
+- **LPJmL** `src/lpj/drain.c` (lake and reservoir water balance in routing): an algorithm reference when written (AGPL-3.0); since ARCHITECTURE.md Q12 it may be ported.
 - **Literature:**
   - Barnes, Callaghan & Wickert (2020), *Earth Surf. Dynam.* 8, "Computing water flow through complex landscapes", Parts 2 (depression hierarchies) and 3 (fill–spill–merge);
   - Budyko (1974); Fu (1981); Zhang et al. (2004), *WRR* 40;
   - Braun & Willett (2013), *Geomorphology* 180.
-- **WRF-Hydro:** excluded.
+- **WRF-Hydro:** excluded when written; allowed since ARCHITECTURE.md Q12. Phase 7 evaluates porting its Muskingum–Cunge / diffusive-wave channel routing and level-pool lake scheme for discharge in time-varying runs (history-axis floods, note 28), keeping the Barnes et al. depression hierarchy for topology.
 
 ## 5. Validation
 
@@ -126,3 +126,13 @@ Azgaar's `lakes.ts` and `features-generator.ts` run through the facade on *our* 
 | Facade integration | ~200 |
 | Tests (analytic, mass balance, Earth) | ~700 |
 | **Total** | **~2,500** |
+
+## 8. User controls and edit points
+
+- **Parameters:** evaporation scaling, infiltration, lake-overflow thresholds.
+- **Edits:** create, delete, raise or lower a lake; dam or reroute a river (a pin on `receiver`); mark a basin endorheic.
+- **Switches:** lakes and river routing `simulate | manual`.
+
+## 9. Earth-recovery test
+
+T2: with Earth's elevation and climate, the count and area distribution of lakes, the share of endorheic area, and the positions of the major endorheic basins (Caspian, Great Basin, Lake Eyre, Tarim) should match observed data (for example HydroLAKES).

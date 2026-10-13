@@ -106,3 +106,13 @@ At every language step (every 10 ticks by default):
 | Azgaar chain extraction | ~200 |
 | Tests (regularity, tree recovery) | ~1,000 |
 | **Total** | **~5,000** |
+
+## 8. User controls and edit points
+
+- **Parameters:** sound-change rate, borrowing rate, inventory size bias, naming style per culture.
+- **Edits:** author a proto-language (phoneme inventory, sample lexicon) or import a conlang; pin names of places, people and polities; force a split or merger of languages at a tick. Pinned names stay fixed while the rest evolves.
+- **Switches:** language evolution `simulate | manual | off` (off keeps Azgaar-style static naming).
+
+## 9. Earth-recovery test
+
+Part of T4. With Earth's geography and history: the number of language families and isolates per continent, family sizes (heavy-tailed), and the correlation between family spread and the spread of agriculture should match the orders of magnitude in Glottolog. Real words are not expected.

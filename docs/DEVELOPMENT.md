@@ -2,7 +2,7 @@
 
 ## Reading order and goals
 
-Read `STATUS.md` for the current state, `ARCHITECTURE.md` for approved decisions and the phase plan, and `REQUIREMENTS.md` for product intent. The fourteen notes in `design/` describe future implementations; a design note is not evidence a feature exists.
+Read `STATUS.md` for the current state, `ARCHITECTURE.md` for approved decisions and the phase plan, and `REQUIREMENTS.md` for product intent. The 38 notes in `design/` describe future implementations; a design note is not evidence a feature exists. `ARCHITECTURE.md` §7.0 gives the roadmap and which phase builds each note.
 
 MapMaker is a new strict TypeScript shell around selected upstream implementations. One spherical `World` owns canonical state. Generation runs in workers; views sample that state. The planned fidelity slider uses a fixed reference pass plus a detail pass because Phase 1 demonstrated that stock orogen at low resolution is not a faithful preview of its high-resolution output. That restructure is **Phase 4b**, after the Phase 4a checkpoint.
 
@@ -15,6 +15,7 @@ MapMaker is a new strict TypeScript shell around selected upstream implementatio
 | `packages/engine/` | `runner.ts` resolves stages, checks producers/writes, hashes inputs, skips unchanged work, records outputs, and handles checkpoints/cancellation. `host.ts` and `client.ts` implement the worker protocol; `pool.ts` provides kernel workers. |
 | `packages/gen-orogen/` | Six stages in `src/stages.ts`: mesh, tectonics, elevation, erosion, climate, Köppen. `scratch.ts` reconstructs disposable adapter state; `import-heightmap.ts` supports the headless Earth harness. `stock.ts`/`view.ts` support parity testing. `vendor/` is immutable source. |
 | `packages/planet`, `erosion`, `human`, `projection`, `history` | README placeholders for later phases; not implemented workspace packages yet. The dummy history stage tests serialization, not real history simulation. |
+| Planned, not created yet | Packages proposed by the 2026-10-13 roadmap, created when their phase starts: `editor` (notes 16, 17), `carto` (18, 19), `astro` (20), `interior` (21), `cryo` and `ocean` (22, 23), `atmos` (24), `bio` (25–29), `civ` extensions in `human`/`history` (30–34), `fantasy` and `plugins` (35, 37), `tools` (36). Names may change at the phase checkpoint. |
 | `tools/determinism/` | Shared Node/browser probe, committed golden hashes, strict/report-only comparison rules. |
 | `tools/provenance/` | Checks vendored bytes against pinned upstream commits when available, source headers, copied assets, and dependency licenses. |
 | `tools/tuning/climate/` | Headless Earth calibration through the shell, Kottek data fetcher, optimizer, committed climate baseline. |

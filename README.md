@@ -1,6 +1,8 @@
 # MapMaker
 
-A browser-first fantasy world generator and simulator built around a canonical spherical world. Flat projections, regional detail, and exports are designed as views of that same world. The long-term scope includes tectonics, terrain, erosion, hydrology, climate, ecology, settlements, languages, politics, trade, and thousands of years of history.
+A browser-first, realistic worldbuilder for fictional worlds, built around a canonical spherical world. It aims to simulate a world from its star system down to the streets of its towns and the lives of its rulers, deep enough that Earth's starting conditions give back something close to Earth, with every parameter exposed, every layer editable, and maps as good as the best drawing tools. Flat projections, regional detail, town plans and exports are views of that same world.
+
+The scope is open-ended: cosmos, geosphere, oceans and ice, atmosphere, life and evolution, civilization and history, an optional fantasy layer, and a full editor and map-art toolkit. `docs/REQUIREMENTS.md` is the product specification; `docs/ARCHITECTURE.md` §7.0 is the roadmap.
 
 The project prioritizes physical plausibility, deterministic generation, exact save/resume, and Earth-based calibration. It adapts working open-source implementations where suitable and records their provenance. License: [GPL-3.0-only](LICENSE).
 
@@ -25,7 +27,7 @@ On a fresh machine, set up `.tools/bin/fnm` first; see [Development](docs/DEVELO
 - [Architecture](docs/ARCHITECTURE.md): resolved decisions and phased implementation plan.
 - [Development](docs/DEVELOPMENT.md): code map, checks, calibration, and Claude Code/Codex handoffs.
 - [Shared agent instructions](AGENTS.md): repository rules for both assistants.
-- [Design notes](docs/design/README.md): algorithms and validation plans for later systems.
+- [Design notes](docs/design/README.md): 38 notes with algorithms, user controls, and Earth tests for every planned system.
 - [Provenance](PROVENANCE.md): source commits, extraction records, dependencies, and licenses.
 
 `upstream/` contains ignored, read-only reference checkouts. Shipped code lives in `apps/`, `packages/`, and `tools/`; `spikes/` holds earlier experiments.

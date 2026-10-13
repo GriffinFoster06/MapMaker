@@ -19,6 +19,12 @@ The open decisions in §8 were resolved on 2026-10-03. At Checkpoint 1 (also 202
 | Q9 | Tectonic history | **Changed.** The static tectonic snapshot still comes first. Forward plate evolution over deep time (hundreds of Myr) is a **core feature**: it has a fast rough pass and a slow detailed pass from the same seed. Design note 13 (Phase 2) specifies it. **Checkpoint 2:** it is built in **Phase 6b**, after Phase 6 and before Phase 7, with its own checkpoint. Default duration 300 Myr; the maximum is never capped below 800 Myr (initially 1,000 Myr). |
 | Q10 | Climate fidelity | **Approved.** orogen heuristics, forced by the VPLanet subset. |
 | Q11 | Node 24 | **Approved, project-local only.** fnm runs from `.tools/` with `FNM_DIR=.tools/fnm`, and the version is pinned in `.nvmrc`. System Node and global tools are not changed. |
+| Q12 | Licence restrictions on upstreams | **Lifted (2026-10-13, user decision).** MapMaker is a personal, non-commercial project. Licences no longer restrict which upstream is used: Eurace and WRF-Hydro may be extracted or used as references, and GPlates code may be ported directly instead of re-implemented from published formulas. Choices that licences decided are reopened and re-decided on quality, fit and browser feasibility (Fortran/C++/HPC codes still usually need porting rather than direct use). Every extraction is still logged in `PROVENANCE.md` with its licence. Q2 (GPL-3.0-only) is unchanged. Supersedes the licence rules under "Status of claims", the GPlates/Eurace/WRF-Hydro rows of §2, and "excluded" entries in the design notes. Candidates to revisit: GPlates for plate kinematics, reconstruction and partial plate circuits (notes 3, 13); WRF-Hydro for channel routing (notes 12, Phase 7); Eurace for economics (note 1, Phase 13b). |
+| Q13 | Scope | **Unbounded (2026-10-13, user decision).** The product is the "god-like" realistic worldbuilder in `docs/REQUIREMENTS.md`: every domain in its catalogue (cosmos, geosphere, hydrosphere and cryosphere, atmosphere, biosphere, civilization, fantasy, experience), each as deep as is useful. Scope and timeline are open-ended by design; difficulty or duration is never a reason to drop a domain, only to order it. New domains are added as design notes and phases (§7.0). |
+| Q14 | Delivery order | **Interleaved (2026-10-13, user decision).** The app becomes usable early: an editor core (Phase 5b) and a first cartographic renderer (Phase 5c) come right after projections, before deeper physics. Every later phase adds depth behind a working editor and map. §7.0 gives the order. |
+| Q15 | Fantasy | **A module layer over the realistic core (2026-10-13, user decision).** Fantasy rules (magic, non-human peoples, creatures, rule overrides, fantastical geography) are per-world modules that hook into defined stage points (§3.9, note 35). With every module off, outputs are bit-identical to the realistic pipeline; a CI test enforces this. |
+| Q16 | User edits | **First-class, deterministic inputs (2026-10-13).** Every layer value, region and entity can be edited. Edits are recorded in an append-only edit log, replayed deterministically, and act as hard pins or soft constraints on the stages that produce them; downstream stages re-run through the existing invalidation (§3.8, note 16). Any system can also be switched off or replaced by hand-authored data. |
+| Q17 | Earth tests | **A permanent regression gate (2026-10-13).** The layered Earth tests T1–T4 (`docs/REQUIREMENTS.md`, note 15) are built up phase by phase. Each phase adds the tests for its domain, and once a test exists, CI fails on regression beyond its stored tolerance, as for the Q7 A/B gate. |
 | D5 | Fidelity slider | **Redesign adopted (Checkpoint 1).** Structural decisions (mountain kernels and belts, hotspots, the macro land mask, major drainage divides) are made at a fixed reference resolution, with counter-based randomness keyed to reference-cell ids. Higher N adds only band-limited detail. See §3.1, §3.5, §4 (Fidelity slider) and design note 14. |
 | D6 | Phase 4 split | **Adopted (Checkpoint 1).** Phase 4a: orogen in the shell, parity test, globe, benchmarks. Phase 4b: the preview restructure (D5) behind the Q7 A/B gate. Each has its own checkpoint (§7). |
 | D7 | Climate at L0, downscaled | **Approved with a gate (Checkpoint 2).** Phase 4b must show that the downscaled climate scores within a stated tolerance of orogen's full-resolution climate on the Earth tuning harness, at the same N. The tolerance starts at **0.02 of the objective**: the downscaled score may be at most 0.02 lower. If it is not, the climate solve moves to the **80k-cell climate mesh fallback** (L0′, note 14 §3.6). |
@@ -31,6 +37,7 @@ The open decisions in §8 were resolved on 2026-10-03. At Checkpoint 1 (also 202
 | Gap | Status | Revisit |
 |---|---|---|
 | Tidally locked planets | Generated, but marked unsupported by the parameter mapping (design note 10 §3.4). orogen's banded circulation cannot represent a substellar-antistellar climate. | After Phase 8 |
+| Vision items (added 2026-10-13) | **Now planned.** Every item has a design note (15–38) and a phase in §7.0 (Q13–Q17). | — |
 
 **Changes from the Phase 2 design notes (approved at Checkpoint 2).**
 
@@ -47,10 +54,8 @@ The open decisions in §8 were resolved on 2026-10-03. At Checkpoint 1 (also 202
 
 - The capability ratings this document builds on came from **code reading**. Phase 1 then built and ran the ones that decide this architecture. Results are in `docs/spikes/PHASE1_REPORT.md`; revised ratings are in `audit/CAPABILITY_MATRIX.md`.
 - **`†`** marks a claim I could not confirm from source, or one that depends on a measurement that has not been made yet.
-- Q1–Q11 are resolved (see above). The following decisions are also settled and are not reopened here: D1/D3 (sphere is canonical, inverse-projection rendering, d3-geo for projection math), D2 (requirements corrected), D4 (fast pass = orogen erosion, slow pass = Badlands-style re-implementation, still to be validated), the RNG-state save requirement, and the license rules:
-  - Eurace and WRF-Hydro are never extracted.
-  - GPlates is GPL-2.0-only (confirmed in spike 1a) and is a math reference only, permanently.
-  - All other license conflicts are deferred.
+- Q1–Q17 are resolved (see above). The following decisions are also settled and are not reopened here: D1/D3 (sphere is canonical, inverse-projection rendering, d3-geo for projection math), D2 (requirements corrected), D4 (fast pass = orogen erosion, slow pass = Badlands-style re-implementation, still to be validated), and the RNG-state save requirement.
+- **Licence rules (superseded by Q12, 2026-10-13):** licences no longer restrict upstream use. The earlier rules (Eurace and WRF-Hydro never extracted; GPlates a math reference only) are kept here as history only. GPlates is GPL-2.0-only (confirmed in spike 1a); that is recorded, not enforced.
 
 ### Facts checked against `upstream/` while writing this
 
@@ -67,7 +72,7 @@ These affect the design and are not all in the audits.
 | F7 | Azgaar **overwrites the global `Math.random`** with a re-seeded Alea at several points, and calls `Math.random()` directly in 11 generators. | `src/generators/grid-generator.ts:20`, `heightmap-generator.ts:558`, `precipitation-generator.ts:34`, `routes-generator.ts:210`, `provinces-generator.ts:82`, `src/components/seed.ts:20` | RNG state cannot be captured while this pattern exists. Every extracted Azgaar generator receives an injected stream instead. |
 | F8 | Azgaar uses two global graphs: `grid` (a jittered square grid) and `pack` (re-graphed from it). Generators read `cells.c` (neighbours), `cells.p` (planar xy), `cells.h` (0–100, sea level 20), `cells.area`, `cells.b` (border flag), `cells.g` (link to grid cell), and use quadtree `findCell`. | `src/types/PackedGraph.ts`, `src/generators/generation-pipeline.ts` | Planar geometry is concentrated in a few fields. A sphere-backed `PackedGraph` facade is feasible. Spike 1b tests it. |
 | F9 | Azgaar requires Node ≥ 24. This machine has Node 22.19.0. | `package.json` (per audit); `node --version` | Spike 1a uses a project-local Node 24 through fnm in `.tools/`, pinned in `.nvmrc` (Q11 resolved). System Node is unchanged. |
-| F10 | GPlates headers read "GNU General Public License, version 2", and a grep of all of `src/` finds no "any later version" wording. | `upstream/GPlates/src/maths/*.h`, `COPYING` | **Confirmed GPL-2.0-only** in spike 1a: the `COPYING` preamble says "version 2, dated June 1991, not any later version". GPlates is math-reference only, permanently. |
+| F10 | GPlates headers read "GNU General Public License, version 2", and a grep of all of `src/` finds no "any later version" wording. | `upstream/GPlates/src/maths/*.h`, `COPYING` | **Confirmed GPL-2.0-only** in spike 1a: the `COPYING` preamble says "version 2, dated June 1991, not any later version". GPlates was math-reference only until Q12 (2026-10-13) lifted licence restrictions. |
 
 ---
 
@@ -106,13 +111,13 @@ What is kept from orogen besides generation:
 | **Azgaar** (TS, MIT) | **Source-level adaptation** of selected generators | Extract `river-generator`, `lakes`, `features-generator`, `biomes-generator`, `population-generator`, `cultures-generator`, `names-generator`, `burgs-generator`, `states-generator`, `provinces-generator`, `routes-generator`, `religions-generator`, `goods-generator`, `production-generator`, `markets-generator`. Replace globals (`pack`, `grid`, `options`) with an explicit context and replace `Math.random` with injected streams (F7). Run them over a sphere-backed `PackedGraph` facade (§3.6). Azgaar's renderers, UI and `.map` format are references only. |
 | **VPLanet** (C, MIT) | **TypeScript re-implementation of a small subset**, validated against the native binary | Port only what MapMaker needs: insolation by latitude and day of year from orbital elements and obliquity (DistOrb/DistRot steady-state formulas, not secular evolution), and the POISE energy-balance core (annual and seasonal modes, OLR parameterisation, ice-albedo). A full WASM port is rejected: `poise.c` is tangled with `evolve.c` and the body struct, and we need a fraction of it. Native `vplanet` is built locally and its `examples/EarthClimate` output is used as golden data in tests. |
 | **Badlands** (Python/Fortran, GPL-3.0) | **Re-implementation in TypeScript** on the sphere mesh | Braun–Willett O(n) receiver and stack ordering, implicit stream-power incision (detachment-limited first, with transport-limited variants later), and linear and nonlinear hillslope diffusion, all using spherical cell areas. Validated against a Python Badlands run on a planar benchmark (Phase 7). Flexure (gFlex) is not ported; Airy isostasy if needed. |
-| **GPlates** (C++, GPL-2.0-only) | **Math reference only** | Finite rotations, Euler poles and quaternion composition are written from published formulas (for example Cox & Hart, *Plate Tectonics: How It Works*), not from GPlates source. GPlates file paths are cited as reference only. |
+| **GPlates** (C++, GPL-2.0-only) | **Port where useful (Q12)** | Previously math reference only. Since Q12, finite rotations, Euler poles, quaternion composition and reconstruction code may be ported from GPlates source to TypeScript; published formulas (for example Cox & Hart, *Plate Tectonics: How It Works*) remain the validation reference. |
 | **d3-geo, d3-geo-projection** | npm dependency | All projection math (D1). License recorded in `PROVENANCE.md`†. |
 | **proj4js** | npm dependency, only if needed | Only if a required projection is missing from d3-geo-projection. |
 | **three** | npm dependency | Globe rendering (WebGL2). |
 | **delaunator** | npm dependency | Spherical Delaunay through stereographic projection, as orogen does it. |
 | **fflate** | npm dependency | ZIP container for the save format and streaming compression. |
-| **Eurace, WRF-Hydro** | **Never extracted** | No code and no close paraphrase. Not even consulted as an algorithm reference for new code. |
+| **Eurace, WRF-Hydro** | **Allowed since Q12** | Previously never extracted. Now eligible for porting or as algorithm references (Eurace for economics in Phase 13b; WRF-Hydro channel routing in Phase 7), chosen on quality and fit. |
 
 **WASM** is reserved for hot kernels, after profiling shows JS is the bottleneck. Likely candidates are flow routing and the stream-power solve at 2.56M cells, and history-sim inner loops. Such kernels would be written in Rust with wasm-bindgen. WASM is *not* a route for porting upstream C, C++ or Fortran.
 
@@ -152,7 +157,10 @@ World
 ├── layers        per-cell typed-array fields, via LayerRegistry
 ├── entities      columnar tables with stable ids and validity intervals on a declared time axis
 ├── timeline      geologic axis (Myr) and history axis (calendar, tick), agent tables, event logs, keyframes
-└── pipeline      resolved pipeline variant, completed stages, input hashes (incl. referenceHash), mid-stage checkpoints
+├── pipeline      resolved pipeline variant, completed stages, input hashes (incl. referenceHash), mid-stage checkpoints
+├── edits         append-only edit log, pins and constraints (§3.8, note 16)
+├── modules       enabled fantasy and plugin modules with versions and parameters (§3.9, notes 35, 37)
+└── branches      what-if forks: parent world, fork point, divergent edits (note 36)
 ```
 
 ### 3.1 Geometry and coordinates
@@ -412,6 +420,46 @@ The cube maps are a lookup acceleration built from the sphere, not a resampled c
 
 ---
 
+### 3.8 Edits, locks and constraints (Q16, note 16)
+
+- **Edit log.** `World.edits` is append-only: `{ id, seq, target: LayerRef | EntityRef | ParamRef, region: CellSet | Polygon | EntityId, op, payload, mode: 'pin' | 'soft' | 'seed', author, createdAt }`. An edit never mutates a layer directly. It is input to the stage that produces its target.
+- **Modes.**
+  - *pin*: the producing stage writes the edited values and treats them as fixed boundary conditions;
+  - *soft*: the stage blends towards the edit with a stated weight (for example a sculpted mountain range that erosion may still shape);
+  - *seed*: the edit replaces a random draw (for example "a hotspot here", "a city here") and the stage simulates from it.
+- **Invalidation.** Each edit's target maps to one producer stage per pipeline variant, so an edit invalidates exactly that stage and its dependants through the existing manifest hashes (`inputs` now include the hash of the edits targeting the stage).
+- **Downstream edits** survive upstream re-runs when their target still exists. They are re-anchored by stable ids (entities) or by position (cells); an edit whose target vanished is flagged, never silently dropped.
+- **System switches.** Per system: `simulate | manual | off`. `manual` means the layer or table is wholly authored (painted or imported); its producer stage becomes a pass-through of the edit log.
+- **Determinism.** Edits are data: replaying the log against the same seed and modules gives the same world. Undo and redo move a cursor in the log; branches fork it.
+
+### 3.9 Modules: fantasy and plugins (Q15, notes 35, 37)
+
+- A **module** is a versioned bundle: `{ id, version, params schema, layers and tables it adds, hooks }`. Hooks attach at named points: before or after a stage, as an additional term in a stage's equations (for example a magic-driven uplift or rainfall term), or as a new stage with declared inputs and outputs.
+- The enabled module set and its parameters are part of `World.modules` and of every affected stage's input hash. Module layers live in their own namespace (`magic.*`, `mod.<id>.*`).
+- **Isolation rule.** With no modules enabled, the pipeline and its outputs are bit-identical to the realistic pipeline. A CI test runs the reference seeds with an empty module set and compares hashes.
+- Module code obeys the same rules as core code: injected RNG streams, `dmath`, no `Math.random`, and a declared single producer per layer per variant.
+
+### 3.10 New domains in the canonical model (Q13)
+
+New entity tables (columnar, §3.3), each with its time axis:
+
+| Table | Axis | Contents | Note |
+|---|---|---|---|
+| `bodies` | geo | star(s), planet, moons: mass, radius, orbit elements, luminosity, rotation | 20 |
+| `plumes`, `volcanoes`, `eruptions` | geo / history | mantle plumes, edifices, eruption records | 21 |
+| `iceSheets`, `glaciers` | geo / history | extent, volume, flow | 22 |
+| `taxa`, `species` | geo | clade tree, traits, range summaries, origin and extinction times | 26, 27 |
+| `pathogens` | history | host range, transmission and virulence | 29 |
+| `peoples` | history | sapient species and populations, including fantasy peoples | 30, 35 |
+| `technologies` | history | tech graph nodes, prerequisites, discovery and diffusion | 31 |
+| `faiths`, `ideologies` | history | doctrines, institutions, schisms | 32 |
+| `persons`, `dynasties` | history | individuals, traits, offices, relations, lineages | 33 |
+| `townPlans` | history | street graph, blocks, walls, districts, buildings per settlement | 34 |
+| `hazardEvents` | geo / history | earthquakes, eruptions, tsunamis, floods, impacts | 28 |
+| `articles` | none | encyclopedia text and user notes keyed to entities | 36 |
+
+New layer namespaces (§3.2 descriptors apply): `astro.*` (insolation, tides), `interior.*` (heat flow, plume buoyancy), `ice.*` (thickness, temperature), `ocean.*` (SST, salinity, currents in 3 depth bands, tides), `atm.*` (storm tracks, variability), `groundwater.*`, `veg.*` (PFT fractions, biomass, fire), `fauna.*` (richness, biomass by guild), `hazard.*` (return periods), `disease.*`, `magic.*` and `mod.<id>.*`.
+
 ## 4. Pipeline order
 
 Each stage is a pure function:
@@ -469,6 +517,31 @@ From Phase 4b (D5, design note 14) the pipeline has two passes:
 - **Fallback (D8):** if Phase 4b cannot reach the Q7 targets within its effort budget, the preview shows reference-level structure only (the reference pass prolonged to preview N, with no detail bands or detail erosion), and detail appears with the final run.
 - Stock orogen behaviour stays available as a parity mode, so the Phase 4a parity test keeps running after the restructure.
 
+### Expanded pipeline (Q13)
+
+The full product adds stages to the table above. They slot in by dependency; each is a pure stage with a reference part and a detail part where it makes structural decisions (note 14). Stage ids keep the existing numbering, with letter suffixes for the new stages.
+
+| # | Stage | Pass | Main sources | Writes | Note | Phase |
+|---|---|---|---|---|---|---|
+| 0a | **Astronomy**: star(s), orbit, moons, rotation; insolation by latitude and day; tides; orbital cycles over deep time | — | VPLanet (DistOrb, DistRot, EqTide, Stellar) | `bodies`, `astro.*`, calendar | 20 | 6a |
+| 2i | **Interior and volcanism**: plume placement, heat flow, volcanic provinces, magnetic field; with 2e, events on the geologic axis | R | ASPECT and VPLanet `thermint` parameterisations; new | `plumes`, `volcanoes`, `interior.*` | 21 | 6c |
+| 4c | **Cryosphere and sea level**: ice sheets and glaciers from climate (shallow-ice approximation), sea ice, permafrost; eustatic and isostatic sea level | R + D | PISM (SIA/SSA), orogen glacial erosion | `ice.*`, `iceSheets`, `glaciers`, sea level | 22 | 7b |
+| 5o | **Ocean dynamics**: wind-driven gyres and a thermohaline proxy on the sphere, SST and salinity, tides; replaces the heuristic current field when on | R + D | MOM6 (formulation), MARBL (biogeochemistry, optional), orogen `ocean.js` (parity) | `ocean.*` | 23 | 7c |
+| 5a | **Atmosphere dynamics** (optional variant): shallow-water or simplified GCM circulation, storm tracks and variability; paleoclimate over the geologic axis | R | new, from published models; CESM/CAM formulations as reference | `atm.*`, refined `wind.*`, `precip.*` | 24 | 8b |
+| 7g | **Groundwater**: aquifers, water table, springs, baseflow | D | ParFlow, CTSM hydrology (formulation) | `groundwater.*` | 12 | 7 |
+| 7k | **Coasts**: deltas, beaches, barrier islands, reefs, sediment budgets | D | Delft3D (formulas), Badlands | coast layers, `elevation` | 23 | 7c |
+| 8v | **Vegetation**: plant functional types, biomass, fire, succession; feeds biomes, soils and erosion | D | LPJmL, CTSM (formulation) | `veg.*`, `biome` | 25 | 9b |
+| 8f | **Fauna**: species ranges, population dynamics, food webs | D | RangeShiftR, SLiM (concepts) | `fauna.*`, `species` | 26 | 9c |
+| 9e | **Evolution and speciation** over the geologic axis: clades, radiations, extinctions | R (geo axis) | SLiM (concepts), new | `taxa`, `species` | 27 | 9d |
+| 9h | **Hazards and disease**: hazard return periods; pathogen reservoirs | D | new; published hazard statistics | `hazard.*`, `disease.*`, `pathogens` | 28, 29 | 9e |
+| 11p | **Prehistory** (variant of stage 11): origin of people, dispersal, foraging, domestication and the spread of farming, producing t0 for history | D | new; SLiM, GAMA (concepts) | `peoples`, early settlements, cultures | 30 | 13h |
+| 11s | **Settlement morphology**: street graphs, walls, districts and buildings per settlement, on demand | D (local) | candidate: watabou TownGeneratorOS; new | `townPlans` | 34 | 11b |
+| 12+ | **History extensions**: technology, religion and ideology, characters and dynasties, chronicle | — | Eurace, OpenSpiel, UrbanSim, SongsOfFOSS (concepts); new | see notes | 31–33 | 13e–13g |
+| F* | **Module hooks** (fantasy, plugins) at declared points of any stage | — | modules | `magic.*`, `mod.<id>.*` | 35, 37 | 15, 17 |
+| — | **Views**: cartographic renderer, map art, editor overlays, encyclopedia | — | d3-geo, Three.js; Azgaar renderers, mapgen4 (reference) | nothing in `World` | 18, 19, 36 | 5c, 10b, 16 |
+
+Coupling: vegetation feeds back into erosion (cover factor), soils, albedo and the hydrology water balance; ice feeds back into erosion, sea level and climate. These feedbacks run as a bounded coupling loop at L0, as stage 6 does (at most a fixed number of iterations, converged by a stated threshold).
+
 ---
 
 ## 5. Save file format
@@ -495,6 +568,12 @@ world.mapmaker
 │   ├── keyframes/<tick>/<layer>.bin
 │   ├── changes/<range>.bin   run-length-packed cell changes between keyframes
 │   └── events/<range>.ndjson.gz   event-log chunks
+├── edits/               edit log chunks (ndjson.gz) + cursor (undo position), §3.8
+├── modules.json         enabled modules {id, version, params, sha256}, §3.9
+├── branches.json        fork tree: {branchId, parent, forkPoint (stage or tick), editRange}
+├── assets/              user-added map art: symbols, textures, fonts (referenced by hash), note 19
+├── styles/              cartographic styles (authoritative for rendering only), note 18
+├── articles/            encyclopedia text and notes keyed to entity ids, note 36
 └── ui.json              camera, projection, styles, selected layers (non-authoritative)
 ```
 
@@ -508,6 +587,7 @@ Rules:
 - **Storage.** Saves use the File System Access API where available and a Blob download elsewhere. Autosave goes to IndexedDB at stage boundaries and every K history ticks.
 - **Size**†. At 2.56M cells, mesh plus about 40 Float32 layers is roughly 0.5 GB uncompressed. Layers are compressed per chunk. Preview-tier worlds are small. Phase 12 measures real sizes and may add optional Float16 quantisation for display-only layers.
 - Azgaar's `.map` (`src/services/io/save.ts`) is the template for the breadth of what to save, but not for the encoding: it is CRLF-separated, JSON-in-text, and has no RNG state.
+- **Edits, modules and branches** (Q15, Q16) are part of exact resume: the same seed, params, modules and edit log replay to the same world. Assets, styles and articles affect only rendering and text, never simulation hashes.
 
 ---
 
@@ -556,11 +636,136 @@ The desktop fallback is built **only if** phase-gate benchmarks (Phases 4a, 7 an
 
 Tauri is lighter, but it uses WKWebView on macOS, so the Mac desktop build would inherit Safari's memory limits and JavaScriptCore math. That is decision Q4.
 
+### 6.6 Scaling the expanded scope (Q13, note 38)
+
+The full catalogue (deep time, life, oceans, history with individuals) is far heavier than the original plan. The strategy, specified in note 38:
+
+- **Level of detail in space and time.** Every system runs at the coarsest mesh and longest step that its Earth test tolerates, with detail added only where it is viewed or needed (patches, town plans on demand, individuals only for notable people).
+- **Simulation tiers.** Each system declares tiers (off, statistical, coarse dynamic, fine dynamic). The fidelity slider picks a tier per system; presets bundle them.
+- **Background jobs.** Deep-time runs (plate evolution, paleoclimate, evolution) and long histories run as resumable background jobs with checkpoints, and the app stays usable on the latest completed keyframe.
+- **Kernels.** Hot loops move to WASM (SIMD, threads) after profiling. WebGPU serves previews and rendering; authoritative GPU results need fixed-point arithmetic and a cross-GPU bit-equality test (§6.3).
+- **Memory.** Layers are allocated lazily and paged per mesh level; time-varying layers keep keyframes compressed. Phase 14 re-measures the budgets in §6.2 against the full scope and decides on the desktop wrapper (§6.5).
+
 ---
 
 ## 7. Phased build plan
 
 Every phase ends at a **checkpoint**. At that point I stop, post a summary (what was built, test results, measurements, deviations from this document, proposed changes), and **wait for your review** before starting the next phase. Each checkpoint also updates `PROVENANCE.md` (from Phase 3 on) and this document where reality differs.
+
+### 7.0 Roadmap overview (Q13, Q14)
+
+The roadmap is open-ended (Q13) and interleaved (Q14): a usable editor and attractive maps arrive early, and every later phase deepens the simulation behind them. Phase numbers 1–14 keep their original meaning; new phases use letter suffixes or numbers from 15. Every phase still ends at a checkpoint where work stops for review, and every phase adds the Earth tests for its domain (Q17, note 15).
+
+**Tracks.** Phases belong to one of six tracks, which advance in parallel over the order below:
+
+| Track | Phases |
+|---|---|
+| **Platform** (model, determinism, save, performance) | 3, 4a, 4b, 12, 14, 17 |
+| **Experience** (views, editor, map art, tools) | 5, 5b, 5c, 10b, 16 |
+| **Earth system** (cosmos, geosphere, hydrosphere, cryosphere, atmosphere) | 6, 6a, 6b, 6c, 7, 7b, 7c, 8, 8b |
+| **Life** | 9, 9b, 9c, 9d, 9e |
+| **Civilization** | 10, 11b, 13a–13h |
+| **Imagination and integration** (fantasy, import, partial worlds, Earth recovery) | 11, 15, 18 |
+
+**Order.** The build order, with the first usable milestone marked:
+
+| # | Phase | Design notes | Status |
+|---|---|---|---|
+| 1–3 | Spikes, design notes, shell | — | done |
+| 4a | orogen in the shell, globe, benchmarks | — | in progress |
+| 4b | Preview restructure behind the A/B gate | 14 | |
+| 5 | Projection and distortion layer | — | |
+| 5b | **Editor core v1**: edit log, brushes, locks, re-simulation, undo, full parameter panel and presets | 16, 17 | |
+| 5c | **Cartography v1**: styled flat and globe maps, hillshade, palettes, labels, symbols, themes, PNG/SVG of styled views | 18 | **first usable app** |
+| 6 | Planet physics | 10, 11 | |
+| 6a | Astronomy: stars, moons, tides, orbital cycles | 20 | |
+| 6b | Forward plate evolution | 13 | |
+| 6c | Interior: plumes, volcanism, magnetic field, isostasy | 21 | |
+| 7 | Slow erosion, hydrology, groundwater | 12 | |
+| 7b | Cryosphere and sea level | 22 | |
+| 7c | Ocean dynamics, tides and coasts | 23 | |
+| 8 | Calibration, parameter scales, Earth tests T1–T2 | 8, 15, 17 | |
+| 8b | Atmosphere dynamics, weather and paleoclimate | 24 | |
+| 9 | Soils, minerals, final biomes | 4, 5 | |
+| 9b | Vegetation dynamics | 25 | |
+| 9c | Fauna, species ranges and food webs | 26 | |
+| 9d | Evolution and speciation | 27 | |
+| 9e | Natural hazards and disease | 28, 29 | |
+| 10 | Static human layer on the sphere, and SVG | 9 | |
+| 10b | **Cartography v2**: asset library, drawing tools, regional and battle maps, Inkarnate/Wonderdraft parity | 18, 19 | |
+| 11 | Import, partial-world mode, regional patches | 3, 6 | |
+| 11b | Settlement morphology (town and city plans) | 34 | |
+| 12 | Exports and save hardening | 7 | |
+| 13a–d | History: engine, economy, politics and war, languages | 1, 2, 9 | |
+| 13e | Technology and innovation | 31 | |
+| 13f | Religion, ideology and culture | 32 | |
+| 13g | Characters, dynasties and chronicle | 33 | |
+| 13h | Prehistory and human origins (Q5's "grow from first settlements") | 30 | |
+| 14 | Performance and scaling for the full scope; desktop decision | 38 | |
+| 15 | Fantasy framework | 35 | |
+| 16 | Worldbuilder tools: encyclopedia, timeline, branches | 36 | |
+| 17 | Plugin, mod and scripting API | 37 | |
+| 18 | Earth recovery T3–T4 and integration audit | 15 | |
+
+After 18 the roadmap continues: each new domain or deeper model gets a design note and a phase, through the same checkpoints.
+
+**Dependencies.** An arrow means "needs".
+
+```mermaid
+graph LR
+  P4b[4b preview] --> P5[5 projections]
+  P5 --> P5b[5b editor] --> P5c[5c carto v1]
+  P5c --> P6[6 planet] --> P6a[6a astronomy]
+  P6 --> P6b[6b plates] --> P6c[6c interior]
+  P6c --> P7[7 erosion/hydro] --> P7b[7b ice] --> P7c[7c ocean/coasts]
+  P7c --> P8[8 calibration T1-T2] --> P8b[8b atmosphere]
+  P8 --> P9[9 soils/biomes] --> P9b[9b vegetation] --> P9c[9c fauna] --> P9d[9d evolution]
+  P9c --> P9e[9e hazards/disease]
+  P9 --> P10[10 human t0] --> P10b[10b carto v2]
+  P10 --> P11[11 import/patches] --> P11b[11b towns]
+  P10 --> P12[12 exports/save]
+  P12 --> P13[13a-d history] --> P13e[13e tech] --> P13f[13f religion] --> P13g[13g people]
+  P9d --> P13h[13h prehistory]
+  P13 --> P13h
+  P13g --> P14[14 scaling]
+  P14 --> P15[15 fantasy]
+  P5b --> P15
+  P13g --> P16[16 tools]
+  P15 --> P17[17 plugins]
+  P13h --> P18[18 Earth T3-T4]
+  P6b --> P18
+```
+
+Phases on different branches of this graph can be reordered at a checkpoint without changing the design; the editor (5b) and cartography (5c) are deliberately early, because every later phase is shown and tested through them.
+
+**Vision items → phase → note.**
+
+| Vision item (`docs/REQUIREMENTS.md`) | Phase | Note |
+|---|---|---|
+| Earth tests T1–T4 | 8 (T1–T2), 18 (T3–T4), every phase (domain tests) | 15 |
+| Hand-editing, locks, re-simulation, system switches | 5b, deepened per phase | 16 |
+| Every parameter exposed, presets, levels | 5b, 8 | 17 (with 8) |
+| Cartographic art, styles, labels | 5c, 10b | 18 |
+| Drawing tools, asset library | 10b | 19 |
+| Stars, moons, tides, calendars | 6a | 20 |
+| Mantle, volcanism, magnetic field | 6c | 21 |
+| Ice and sea level | 7b | 22 |
+| Oceans, tides, coasts | 7c | 23 |
+| Weather, storms, paleoclimate | 8b | 24 |
+| Vegetation | 9b | 25 |
+| Fauna and food webs | 9c | 26 |
+| Evolution | 9d | 27 |
+| Hazards | 9e | 28 |
+| Disease | 9e | 29 |
+| Human origins and prehistory | 13h | 30 |
+| Technology | 13e | 31 |
+| Religion and ideology | 13f | 32 |
+| Characters and dynasties, chronicle | 13g | 33 |
+| Town and city plans | 11b | 34 |
+| Fantasy layer | 15 | 35 |
+| Encyclopedia, timeline, branches | 16 | 36 |
+| Plugins and scripting | 17 | 37 |
+| Scaling everything | 14 | 38 |
 
 ### Phase 1: Spikes only (throwaway code in `spikes/`, not shipped)
 
@@ -643,12 +848,14 @@ Each note goes in `docs/design/` and uses one template:
 - problem;
 - canonical inputs and outputs (layers, entities, events);
 - approach and algorithm choice;
-- upstream references (algorithm-level only; Eurace and WRF-Hydro excluded);
+- upstream references (algorithm-level at the time; since Q12 any upstream may also be ported);
 - validation method;
 - open questions;
 - size estimate.
 
 Notes are 1–3 pages each.
+
+The template was extended on 2026-10-13 with two more sections, **8. User controls and edit points** and **9. Earth-recovery test** (Q16, Q17); see `docs/design/README.md`. Notes 15–38 were added in the same overhaul (§7.0).
 
 1. History, war, economics and politics simulation (agent types, tick structure, event causality, the counter-based RNG; ideas from UrbanSim discrete choice, SLiM individual-based models, Azgaar t0).
 2. Language evolution (proto-language generation, sound-change rules, lexical replacement, family trees, names derived from language state at tick t; extends Azgaar `names-generator`).
@@ -671,7 +878,7 @@ Added by decision Q9:
 13. **Forward plate evolution over deep time.** The note uses the standard template and must cover:
     - **Scope.** Forward evolution of plates over hundreds of millions of years from an initial configuration. The initial configuration is either orogen's static snapshot or a supercontinent seed. The output is the present-day tectonic state plus its history.
     - **Algorithm.**
-      - Kinematics: Euler poles and rates per plate, and finite rotations as composed unit quaternions (§3.6, GPlates math re-implemented).
+      - Kinematics: Euler poles and rates per plate, and finite rotations as composed unit quaternions (§3.6, GPlates math; since Q12 GPlates code may be ported).
       - Plate interactions: rifting and new ocean crust at divergent boundaries; subduction and slab consumption at convergent oceanic boundaries; collision and suturing of continents; plate break-up and merging.
       - Driving forces: a heuristic model, for example slab pull and ridge push weighted by boundary type. The note must say where it comes from, at the algorithm level only.
       - Remeshing: crust is advected on the sphere, and per-cell state is resampled onto the fixed mesh each step.
@@ -737,6 +944,26 @@ Added at Checkpoint 1 (D5):
 
 **Checkpoint 5.** Stop and wait.
 
+### Phase 5b: Editor core v1 (Q14, Q16; notes 16, 17)
+
+- The edit log, pins, soft constraints and seeds (§3.8), wired into stage invalidation, with undo and redo.
+- Editing tools on the globe and flat views: elevation sculpt and paint (raise, lower, smooth, flatten, noise), land/sea paint, plate-boundary and hotspot seeds, and a categorical paint for any enum layer.
+- System switches (`simulate | manual | off`) for every existing stage.
+- The full parameter panel (simple, advanced, expert) generated from the parameter registry, with presets (note 17).
+- Re-simulation UX: dirty-stage display, progress, cancel, and "re-run from stage X".
+- Tests: an edit replay is deterministic (save → load → hash equality); pinned values survive re-simulation; unedited regions are unchanged where the stage is local; undo restores the previous hash.
+
+**Checkpoint 5b.** Stop and wait.
+
+### Phase 5c: Cartography v1 (Q14; note 18)
+
+- A style system (`styles/`, note 18): layer-to-symbol rules, palettes, hillshade and relief shading, coastline and river rendering, graticules, scale bars, legends and labels (with collision handling), for the globe and every projection.
+- Built-in themes: atlas, physical, parchment/fantasy, political, satellite-like.
+- Export of styled views to PNG and SVG through the exact inverse path (§3.7).
+- Tests: switching style never changes a `World` hash; label placement is deterministic; golden images per theme with a pixel-difference tolerance.
+
+**Checkpoint 5c** (the first usable app: generate, edit, style, export). Stop and wait.
+
 ### Phase 6: Planet physics
 
 - VPLanet subset in TS (insolation, seasons, EBM core) with golden tests against native VPLanet output.
@@ -745,6 +972,13 @@ Added at Checkpoint 1 (D5):
 - **Q7 baseline rule:** any change to the climate model (the parameter mapping, seasons, or downscaling) re-records the Q7 A/B baseline in the **same commit**.
 
 **Checkpoint 6.** Stop and wait.
+
+### Phase 6a: Astronomy (note 20)
+
+- Stage 0a: star (and binary) properties, orbit, rotation, moons, tides, eclipses and calendars; orbital-element cycles on the geologic axis, forcing the climate in paleoclimate runs.
+- Golden tests against native VPLanet runs (DistOrb, DistRot, EqTide) and against Earth's present orbital elements and tidal ranges.
+
+**Checkpoint 6a.** Stop and wait.
 
 ### Phase 6b: Forward plate evolution (design note 13; slot set at Checkpoint 2)
 
@@ -755,6 +989,13 @@ Added at Checkpoint 1 (D5):
 - Re-record the Q7 baseline with evolution on, in the same commit that enables it.
 
 **Checkpoint 6b.** Stop and wait.
+
+### Phase 6c: Interior, volcanism and the magnetic field (note 21)
+
+- Stage 2i: plume placement and hotspot tracks (consistent with 6b), heat flow, volcanic provinces and eruption histories, isostasy and flexure, the magnetic field and its reversals (feeding seafloor magnetic stripes in 6b).
+- Earth tests: hotspot counts, heat-flow versus crust-age curve, volcano distribution by setting.
+
+**Checkpoint 6c.** Stop and wait.
 
 ### Phase 7: Slow erosion pass and hydrology, including D4 validation
 
@@ -767,6 +1008,20 @@ Added at Checkpoint 1 (D5):
 
 **Checkpoint 7.** Stop and wait.
 
+### Phase 7b: Cryosphere and sea level (note 22)
+
+- Stage 4c: ice sheets and glaciers (shallow-ice approximation from PISM), sea ice, permafrost, eustatic and isostatic sea level, coupled with climate and erosion.
+- Earth tests: present ice extent (T2), glacial-maximum sea-level drop and ice extent under LGM forcing.
+
+**Checkpoint 7b.** Stop and wait.
+
+### Phase 7c: Ocean dynamics, tides and coasts (note 23)
+
+- Stage 5o (gyres, thermohaline proxy, SST, salinity, upwelling, tides) and stage 7k (deltas, beaches, barrier islands, reefs).
+- Earth tests: current pattern and SST against observed climatologies (T2), tidal range distribution, delta and reef placement.
+
+**Checkpoint 7c.** Stop and wait.
+
 ### Phase 8: Calibration and parameter-scale documentation
 
 - Extend the tuning harness: elevation hypsometry, Köppen (Kottek or Beck), and temperature and precipitation climatology. Fit the precipitation unit mapping (§3.6).
@@ -774,13 +1029,52 @@ Added at Checkpoint 1 (D5):
 - **Q7 baseline rule:** any change to the climate model (for example re-tuned constants or the precipitation unit mapping) re-records the Q7 A/B baseline in the **same commit**.
 - Revisit the known gap for tidally locked planets (Known gaps, top of this document).
 
+- **Earth tests T1 and T2** (note 15): the statistical-Earth and physics-given-Earth suites for every system built so far, with stored tolerances, as a permanent CI gate (Q17).
+- Parameter registry and documentation for every exposed parameter (note 17), generating `docs/PARAMETERS.md`.
+
 **Checkpoint 8.** Stop and wait.
+
+### Phase 8b: Atmosphere dynamics, weather and paleoclimate (note 24)
+
+- An optional dynamical circulation variant (stage 5a), storm tracks, cyclones and interannual variability (droughts, monsoon strength), and paleoclimate runs on the geologic axis (greenhouse and icehouse states, with 6a forcing).
+- This is Q10's "dynamical atmosphere if calibration plateaus", now planned regardless (Q13).
+- Earth tests: storm-track and cyclone climatology, variability statistics, and the D7-style gate against the heuristic climate.
+
+**Checkpoint 8b.** Stop and wait.
 
 ### Phase 9: Soils, minerals, final biomes
 
 Implement design notes 4 and 5, and the biome layer that combines Köppen and the Azgaar matrix.
 
 **Checkpoint 9.** Stop and wait.
+
+### Phase 9b: Vegetation dynamics (note 25)
+
+- Stage 8v: plant functional types, biomass, fire and succession (LPJmL formulation), feeding biomes, soils, erosion cover, albedo and the water balance.
+- Earth tests: biome areas and NPP against observed maps (T2).
+
+**Checkpoint 9b.** Stop and wait.
+
+### Phase 9c: Fauna, species ranges and food webs (note 26)
+
+- Stage 8f: species with traits and ranges (RangeShiftR-style dynamics), trophic guilds and food webs, migration, domesticable species flagged for civilization.
+- Earth tests: latitudinal richness gradient, species-area relation, island endemism.
+
+**Checkpoint 9c.** Stop and wait.
+
+### Phase 9d: Evolution and speciation (note 27)
+
+- Stage 9e on the geologic axis: clade trees, allopatric speciation driven by plate and climate history, extinctions (including impacts and large igneous provinces), adaptive radiations.
+- Earth tests: diversification curves and biogeographic realms (T3-style statistics).
+
+**Checkpoint 9d.** Stop and wait.
+
+### Phase 9e: Natural hazards and disease (notes 28, 29)
+
+- Stage 9h: hazard return-period layers (earthquakes, eruptions, tsunamis, floods, landslides, cyclones, impacts) and pathogen reservoirs, both used by the history simulation.
+- Earth tests: Gutenberg–Richter statistics, hazard maps against observed patterns.
+
+**Checkpoint 9e.** Stop and wait.
 
 ### Phase 10: Static human layer on the sphere, and SVG
 
@@ -801,6 +1095,15 @@ Azgaar generators (step 11 in §4) via the facade, with injected RNG. Settlement
 
 **Checkpoint 10.** Stop and wait.
 
+### Phase 10b: Cartography v2 and drawing tools (notes 18, 19)
+
+- The asset library (symbols, textures, brushes, fonts, frames, compass roses, cartouches), with CC0 packs and user imports.
+- Drawing tools for annotation layers: freehand, stamps, paths, regions, labels on curves, text boxes.
+- Map types: world, regional, city (from 11b), and battle or scene maps, each with its own styles.
+- Target: everything Inkarnate and Wonderdraft do, on top of a simulated world.
+
+**Checkpoint 10b.** Stop and wait.
+
 ### Phase 11: Import, partial-world mode, regional patches
 
 - Heightmap and layer import onto the sphere (orogen import sampling; a GeoTIFF decoder library if wanted).
@@ -808,6 +1111,13 @@ Azgaar generators (step 11 in §4) via the facade, with injected RNG. Settlement
 - Regional-patch refinement with the R/P consistency test (design note 6). Revisit D9: approximate agreement and a warning for non-nested overlaps, or a fixed tiling.
 
 **Checkpoint 11.** Stop and wait.
+
+### Phase 11b: Settlement morphology (note 34)
+
+- Stage 11s: town and city plans generated on demand from settlement size, terrain, rivers, roads, culture and history: streets, walls, districts, landmarks and buildings, editable like any other entity.
+- Earth tests: street-network statistics against real towns of similar size and era.
+
+**Checkpoint 11b.** Stop and wait.
 
 ### Phase 12: Exports and save hardening
 
@@ -824,6 +1134,11 @@ STL (design note 7), GeoJSON, PNG tiles, and other formats as feasible. Save siz
 | 13c | Politics, diplomacy, borders and war |
 | 13d | Language evolution and time-dependent naming |
 
+| 13e | Technology and innovation: a technology graph, discovery, diffusion along contacts and loss (note 31) |
+| 13f | Religion, ideology and culture dynamics (note 32) |
+| 13g | Characters, dynasties and the narrative chronicle (note 33) |
+| 13h | Prehistory and human origins: from an empty planet to the history t0 (note 30; Q5's "grow from first settlements") |
+
 Each sub-phase ends at a checkpoint. Stop and wait after each.
 
 ### Phase 14: Performance and desktop fallback (conditional)
@@ -832,11 +1147,38 @@ Profile, add WASM kernels where they are justified, and build the Electron wrapp
 
 **Checkpoint 14.** Stop and wait.
 
+Phase 14 is no longer only conditional (Q13): it re-measures the full scope, implements note 38's tiers and background jobs, and decides on the desktop wrapper.
+
+### Phase 15: Fantasy framework (Q15; note 35)
+
+- The module system (§3.9) and the first modules: magic as a field and resource, non-human peoples, creatures and monsters, rule overrides, fantastical geography.
+- Tests: the empty-module identity test (Q15); module determinism; each module's documented effects.
+
+**Checkpoint 15.** Stop and wait.
+
+### Phase 16: Worldbuilder tools (note 36)
+
+- The encyclopedia (an article per entity, generated and editable), the timeline and history scrubber, notes, search, and what-if branches.
+
+**Checkpoint 16.** Stop and wait.
+
+### Phase 17: Plugin, mod and scripting API (note 37)
+
+- A sandboxed scripting API over the canonical model, plugin packaging, and user-defined stages, rules, styles and tools.
+
+**Checkpoint 17.** Stop and wait.
+
+### Phase 18: Earth recovery T3–T4 and integration audit (note 15)
+
+- The deep-time (T3) and civilization (T4) Earth tests end to end, a review of every domain against its Earth test, and the next roadmap round.
+
+**Checkpoint 18.** Stop and wait. The roadmap then continues with new notes and phases (Q13).
+
 ---
 
 ## 8. Decisions (all resolved, 2026-10-03)
 
-This is the original decision table, kept for its rationale. **All eleven questions are resolved.** The binding outcomes are in [Resolved decisions](#resolved-decisions) at the top of this document. Where a resolution differs from the recommendation here (Q2, Q3, Q6, Q7, Q9), the resolution wins.
+This is the original decision table, kept for its rationale. **All eleven questions are resolved**; Q12–Q17 were added later and are only in the table at the top. The binding outcomes are in [Resolved decisions](#resolved-decisions) at the top of this document. Where a resolution differs from the recommendation here (Q2, Q3, Q6, Q7, Q9), the resolution wins.
 
 | # | Status | Decision | Original recommendation | Why |
 |---|---|---|---|---|

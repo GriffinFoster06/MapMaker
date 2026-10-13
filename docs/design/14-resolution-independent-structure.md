@@ -254,3 +254,11 @@ Applied at Checkpoint 2:
 | **Total** | **~7,000** |
 
 This is Phase 4b's main body of work. The largest risk is the Earth-tuning gate (open question 2).
+
+## 8. User controls and edit points
+
+- **Edits at the reference level:** structural edits (a mountain belt, a land mask, a divide) are edits to the reference pass, so they appear identically at every fidelity N; detail edits are edits to L1.
+
+## 9. Earth-recovery test
+
+Indirect: the Q7 A/B gate guarantees that preview and final agree, so Earth tests run at a preview tier predict the final tier. Note 15 states which Earth tests may run at preview resolution for this reason.

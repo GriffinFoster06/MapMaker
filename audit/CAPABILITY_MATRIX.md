@@ -31,7 +31,7 @@ Basis: the 28 per-repo audits in this directory (`audit/<repo>.md`), plus my own
 |---|---|---|---|---|
 | Tectonics, heightmap, erosion (fast pass) | **orogen** | JS | GPL-3.0 | medium-high |
 | Erosion (slow, high-fidelity pass) | **Badlands** (algorithm re-implemented in JS/TS) | Py/Fortran | GPL-3.0 | medium |
-| Plate motion kinematics (time evolution) | **GPlates** rotation algebra (re-implemented) | C++ | GPL-2.0 | medium |
+| Plate motion kinematics (time evolution) | **GPlates** rotation algebra (ported since Q12; was re-implemented) | C++ | GPL-2.0 | medium |
 | Wind, ocean currents, precipitation, temperature, Köppen | **orogen** | JS | GPL-3.0 | medium-high |
 | Planet-parameter derivation, seasons, ice-albedo | **VPLanet** (POISE, DistOrb) core equations | C | MIT | medium |
 | Rivers, lakes, watersheds | **Azgaar** `river-generator` (adapted to the spherical mesh) | TS | MIT | medium |
@@ -363,7 +363,64 @@ These are the capabilities with **no usable implementation in any upstream repo*
 12. **Continuous seasons, real lake/basin hydrology, and dynamical ocean currents**: partial coverage only, with rule-based or heuristic versions in orogen.
 13. **Provenance logging tooling** (trivial).
 
+## Expanded scope (2026-10-13, ARCHITECTURE.md Q12–Q13)
+
+Q12 lifted licence restrictions and Q13 widened the scope to every domain in `docs/REQUIREMENTS.md`. This section re-decides the picks that licences had decided and maps the new domains to the audited upstreams. Ratings and paths come from the per-repo audits; they were not re-verified against source in this pass (`upstream/` was not checked out at the time).
+
+### Picks re-decided after Q12
+
+| Capability | Before Q12 | After Q12 | Note |
+|---|---|---|---|
+| Plate kinematics and reconstruction | GPlates as math reference; formulas re-implemented | **Port GPlates** `src/maths` and `src/app-logic/Reconstruction*` to TypeScript | 13 |
+| River channel routing (time-varying discharge) | Azgaar topology only; WRF-Hydro excluded | Azgaar topology + **WRF-Hydro** Muskingum–Cunge / diffusive-wave routing as a candidate for Phase 7 | 12 |
+| Economics (markets, firms, credit) | Original code; Eurace excluded | **Eurace** goods-market and decision rules as the candidate core for Phase 13b | 1 |
+| Vegetation and soil water | LPJmL as algorithm reference (AGPL) | **Port LPJmL** core | 4, 25 |
+| Species dispersal | RangeShiftR concepts | **Port RangeShiftR** core for the fine tier | 26 |
+
+### New domains → upstreams
+
+| Domain | Pick | Others | Note |
+|---|---|---|---|
+| Stars, orbits, moons, tides | **VPLanet** DistOrb, DistRot, EqTide, Stellar (port) | — | 20 |
+| Mantle, heat flow, magnetic field | **VPLanet** ThermInt, RadHeat (port) | ASPECT (parameters, dynamic topography), tectonics.js (isostasy) | 21 |
+| Ice sheets, glaciers, sea level | **PISM** SIA/SSA and verification (port to the sphere) | CTSM glacier mass balance, VPLanet POISE ice, orogen glacial erosion | 22 |
+| Ocean circulation | **MOM6** formulations (new solver on the sphere) | orogen `ocean.js` (parity), MARBL (biogeochemistry) | 23 |
+| Coasts, deltas, sediment | **Delft3D** morphology and wave formulas | Badlands | 23 |
+| Groundwater | **ParFlow** formulations | CTSM hydrology | 12 |
+| Atmosphere dynamics, paleoclimate | New, from published models | VPLanet POISE (paleo EBM), CESM docs; candidates ModelE/ROCKE-3D | 24 |
+| Vegetation, fire | **LPJmL** (port) | CTSM CNDV and fire | 25 |
+| Fauna, ranges | **RangeShiftR** (port) | SLiM spatial maps, GAMA, FLAMEGPU2 | 26 |
+| Evolution | New; **SLiM** concepts | RangeShiftR traits; candidate gen3sis | 27 |
+| Hazards | New, from published statistics | Delft3D (surge, tsunami), orogen stress | 28 |
+| Disease | New (metapopulation SEIR) | FLAMEGPU2, GAMA, SLiM examples | 29 |
+| Prehistory, dispersal | New | SLiM, GAMA, LIAM2, SongsOfFOSS migration | 30 |
+| Technology | New | SongsOfFOSS, Eurace capital vintages | 31 |
+| Religion, ideology, culture | New | Azgaar t0, UrbanSim logit, SongsOfFOSS, SLiM | 32 |
+| Characters, dynasties, chronicle | New | SongsOfFOSS succession and coups, Azgaar names | 33 |
+| Town and city plans | Candidate: watabou TownGeneratorOS | UrbanSim, PostGIS geometry, Godot geometry | 34 |
+| Cartography and map art | **Azgaar** renderers; **QGIS** symbology and labelling design | CesiumJS, orogen colour maps; candidates mapgen4, mewo2/terrain | 18, 19 |
+| Editing, undo, plugins | New | Godot undo-redo and plugins, QGIS Processing, SLiM Eidos | 16, 37 |
+| Parameter registry | New, after **MARBL** settings registry | orogen config, Azgaar options | 17 |
+| Earth test datasets | Downloaded at tuning time (Q8) | orogen tuning harness | 15 |
+
+### Candidate upstreams to audit
+
+These are not in `upstream-manifest.json` yet. Each needs an audit in `audit/` (same template as the others) before it is used.
+
+| Candidate | Why | Note |
+|---|---|---|
+| watabou TownGeneratorOS (Medieval Fantasy City Generator) | Town layouts: wards, walls, streets | 34 |
+| redblobgames mapgen4 | Painterly terrain rendering, fast interactive maps | 18 |
+| mewo2/terrain (Martin O'Leary) | Fantasy map style and label placement | 18 |
+| gen3sis | Eco-evolutionary simulation on paleo-landscapes | 27 |
+| GISS ModelE / ROCKE-3D, ExoCAM | Exoplanet and paleoclimate GCMs | 24 |
+| FastScape | Fast landscape evolution (couples with ASPECT) | erosion, 21 |
+| CC0 map-asset packs (symbols, textures, fonts) | Asset library | 19 |
+| Glottolog, Seshat, HYDE (datasets) | T4 Earth tests | 15 |
+
 ## License and risk notes
+
+**Since 2026-10-13 (ARCHITECTURE.md Q12), licences do not restrict use:** MapMaker is a personal, non-commercial project. The flags below are kept as a record, not as rules.
 
 | Repo | License (verified in audits) | Flag |
 |---|---|---|

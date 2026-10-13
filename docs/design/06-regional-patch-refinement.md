@@ -160,3 +160,13 @@ These refine the existing text and do not change direction.
 | Renderer cross-fade | ~300 |
 | Tests (P1–P3, zoom jump, rivers, overlap) | ~1,000 |
 | **Total** | **~3,200** |
+
+## 8. User controls and edit points
+
+- **Parameters:** patch resolution ladder, apron width, detail amplitude per band.
+- **Edits:** every editing tool works inside a patch; edits made at patch level restrict to the parent like any other patch field, so a sculpted valley in a patch shows (restricted) on the globe.
+- **Switches:** detail bands on or off per patch.
+
+## 9. Earth-recovery test
+
+T2: refine a patch over a real region from a coarse Earth elevation and compare the added detail's statistics (slope distribution, drainage density, relief spectrum) with a high-resolution DEM of the same region. The detail is not expected to match feature by feature, only statistically.

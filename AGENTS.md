@@ -2,6 +2,8 @@
 
 Sphere-canonical world generator. TypeScript monorepo (npm workspaces). License: GPL-3.0-only.
 
+Personal, non-commercial project. The product vision is in `docs/REQUIREMENTS.md` (Vision): a realistic, fully customisable worldbuilder for fictional worlds. Licences are recorded but do not restrict which upstream may be used (ARCHITECTURE.md Q12).
+
 ## Session start and handoff
 
 These instructions apply repository-wide to Codex, Claude Code, and other coding agents. Keep shared rules here; `CLAUDE.md` imports this file.
@@ -30,7 +32,7 @@ Default to one agent editing a checkout at a time. If the user requests simultan
 - The sphere is the source of truth. Canonical frame: +Z north, +X (0°N, 0°E), +Y (0°N, 90°E); canonical elevation is metres. Respect adapter-private `orogen.*` layers and explicit frame/unit conversions.
 - Preserve exact resume and deterministic outputs. Do not refresh golden hashes or calibration baselines simply to make a failing test pass; investigate and explain intentional changes.
 - Do not destructure `dmath` at module load; mode switches replace its functions.
-- Follow the architecture's source restrictions: Eurace and WRF-Hydro are never extracted or used as algorithm references; GPlates remains a math reference only, with implementations from published formulas.
+- Every repo in `upstream/` may be extracted, ported or used as an algorithm reference, whatever its licence (ARCHITECTURE.md Q12). Pick the best implementation on quality and fit. Licences are still recorded in `PROVENANCE.md` for every extraction.
 
 ## Commands
 
@@ -52,8 +54,8 @@ Run checks appropriate to the change and report failures honestly. Full benchmar
 ## Docs
 
 - `docs/DEVELOPMENT.md`: code map, development commands, and Claude Code/Codex handoffs.
-- `docs/ARCHITECTURE.md`: decisions, canonical model, pipeline, phased plan (§7). Read first.
-- `docs/design/README.md`: index of the Phase 2 design notes (1–14).
+- `docs/ARCHITECTURE.md`: decisions, canonical model, pipeline, roadmap (§7.0) and phased plan (§7). Read first.
+- `docs/design/README.md`: index of the design notes (1–38) and their nine-section template.
 - `docs/spikes/PHASE1_REPORT.md`: Phase 1 measurements.
 - `docs/REQUIREMENTS.md`, `audit/CAPABILITY_MATRIX.md`: requirements and upstream audit.
 - `PROVENANCE.md`: provenance and licenses. `STATUS.md`: current phase and checkpoint state.
