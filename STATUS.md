@@ -10,6 +10,38 @@ Updated at every checkpoint.
 | 3b (Checkpoint 3 decisions: `dmath` fdlibm mode) | Reached and reviewed. |
 | 4a (Phase 4a orogen in the shell, globe) | **In progress** |
 
+## Current handoff — 2026-10-13, Codex
+
+**Task:** repository onboarding and shared Claude Code/Codex workflow. Started from a clean working tree at `2dcd3f2` on `main`. Phase 4a remains in progress; this session does not complete its checkpoint or start Phase 4b.
+
+**Changes:** moved the existing project rules into root `AGENTS.md`, preserving the extraction, determinism, provenance, and phase-boundary rules; `CLAUDE.md` now imports that single shared source. Added `README.md` and `docs/DEVELOPMENT.md` with product orientation, a code map, development/validation commands, and handoff procedure. Fixed two existing lint errors in `scripts/bench-report.mjs` by importing Node's `process` and `console` explicitly. No simulation behavior, upstream/vendor files, dependency versions, or global tools changed. Changes are uncommitted.
+
+**Local validation** (Node v24.21.0 through `scripts/node24.sh`; optional upstreams and Earth data available):
+
+| Check | Result |
+|---|---|
+| `npm run lint` | Passed after the benchmark-script import fix; initially failed with two `no-undef` errors. |
+| `npm run typecheck` | Passed. |
+| `npm test` | **143 passed, 2 failed, 1 skipped** (146 total). Both failures were present before this session's edits, in `tools/tuning/ab/ab.test.ts`; details below. The skipped test is the opt-in `REQUIRE_UPSTREAM` preflight. |
+| `npm run build` | Passed. |
+| `npm run provenance:check` | Passed: 24 vendored files, 20 source headers, 18 direct / 246 total npm packages. |
+| `npm run e2e` | **12 passed**, across Chromium, Firefox and WebKit. Includes local production build, deterministic probes, isolation shim, globe rendering/layer switching, and browser/Node layer equality. |
+
+These are local observations, not a fresh verification of remote CI or the deployed site. Historical results below describe earlier checkpoints and are superseded by this section for current test counts and open work.
+
+### Findings and remaining Phase 4a work
+
+- **Working foundation:** sphere geometry, typed layers/entities, RNG state, deterministic math, stage orchestration, worker transport, save/load/resume tests, vendored orogen parity, globe views, and Earth calibration harness exist. The five future subsystem directories (`planet`, `erosion`, `human`, `projection`, `history`) remain placeholders. History support in core and the dummy stage are infrastructure, not a human-history simulator.
+- **A/B metric correctness:** the self-comparison test reports mean river-mouth distance `0.8176300987595833` km instead of zero (`ab.test.ts:38`). `basinAgree` in `tools/tuning/ab/ab.mjs` uses `acos(dot)` on Float32 mouth vectors without normalizing their lengths. This is a likely cause, to confirm with a focused fix/test; do not relax the assertion just to pass it.
+- **Missing Q7 baseline:** `tools/tuning/ab-baseline.json` is absent, although its coverage test, runner, and README expect it. Fix metric correctness first, then run the full prescribed seeds/tiers and review the actual baseline. Do not replace the missing file with fabricated or reduced-tier data.
+- **Missing benchmark evidence:** the browser benchmark spec and report generator exist, but no `docs/benchmarks/phase4a-*.json` or `PHASE4A.md` report is present in this checkout. Full tiers were not run in this onboarding task. Measure each browser/tier and inspect recorded per-tier failures, not only the test exit code.
+- **Current product limits:** the adapter accepts only Earth radius (6,371 km); arbitrary radius plumbing belongs to later planet physics work. The displayed cell tiers are stock orogen at different resolutions, not yet faithful previews. The reference/detail restructure and regression gate belong to Phase 4b. Flat projections, regional inference/refinement, full exports, and the real human/history systems remain future work.
+- **Save limitation:** v0 uses copied snapshots and synchronous ZIP creation; large-world streaming remains Phase 12 work. Worker cancellation is cooperative; synchronous vendored stages do not offer fine-grained interruption.
+
+**Next concrete step:** fix and validate the A/B river-mouth metric, generate/review the complete stock Q7 baseline, and collect the Phase 4a browser benchmark report. Then prepare Checkpoint 4a for user review. Follow `docs/ARCHITECTURE.md` §7's boundary before starting Phase 4b.
+
+**For either agent:** read this section and inspect the actual working tree before editing. Update this section at the next handoff so the next agent has current results and a concrete continuation. The user requested shared onboarding/setup; remaining implementation work above is recorded for a subsequent task.
+
 ## Phase 3 results (2026-10-04)
 
 - **Unit tests:** 117 pass locally (with `upstream/` present). CI runs 112 and skips 5: the upstream-parity tests (`SphereMesh` and the RNGs against `upstream/orogen` and Azgaar) need the `upstream/` checkout, which CI does not have. They are covered in CI by committed golden hashes. Lint, `tsc -b` and `provenance:check` clean. (The earlier "87 passing" counted the skipped tests.)
@@ -18,7 +50,7 @@ Updated at every checkpoint.
 
 ## Checkpoint 3b: `dmath` fdlibm mode (2026-10-04)
 
-- **Implemented:** `dmath.mode = 'fdlibm'` is a line-by-line TypeScript port of netlib fdlibm 5.3 (`packages/core/src/fdlibm.ts`, `log2` from FreeBSD msun), covering all 22 transcendentals that `packages/**` may call only through `dmath`. `dmath.setMode()` and `dmath.withMode()` switch modes. **The default is still `'native'`** (orogen parity); canonical Float64 paths opt in with `'fdlibm'`, and the save manifest records the current mode. Logged in `PROVENANCE.md`. Lint now also bans the `**` operator in `packages/**`.
+- **Implemented:** `dmath.mode = 'fdlibm'` is a line-by-line TypeScript port of netlib fdlibm 5.3 (`packages/core/src/fdlibm.ts`, `log2` from FreeBSD msun), covering all 22 transcendentals that `packages/**` may call only through `dmath`. `dmath.setMode()` and `dmath.withMode()` switch modes. **At Checkpoint 3b the default was still `'native'`; Phase 4a changed it to `'fdlibm'`**, with native mode confined to explicit parity blocks, and the save manifest records the current mode. Logged in `PROVENANCE.md`. Lint now also bans the `**` operator in `packages/**`.
 - **Tested against reference C:** 22,675 vectors from the unmodified C compiled with FMA contraction off (`tools/fdlibm-vectors/`, regenerate with `gen.sh`), bit-identical for every function. The test fails when a constant is corrupted.
 - **Probe v2:** the whole probe also runs in fdlibm mode (84 `fd.` keys: dmath sweeps, Float64 mesh points, areas, circumcentres, topology, history, and a 1M-cell Float64 mesh). All `fd.` keys are strict in CI. Native-mode libm keys stay report-only.
 - **CI result (run 37165939177):** all `fd.` keys match on ubuntu x64, macOS arm64 and Windows x64, in Node, Chromium, Firefox and WebKit. Native-mode libm keys still diverge as before (22 in Node on ubuntu and Windows, 0 on macOS arm64, which produced the golden file).
@@ -36,7 +68,7 @@ Updated at every checkpoint.
 
 - **Phase 12 (save streaming):** the v0 snapshot copies world data (about double peak memory) and writes the container with `zipSync`. Move to streaming writes and chunk-at-a-time hashing, so peak memory stays near one chunk.
 - **Phase 13 (history simulation):** keep tick-loop state in integers or Float32-rounded values where possible. Route every transcendental through `dmath`, and run the simulation in `'fdlibm'` mode. Avoid `pow` in hot loops (4.2× the native cost); use multiplication or a lookup table for fixed exponents.
-- **CI coverage:** the upstream-parity tests are skipped in CI (no `upstream/` checkout). A scheduled job that restores `upstream/` and runs them would close the gap.
+- **CI coverage:** ordinary CI skips tests that need `upstream/`, but `.github/workflows/nightly.yml` now restores orogen/Azgaar and Earth ground truth, runs tests with `REQUIRE_UPSTREAM=1`, and checks vendored bytes. This supersedes the earlier suggestion to add a scheduled job. Its latest remote run was not checked during onboarding.
 
 ## Open decisions for review
 

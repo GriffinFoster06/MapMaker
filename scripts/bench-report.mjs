@@ -2,6 +2,8 @@
 // Usage: node scripts/bench-report.mjs
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import process from 'node:process';
+import console from 'node:console';
 
 const dir = resolve(process.cwd(), 'docs/benchmarks');
 const files = readdirSync(dir).filter((f) => /^phase4a-.*\.json$/.test(f)).sort();

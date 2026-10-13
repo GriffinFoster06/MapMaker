@@ -1,0 +1,101 @@
+# Development and agent handoffs
+
+## Reading order and goals
+
+Read `STATUS.md` for the current state, `ARCHITECTURE.md` for approved decisions and the phase plan, and `REQUIREMENTS.md` for product intent. The fourteen notes in `design/` describe future implementations; a design note is not evidence a feature exists.
+
+MapMaker is a new strict TypeScript shell around selected upstream implementations. One spherical `World` owns canonical state. Generation runs in workers; views sample that state. The planned fidelity slider uses a fixed reference pass plus a detail pass because Phase 1 demonstrated that stock orogen at low resolution is not a faithful preview of its high-resolution output. That restructure is **Phase 4b**, after the Phase 4a checkpoint.
+
+## Code map
+
+| Location | Responsibility / useful entry points |
+|---|---|
+| `apps/web/` | Vite browser shell. `src/app.ts` connects the UI to the engine; `src/engine-worker.ts` starts the orogen host; `src/globe/` renders and colors the Three.js globe. |
+| `packages/core/` | `World`, canonical frame/units, Fibonacci sphere and spatial index, typed layer registry, columnar entities, time-varying layers, event log, RNG service, fdlibm math, save/load and hashing. |
+| `packages/engine/` | `runner.ts` resolves stages, checks producers/writes, hashes inputs, skips unchanged work, records outputs, and handles checkpoints/cancellation. `host.ts` and `client.ts` implement the worker protocol; `pool.ts` provides kernel workers. |
+| `packages/gen-orogen/` | Six stages in `src/stages.ts`: mesh, tectonics, elevation, erosion, climate, Köppen. `scratch.ts` reconstructs disposable adapter state; `import-heightmap.ts` supports the headless Earth harness. `stock.ts`/`view.ts` support parity testing. `vendor/` is immutable source. |
+| `packages/planet`, `erosion`, `human`, `projection`, `history` | README placeholders for later phases; not implemented workspace packages yet. The dummy history stage tests serialization, not real history simulation. |
+| `tools/determinism/` | Shared Node/browser probe, committed golden hashes, strict/report-only comparison rules. |
+| `tools/provenance/` | Checks vendored bytes against pinned upstream commits when available, source headers, copied assets, and dependency licenses. |
+| `tools/tuning/climate/` | Headless Earth calibration through the shell, Kottek data fetcher, optimizer, committed climate baseline. |
+| `tools/tuning/ab/` | Fidelity comparison harness migrated from spike 1c; stock Q7 baseline runner. Current incomplete artifacts are recorded in `STATUS.md`. |
+| `tools/fdlibm-vectors/` | Reference C vector generation for the deterministic math port. |
+| `apps/web/e2e/`, `apps/web/bench/` | Cross-browser correctness checks and separate performance measurements. |
+| `spikes/`, `audit/` | Historical feasibility experiments/results and upstream capability assessments. Not shipped in the app. |
+| `.github/workflows/` | CI checks, three-OS determinism matrix, nightly upstream parity, Pages deployment and live smoke tests. |
+
+The runtime path is `app.ts` → `EngineClient` → browser engine worker → `startOrogenHost` → `runPipeline` → `World`. Mesh/layer copies return to the main thread for rendering. Browser and Node hosts reuse the same generation packages.
+
+## Local tools
+
+All local Node/npm/npx invocations use `scripts/node24.sh`. `.nvmrc` is the version source of truth. The wrapper uses `.tools/bin/fnm`, installs the pinned Node if necessary, and sets project-local npm cache and Playwright browser paths. No global configuration changes are needed.
+
+The current checkout already has this toolchain. For a new machine, install the platform's fnm executable at `.tools/bin/fnm` and make it executable, then run the wrapper. Original setup/reproduction notes are in `spikes/PHASE1_REPORT.md` §How to reproduce (its historical Node version is superseded by `.nvmrc`).
+
+```sh
+scripts/node24.sh node --version
+scripts/node24.sh npm ci
+scripts/node24.sh npm run dev -w @mapmaker/web
+```
+
+To install browser binaries into this project's cache:
+
+```sh
+scripts/node24.sh npx playwright install chromium firefox webkit
+```
+
+Reference repos and calibration data are optional for basic development. Restore only needed upstreams rather than downloading the entire reference collection:
+
+```sh
+scripts/restore-upstream.sh orogen Azgaars-Fantasy-Map-Generator
+tools/tuning/climate/fetch-kottek.sh
+```
+
+These scripts use pinned commits/checksums. Never edit reference repos or vendored source to fix a test. Earth ground truth and local caches are ignored by Git.
+
+## Validation
+
+```sh
+scripts/node24.sh npm run lint
+scripts/node24.sh npm run typecheck
+scripts/node24.sh npm test
+scripts/node24.sh npm run build
+scripts/node24.sh npm run provenance:check
+scripts/node24.sh npm run e2e
+```
+
+`npm test` covers core/engine behavior, stock-orogen parity, save/resume, deterministic probes, calibration, and the A/B harness. Tests needing optional upstreams or ground truth can skip when those inputs are absent. `REQUIRE_UPSTREAM=1` enables the nightly job's required-input check. Record passed, failed, and skipped counts; an installed toolchain does not imply a green suite.
+
+`npm run e2e` builds and serves on port 4173 and runs Chromium, Firefox, and WebKit: determinism, isolation shim, and globe/layer checks. It may reuse an existing server locally; ensure that server serves the current checkout. `E2E_BASE_URL` targets a remote site. `npm run build` produces `apps/web/dist`; Vite may warn about bundle size.
+
+For an isolated test, use `scripts/node24.sh npx vitest run <test-file>`. The Node-only probe entry is `scripts/node24.sh npm run probe`.
+
+## Expensive measurements
+
+Full performance tiers and Q7 baseline generation are phase work, not prerequisites for every documentation edit. They can take substantial time and memory. Do not invent baseline values or suppress tests when an artifact is missing.
+
+```sh
+# Browser timing/memory; restrict tiers for a short run.
+BENCH_TIERS=50k,200k scripts/node24.sh npm run bench -- --project=chromium
+# Report from existing measured JSON files (does not run benchmarks).
+scripts/node24.sh node scripts/bench-report.mjs
+# Earth evaluation (requires downloaded Kottek ground truth).
+scripts/node24.sh npx tsx tools/tuning/climate/evaluate.mjs --n 40000 --seed 1234
+# Full stock Q7 baseline: three seeds, previews 50k/200k, finals 1M/2.56M.
+NODE_OPTIONS=--max-old-space-size=24000 scripts/node24.sh npx tsx tools/tuning/ab/run.mjs
+```
+
+Browser measurements write `docs/benchmarks/phase4a-*.json`; the report writes `docs/benchmarks/PHASE4A.md`. The Q7 runner writes `tools/tuning/ab-baseline.json`, with raw runs under ignored `tools/tuning/results/ab/`. Fix metric correctness before recording the baseline. Review measured artifacts and provenance before committing them. The benchmark spec records per-tier failures in JSON, so inspect `ok`/`error` fields as well as process exit status.
+
+## Switching between Claude Code and Codex
+
+Both tools read the same rules: Codex discovers root `AGENTS.md`; Claude Code imports it through `CLAUDE.md`. Use `STATUS.md` as the shared working memory rather than duplicating a separate per-agent task list.
+
+Before handing off, update its current handoff section with:
+
+- The task and phase worked on, resulting behavior, and relevant files.
+- Commands actually run, results, and input/environment limitations.
+- Remaining problems and the next concrete step.
+- Any decision awaiting the user, including the applicable phase boundary.
+
+The receiving agent reads that section and checks the working tree/recent commits before editing. Uncommitted work is a valid handoff; describe it and preserve it. Default to taking turns in the shared checkout. Use separate worktrees if simultaneous work is explicitly requested. Avoid machine-specific agent settings or hooks unless a concrete need appears; the project already supplies its own toolchain wrapper.
