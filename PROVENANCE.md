@@ -33,6 +33,12 @@ Code ported from, or copied out of, an upstream. Each has a test that pins it to
 | `packages/core/src/rng/alea.ts` | alea (npm, the package Azgaar depends on) | `alea.js` | `1.0.1` | MIT | `rng/rng.test.ts`: 10⁵ draws and exported state equal the npm package |
 | `packages/core/src/rng/counter.ts` | Azgaars-Fantasy-Map-Generator | `src/generators/coastline-generator.ts` (`noise()`) | `3d94b80` | MIT | `rng/rng.test.ts`: equals the upstream function body (extracted from the source text) for 20,000 keys |
 
+| `packages/gen-orogen/src/port/rng.ts` | orogen | `js/rng.js` | `cc2662b` | GPL-3.0 | `gen-orogen/src/port/foundation.test.ts`: bit-identical to the vendored JS in dmath native mode. Phase 4b M2 port; changes: types only |
+| `packages/gen-orogen/src/port/simplex-noise.ts` | orogen | `js/simplex-noise.js` | `cc2662b` | GPL-3.0 | `gen-orogen/src/port/foundation.test.ts`: bit-identical to the vendored JS in dmath native mode. Phase 4b M2 port; changes: types only |
+| `packages/gen-orogen/src/port/sphere-mesh.ts` | orogen | `js/sphere-mesh.js` | `cc2662b` | GPL-3.0 | `gen-orogen/src/port/foundation.test.ts`: bit-identical to the vendored JS in dmath native mode (5k, 20k). Phase 4b M2 port; changes: Math.asin/sin/cos → dmath, Delaunator imported, `adjTriList` alias added |
+| `packages/gen-orogen/src/port/climate-util.ts` | orogen | `js/climate-util.js` | `cc2662b` | GPL-3.0 | `gen-orogen/src/port/foundation.test.ts`: bit-identical to the vendored JS in dmath native mode. Phase 4b M2 port; changes: Math.log/exp → dmath |
+| `packages/gen-orogen/src/port/color-map.ts` | orogen | `js/color-map.js` | `cc2662b` | GPL-3.0 | `gen-orogen/src/port/foundation.test.ts`: bit-identical to the vendored JS in dmath native mode. Phase 4b M2 port; changes: types only |
+
 ## Vendored files (verbatim copies)
 
 Copied byte-for-byte from `upstream/orogen` at `cc2662b` into `packages/gen-orogen/vendor/`, never edited. `provenance:check` compares each with `git show cc2662b:<path>` whenever `upstream/orogen` is present (the nightly job). Vendored JS is excluded from lint and from `dmath` rules; it calls `Math.*` directly, so it runs only on the orogen parity path (`dmath.withMode('native')`, stages flagged `parity`).
