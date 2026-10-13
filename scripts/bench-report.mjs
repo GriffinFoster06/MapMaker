@@ -1,6 +1,6 @@
 // Builds docs/benchmarks/PHASE4A.md from the per-browser JSON files that `npm run bench` writes.
 // Usage: node scripts/bench-report.mjs
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
 import console from 'node:console';
@@ -17,6 +17,9 @@ md += 'Each tier runs the shell\'s orogen pipeline (stages 1-5 and 8) in the eng
 md += '- **generation** is the sum of the six stage durations measured from progress events; **total** also includes transferring the mesh, building the globe and painting the first layer.\n';
 md += '- **working set** is the logical size of mesh and layer arrays in the worker (every browser).\n';
 md += '- **peak RSS** is the peak resident memory of all processes started from the Playwright browser install, sampled with `ps` every 100 ms (macOS and Linux). It covers page, worker and helpers, and includes the browser\'s own baseline (shown as the second figure).\n\n';
+// Hand-written context for the measurements (environment, caveats), kept outside the generated tables.
+const notes = resolve(dir, 'NOTES.md');
+if (existsSync(notes)) md += readFileSync(notes, 'utf8').trim() + '\n\n';
 for (const r of runs) {
   const m = r.meta;
   md += `## ${m.browser} on ${m.platform}\n\n${m.cpu}, ${m.cores} cores, ${m.ramGB} GB RAM, ${m.date.slice(0, 10)}\n\n`;
@@ -28,11 +31,14 @@ for (const r of runs) {
   }
   md += '\n';
 }
-md += '## Against the §6.2 budget\n\n| Tier | Budget | Measured peak RSS, worst browser |\n|---|---|---|\n';
+md += '## Against the §6.2 budget\n\n§6.2 budgets the working set. Peak RSS also counts the browser itself, so the growth above the sampled baseline is shown too.\n\n| Tier | Budget (working set) | Working set | Peak RSS, worst browser | Peak above baseline, worst browser |\n|---|---|---|---|---|\n';
 const budget = { '50k': '< 100 MB (preview)', '200k': '< 100 MB (preview)', '500k': '150-300 MB (standard)', '1M': '150-300 MB (standard)', '2.56M': '~400-600 MB (max)' };
 for (const t of tiers) {
   const peaks = runs.map((r) => r.results.find((q) => q.tier === t)).filter((x) => x?.ok && x.peakRssMB != null).map((x) => x.peakRssMB);
-  md += `| ${t} | ${budget[t]} | ${peaks.length ? Math.max(...peaks) + ' MB' : 'n/a'} |\n`;
+  const ok = runs.map((r) => r.results.find((q) => q.tier === t)).filter((x) => x?.ok);
+  const ws = ok.map((x) => x.workingSetMB);
+  const above = ok.filter((x) => x.peakRssMB != null && x.baselineRssMB != null).map((x) => x.peakRssMB - x.baselineRssMB);
+  md += `| ${t} | ${budget[t]} | ${ws.length ? Math.max(...ws) + ' MB' : 'n/a'} | ${peaks.length ? Math.max(...peaks) + ' MB' : 'n/a'} | ${above.length ? Math.max(...above) + ' MB' : 'n/a'} |\n`;
 }
 writeFileSync(resolve(dir, 'PHASE4A.md'), md);
 console.log(`wrote ${resolve(dir, 'PHASE4A.md')}`);
