@@ -30,7 +30,7 @@ Default to one agent editing a checkout at a time. If the user requests simultan
 - Keep `packages/gen-orogen/vendor/` verbatim. Put changes in adapters or adjacent TypeScript ports.
 - Record new third-party dependencies in `PROVENANCE.md` too.
 - The sphere is the source of truth. Canonical frame: +Z north, +X (0°N, 0°E), +Y (0°N, 90°E); canonical elevation is metres. Respect adapter-private `orogen.*` layers and explicit frame/unit conversions.
-- Quality over size and speed: optimize only up to the point of noticeable loss, and measure any output-changing optimization against full quality before adopting it (`docs/REQUIREMENTS.md`, Realism and performance).
+- Quality over size and speed, in every system: optimize only where there is no discernible difference (no measured metric worse, not even by 1%; no reduced precision), and measure any output-changing optimization against full quality before adopting it (`docs/REQUIREMENTS.md`, Realism and performance).
 - Preserve exact resume and deterministic outputs. Do not refresh golden hashes or calibration baselines simply to make a failing test pass; investigate and explain intentional changes.
 - Do not destructure `dmath` at module load; mode switches replace its functions.
 - Every repo in `upstream/` may be extracted, ported or used as an algorithm reference, whatever its licence (ARCHITECTURE.md Q12). Pick the best implementation on quality and fit. Licences are still recorded in `PROVENANCE.md` for every extraction.

@@ -150,7 +150,10 @@ Given a regional map plus a set of world conditions, infer the most likely tecto
 ## Realism and performance
 
 - Prioritize realism over speed.
-- **Optimize up to the point of noticeable loss, and no further.** Like compressing a PNG: reduce size, memory and run time wherever the result is indistinguishable, but never accept a quality loss that a user would notice. Every optimization that changes output (lower resolution, coarser solves, quantized storage, approximations, skipped detail) must be measured against the full-quality result, with metrics such as the Q7 A/B set, Earth tests or visual comparison, before it is adopted. When in doubt, keep the quality. Optimizations that do not change output (faster code, same answer) are always welcome.
+- **Optimize only where there is no discernible difference.** This applies to every system (data, numerics, storage, rendering, simulation, exports), not to one format. A lightly compressed image that cannot be told from the original is fine; one that shows artefacts is not. The bar is no discernible loss, not "small" loss: an optimization that makes any measured quality metric worse, even by 1%, is rejected.
+  - **Precision is never cut for convenience.** Constants and arithmetic keep the full precision of the number type in use (no π to 5 digits); where float64 is not enough for a result, use higher-precision arithmetic rather than accept the error.
+  - Every optimization that changes output (lower resolution, coarser solves, quantized storage, approximations, skipped detail) must be measured against the full-quality result before it is adopted (Q7 A/B metrics, Earth tests, visual comparison). When in doubt, keep the quality.
+  - Optimizations that do not change output (faster code, same answer) are always welcome.
 - Provide a fidelity/speed slider before each generation run: a fast, rough seed preview, followed by a slow, detailed run using the same seed. The preview must be a true preview of the final result, not a different generation.
 - Whether low-resolution output is a faithful preview of high-resolution output must be verified by an A/B test early in the build, not assumed.
 - Deep-time and long-history runs may take a long time. They run in the background with progress, pause, resume and checkpoints, and the app stays usable while they run (note 38).
