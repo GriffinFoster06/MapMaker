@@ -196,6 +196,17 @@ function precipCorr(R, a, b) {
   return { all: corr(() => true), land: corr((c) => a.rLand[c] > 0.5 && b.rLand[c] > 0.5) };
 }
 
+/**
+ * Great-circle distance (km) between vectors i of `u` and j of `v` (xyz triples, e.g. Float32 mouth positions).
+ * atan2(|a×b|, a·b) is well conditioned at every angle and independent of vector length, so identical vectors give exactly
+ * 0; acos(a·b) on unnormalised Float32 vectors gave ~0.8 km for a run compared with itself.
+ */
+export function greatCircleKm(u, i, v, j) {
+  const ax = u[3 * i], ay = u[3 * i + 1], az = u[3 * i + 2], bx = v[3 * j], by = v[3 * j + 1], bz = v[3 * j + 2];
+  const cx = ay * bz - az * by, cy = az * bx - ax * bz, cz = ax * by - ay * bx;
+  return Math.atan2(Math.hypot(cx, cy, cz), ax * bx + ay * by + az * bz) * R_KM;
+}
+
 /** Top-10 basins: best IoU per final basin, and (Checkpoint 2) the great-circle distance between the matched river mouths. */
 function basinAgree(R, a, b) {
   const out = [], mouthKm = [];
@@ -208,8 +219,7 @@ function basinAgree(R, a, b) {
     }
     out.push(+best.toFixed(3));
     if (bestJ >= 0) {
-      const dot = b.topMouth[3 * k] * a.topMouth[3 * bestJ] + b.topMouth[3 * k + 1] * a.topMouth[3 * bestJ + 1] + b.topMouth[3 * k + 2] * a.topMouth[3 * bestJ + 2];
-      mouthKm.push(Math.acos(Math.max(-1, Math.min(1, dot))) * R_KM);
+      mouthKm.push(greatCircleKm(b.topMouth, k, a.topMouth, bestJ));
     }
   }
   const sorted = [...mouthKm].sort((x, y) => x - y);

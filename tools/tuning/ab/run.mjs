@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import os from 'node:os';
 import { runAb } from './ab.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -41,7 +42,10 @@ export function q7(c) {
 const commit = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: HERE }).toString().trim();
 const baseline = {
   _note: 'Q7 baseline of stock orogen run through the shell (Phase 4a). Reference = L0 (orogen coarse mesh, seed+137). No gate yet: Phase 4b defines regression against this file.',
-  commit, previews, finals, refMode: 'L0', seeds: {},
+  commit, previews, finals, refMode: 'L0',
+  // Orogen's parity stages run in native-libm mode, so the last bits can differ across OSes and CPUs.
+  platform: { os: `${os.platform()} ${os.arch()}`, cpu: os.cpus()[0]?.model ?? 'unknown', node: process.version, date: new Date().toISOString() },
+  seeds: {},
 };
 fs.mkdirSync(path.join(HERE, '..', 'results', 'ab'), { recursive: true });
 for (const seed of seeds) {
