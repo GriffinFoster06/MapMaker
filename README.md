@@ -10,6 +10,10 @@ The project prioritizes physical plausibility, deterministic generation, exact s
 
 **Phase 4a, in progress:** the TypeScript shell runs orogen's terrain and climate stages in a worker and displays a Three.js globe with selectable layers. The core includes spherical meshes, typed layers, entities, timelines, seeded RNGs, deterministic math, and a versioned save container. Most later simulation systems are still planned. See [STATUS.md](STATUS.md) for current checks and unfinished work.
 
+## Live site
+
+The app deploys to Cloudflare Pages (primary, cross-origin isolated) and to GitHub Pages at https://griffinfoster06.github.io/MapMaker/ (mirror). See `docs/ARCHITECTURE.md` Q18.
+
 ## Run locally
 
 Use the project-local Node pinned in `.nvmrc`; the wrapper isolates Node, npm cache, and Playwright browsers under `.tools/`.

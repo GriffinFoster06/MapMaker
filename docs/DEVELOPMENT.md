@@ -23,7 +23,7 @@ MapMaker is a new strict TypeScript shell around selected upstream implementatio
 | `tools/fdlibm-vectors/` | Reference C vector generation for the deterministic math port. |
 | `apps/web/e2e/`, `apps/web/bench/` | Cross-browser correctness checks and separate performance measurements. |
 | `spikes/`, `audit/` | Historical feasibility experiments/results and upstream capability assessments. Not shipped in the app. |
-| `.github/workflows/` | CI checks, three-OS determinism matrix, nightly upstream parity, Pages deployment and live smoke tests. |
+| `.github/workflows/` | CI checks, three-OS determinism matrix, nightly upstream parity, deployments with live smoke tests: Cloudflare Pages (`cloudflare.yml`, primary, native COOP/COEP from `apps/web/public/_headers`, a preview per pull request; needs the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets) and GitHub Pages (`pages.yml`, mirror, opt-in `?coi` shim). See ARCHITECTURE.md Q18. |
 
 The runtime path is `app.ts` → `EngineClient` → browser engine worker → `startOrogenHost` → `runPipeline` → `World`. Mesh/layer copies return to the main thread for rendering. Browser and Node hosts reuse the same generation packages.
 

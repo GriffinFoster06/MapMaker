@@ -1,10 +1,13 @@
 import { expect, test } from '@playwright/test';
 
-// ARCHITECTURE §3.7: GitHub Pages cannot set COOP/COEP headers. Default is transferable ArrayBuffers; the
-// coi-serviceworker shim is an optional upgrade to SharedArrayBuffer.
-test('without the shim: not isolated, transferable buffers work', async ({ page }) => {
+// ARCHITECTURE §3.7 and Q18: GitHub Pages and the local preview cannot set COOP/COEP headers, so there the default is
+// transferable ArrayBuffers and the coi-serviceworker shim is an optional upgrade to SharedArrayBuffer. Cloudflare Pages
+// sends the headers (apps/web/public/_headers); its smoke test sets E2E_EXPECT_ISOLATED=1.
+const nativeHeaders = !!process.env['E2E_EXPECT_ISOLATED'];
+
+test('without the shim: isolation matches the host, transferable buffers work', async ({ page }) => {
   await page.goto('./');
-  expect(await page.evaluate(() => self.crossOriginIsolated)).toBe(false);
+  expect(await page.evaluate(() => self.crossOriginIsolated)).toBe(nativeHeaders);
   const moved = await page.evaluate(async () => {
     const w = new Worker(URL.createObjectURL(new Blob(['onmessage=e=>{const a=new Float64Array(e.data);postMessage(a.reduce((s,x)=>s+x,0))}'])));
     const buf = new Float64Array([1, 2, 3, 4]).buffer;
