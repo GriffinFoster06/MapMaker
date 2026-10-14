@@ -55,3 +55,27 @@ jobs:
             tools/tuning/ab-current.json
             tools/tuning/results/ab/
           retention-days: 30
+
+  realism-gate:
+    name: Realism gate, 2.56M (structured)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Realism run (seeds 1, 777, 12345; structured only, compared with the committed stock and structured baseline)
+        env:
+          NODE_OPTIONS: --max-old-space-size=13000
+        run: npx tsx tools/tuning/realism/realism.mjs --N 2560000 --seeds 1,777,12345 --pipelines structured --out realism-current.json
+      - name: Gate
+        run: npx tsx tools/tuning/realism/gate.mjs --current realism-current.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: realism-gate
+          path: realism-current.json
+          retention-days: 30

@@ -1,0 +1,138 @@
+{
+ "N": 2560000,
+ "seeds": {
+  "1": {
+   "parity": {
+    "landFrac": 0.294,
+    "hypsometryM": {
+     "p5": 0,
+     "p25": 6,
+     "p50": 28,
+     "p75": 123,
+     "p95": 1177,
+     "p99": 2766
+    },
+    "slopeMPerKm": {
+     "p50": 1.078,
+     "p90": 19.964,
+     "p99": 66.342
+    },
+    "hackExponent": 0.602,
+    "riverKmPer1000Km2": {
+     "a1e3": 16.695,
+     "a1e4": 6.116
+    }
+   },
+   "structured": {
+    "landFrac": 0.289,
+    "hypsometryM": {
+     "p5": 0,
+     "p25": 18,
+     "p50": 67,
+     "p75": 372,
+     "p95": 2848,
+     "p99": 5900
+    },
+    "slopeMPerKm": {
+     "p50": 2.085,
+     "p90": 30.967,
+     "p99": 95.207
+    },
+    "hackExponent": 0.594,
+    "riverKmPer1000Km2": {
+     "a1e3": 18.41,
+     "a1e4": 6.335
+    }
+   }
+  },
+  "777": {
+   "parity": {
+    "landFrac": 0.277,
+    "hypsometryM": {
+     "p5": 0,
+     "p25": 8,
+     "p50": 42,
+     "p75": 231,
+     "p95": 2353,
+     "p99": 5195
+    },
+    "slopeMPerKm": {
+     "p50": 1.651,
+     "p90": 30.846,
+     "p99": 88.607
+    },
+    "hackExponent": 0.614,
+    "riverKmPer1000Km2": {
+     "a1e3": 16.737,
+     "a1e4": 6.251
+    }
+   },
+   "structured": {
+    "landFrac": 0.266,
+    "hypsometryM": {
+     "p5": 0,
+     "p25": 13,
+     "p50": 52,
+     "p75": 278,
+     "p95": 2671,
+     "p99": 5854
+    },
+    "slopeMPerKm": {
+     "p50": 1.793,
+     "p90": 29.287,
+     "p99": 95.786
+    },
+    "hackExponent": 0.578,
+    "riverKmPer1000Km2": {
+     "a1e3": 18.181,
+     "a1e4": 6.357
+    }
+   }
+  },
+  "12345": {
+   "parity": {
+    "landFrac": 0.28,
+    "hypsometryM": {
+     "p5": 0,
+     "p25": 6,
+     "p50": 29,
+     "p75": 120,
+     "p95": 1402,
+     "p99": 3841
+    },
+    "slopeMPerKm": {
+     "p50": 0.975,
+     "p90": 20.75,
+     "p99": 68.129
+    },
+    "hackExponent": 0.606,
+    "riverKmPer1000Km2": {
+     "a1e3": 16.767,
+     "a1e4": 6.235
+    }
+   },
+   "structured": {
+    "landFrac": 0.28,
+    "hypsometryM": {
+     "p5": 0,
+     "p25": 17,
+     "p50": 69,
+     "p75": 333,
+     "p95": 2892,
+     "p99": 5868
+    },
+    "slopeMPerKm": {
+     "p50": 1.98,
+     "p90": 30.811,
+     "p99": 94.23
+    },
+    "hackExponent": 0.603,
+    "riverKmPer1000Km2": {
+     "a1e3": 18.428,
+     "a1e4": 6.471
+    }
+   }
+  }
+ },
+ "source": "tools/tuning/realism/realism.mjs, 2026-10-14 (Checkpoint 4b); parity = stock orogen, structured = Phase 4b pipeline"
+}

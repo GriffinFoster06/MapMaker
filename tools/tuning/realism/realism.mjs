@@ -1,5 +1,7 @@
 // Realism statistics of a generated world (Phase 4b M10): restructuring must not flatten the world. Original shell code.
 // Usage: NODE_OPTIONS=--max-old-space-size=13000 tsx tools/tuning/realism/realism.mjs [--N 2560000] [--seeds 1,777,12345]
+//          [--pipelines parity,structured] [--out <file>]   (default out: tools/tuning/results/realism-<N>.json)
+// The nightly gate (gate.mjs) runs only the structured pipeline and compares it with the committed baseline.json.
 // For stock orogen (parity) and the structured pipeline at the same N and seed, on land cells:
 //   hypsometry   elevation percentiles (m) and land fraction;
 //   slope        percentiles of the mean absolute gradient to neighbours (m/km);
@@ -84,10 +86,11 @@ export function realismStats(mesh, raw) {
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const N = Number(arg('N', '2560000'));
   const seeds = arg('seeds', '1,777,12345').split(',').map(Number);
+  const pipelines = arg('pipelines', 'parity,structured').split(',');
   const out = { N, seeds: {} };
   for (const seed of seeds) {
     out.seeds[seed] = {};
-    for (const pipeline of ['parity', 'structured']) {
+    for (const pipeline of pipelines) {
       const t0 = performance.now();
       const w = createOrogenWorld({ N, seed });
       await runPipeline(w, [...orogenStages, ...structuredStages], { variant: pipeline === 'structured' ? STRUCTURED : 'parity', strict: false });
@@ -97,7 +100,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
       console.error(`seed ${seed} ${pipeline} N=${N}: ${ms} ms`, JSON.stringify(out.seeds[seed][pipeline]));
     }
   }
-  const file = path.join(HERE, '..', 'results', `realism-${N}.json`);
+  const file = arg('out', path.join(HERE, '..', 'results', `realism-${N}.json`));
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(out, null, 1));
   console.error(`wrote ${file}`);

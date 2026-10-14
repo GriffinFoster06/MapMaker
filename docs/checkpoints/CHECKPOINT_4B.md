@@ -1,6 +1,6 @@
 # Checkpoint 4b: preview restructure behind the A/B gate (D5, design note 14)
 
-Date: 2026-10-14. Branch `claude/bold-dijkstra-k0fgj1`, draft PR GriffinFoster06/MapMaker#4. Phase 4b stops here and waits for review (ARCHITECTURE §7).
+Date: 2026-10-14. Branch `claude/bold-dijkstra-k0fgj1`, draft PR GriffinFoster06/MapMaker#4. Phase 4b stopped here for review (ARCHITECTURE §7). **Accepted on 2026-10-14**; the decisions are listed at the end.
 
 ## Verdict
 
@@ -183,3 +183,23 @@ Whole pipeline in Node (A/B harness, this machine: Xeon @ 2.8 GHz, Node 24.21), 
 - **`npm run e2e`** (Chromium, Firefox headed under Xvfb, WebKit): 15 of 15 pass.
 - **Q7:** the full three-seed A/B was run twice, for round 0 and round 1; the gate passes against its baseline.
 - **CI:** green on every completed run of the branch.
+
+## Decisions (2026-10-14)
+
+The user delegated these decisions to the agent, to be taken in line with the project's goals: realism first, and a preview you can trust.
+
+1. **Coastline p95 ≤ 2 preview cells:** applies from the 200k tier. 50k is tracked against regression only. Accepted.
+2. **Native-cell hypsometry KS ≤ 0.05 from 200k:** accepted as the target. It is currently missed, so it is regression-only until I3 holds.
+3. **River-mouth median distance ≤ 2 preview-cell widths from 200k:** accepted as the target. It is currently missed against 2.56M, so it is regression-only until I3 holds.
+4. **Köppen ≥ 90% from 200k:** kept.
+5. **Basins ≥ 7 of 10 from 200k:** kept.
+6. **Realism gate:** built. `tools/tuning/realism/gate.mjs`, with its test, runs nightly at 2.56M against `tools/tuning/realism/baseline.json` (this report's numbers). It fails if:
+   - hypsometry p50–p99 or slope p50–p99 drops below the structured baseline;
+   - hypsometry p95 or slope p50 drops below stock orogen;
+   - land fraction moves more than 0.02 from stock;
+   - Hack's exponent leaves [0.5, 0.65];
+   - river density moves more than 20 % from stock.
+7. **I3** moves to Phase 7 (ARCHITECTURE §7). The Phase 7 A/B already re-runs the gate with the slow pass as final.
+8. **Peak browser memory** is measured and broken down at the start of the next phase, before new features. Reductions must leave output bit-identical.
+9. **Deviations from note 14:** accepted as built (§3.12 "As built").
+10. **Checkpoint 4b is accepted** and PR #4 is merged. No new phase is started.

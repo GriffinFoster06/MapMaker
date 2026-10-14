@@ -4,7 +4,7 @@
 
 Read `STATUS.md` for the current state, `ARCHITECTURE.md` for approved decisions and the phase plan, and `REQUIREMENTS.md` for product intent. The 38 notes in `design/` describe future implementations; a design note is not evidence a feature exists. `ARCHITECTURE.md` §7.0 gives the roadmap and which phase builds each note.
 
-MapMaker is a new strict TypeScript shell around selected upstream implementations. One spherical `World` owns canonical state. Generation runs in workers; views sample that state. The planned fidelity slider uses a fixed reference pass plus a detail pass because Phase 1 demonstrated that stock orogen at low resolution is not a faithful preview of its high-resolution output. That restructure is **Phase 4b**, after the Phase 4a checkpoint.
+MapMaker is a new strict TypeScript shell around selected upstream implementations. One spherical `World` owns canonical state. Generation runs in workers; views sample that state. The fidelity slider uses a fixed reference pass plus a detail pass, because Phase 1 showed that stock orogen at low resolution is not a faithful preview of its high-resolution output. That restructure is **Phase 4b**; it was accepted at Checkpoint 4b, 2026-10-14.
 
 ## Code map
 
@@ -20,7 +20,7 @@ MapMaker is a new strict TypeScript shell around selected upstream implementatio
 | `tools/provenance/` | Checks vendored bytes against pinned upstream commits when available, source headers, copied assets, and dependency licenses. |
 | `tools/tuning/climate/` | Headless Earth calibration through the shell, Kottek data fetcher, optimizer, committed climate baseline; `lib/structured.mjs` scores the structured pipeline's climate (decision D7). |
 | `tools/tuning/ab/` | Q7 fidelity harness (spike 1c lineage) for either pipeline (`--pipeline parity|structured`); `gate.mjs` is the regression gate against `tools/tuning/ab-baseline.structured.json` (CI `ab-gate`, nightly with the 2.56M final). |
-| `tools/tuning/realism/` | Realism statistics of a world (hypsometry, slope, Hack's law, river density), stock against structured. |
+| `tools/tuning/realism/` | Realism statistics of a world (hypsometry, slope, Hack's law, river density), stock against structured; `gate.mjs` fails a flatter or out-of-bounds structured world against `baseline.json` (nightly, 2.56M). |
 | `tools/fdlibm-vectors/` | Reference C vector generation for the deterministic math port. |
 | `apps/web/e2e/`, `apps/web/bench/` | Cross-browser correctness checks and separate performance measurements. |
 | `spikes/`, `audit/` | Historical feasibility experiments/results and upstream capability assessments. Not shipped in the app. |
@@ -90,6 +90,9 @@ NODE_OPTIONS=--max-old-space-size=13000 scripts/node24.sh npx tsx tools/tuning/a
 scripts/node24.sh npx tsx tools/tuning/ab/gate.mjs --current tools/tuning/ab-baseline.structured.json
 # Realism statistics, stock against structured (2.56M by default).
 NODE_OPTIONS=--max-old-space-size=13000 scripts/node24.sh npx tsx tools/tuning/realism/realism.mjs
+# Realism gate (nightly): structured only, against tools/tuning/realism/baseline.json.
+NODE_OPTIONS=--max-old-space-size=13000 scripts/node24.sh npx tsx tools/tuning/realism/realism.mjs --pipelines structured --out realism-current.json
+scripts/node24.sh npx tsx tools/tuning/realism/gate.mjs --current realism-current.json
 ```
 
 Browser measurements write `docs/benchmarks/phase4b-*.json` for the structured pipeline (default) or `docs/benchmarks/phase4a-*.json` with `BENCH_VARIANT=parity` (stock orogen); the report writes `docs/benchmarks/PHASE4A.md`. The Q7 runner writes `tools/tuning/ab-baseline.json`, with raw runs under ignored `tools/tuning/results/ab/`. Fix metric correctness before recording the baseline. Review measured artifacts and provenance before committing them. The benchmark spec records per-tier failures in JSON, so inspect `ok`/`error` fields as well as process exit status.
