@@ -8,6 +8,8 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { buildEarthContext } from './lib/earth-context.mjs';
 // @ts-expect-error plain JS modules, not type-checked
 import { evaluateParams } from './lib/score.mjs';
+// @ts-expect-error plain JS modules, not type-checked
+import { evaluateStructured } from './lib/structured.mjs';
 import baseline from './baseline.json';
 
 const ROOT = resolve(__dirname, '../../..');
@@ -33,6 +35,19 @@ describe.skipIf(!HAVE_DATA)('Earth tuning harness on the shell', () => {
     expect(b).not.toBe(a);
     expect(c).toBe(a);
   }, 120_000);
+});
+
+// Phase 4b M8, decision D7: the structured pipeline's climate (solved on the 20k reference mesh, downscaled to N) may
+// score at most 0.02 below the stock baseline on the Earth example, and reproduces its own recorded scores exactly.
+describe.skipIf(!HAVE_DATA)('structured climate on the Earth example (D7)', () => {
+  it.each(Object.keys(baseline.runs))('objective within 0.02 of the stock baseline, and equal to its record, at N=%s', async (n) => {
+    const ctx = await buildEarthContext({ N: Number(n), seed: 1234 });
+    const { metrics } = evaluateStructured(ctx);
+    const stock = (baseline.runs as Record<string, { objective: number }>)[n]!.objective;
+    expect(metrics.objective).toBeGreaterThanOrEqual(stock - 0.02);
+    const rec = (baseline as unknown as { structured: Record<string, Record<string, number>> }).structured[n]!;
+    for (const k of SCALARS) expect(metrics[k], k).toBe(rec[k]);
+  }, 300_000);
 });
 
 // upstream/ is read-only: the stock harness runs from a copy inside the repo (so node_modules resolves) under .tools/.
