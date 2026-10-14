@@ -168,7 +168,13 @@ export interface PhasorKernel { x: number; y: number; z: number; dx: number; dy:
  * Structural placements shared across resolutions (Phase 4b, design note 14 §3.3). Pass an empty object to record
  * the placements orogen makes; pass a filled one to reuse them. Omitted: stock behaviour.
  */
-export interface ElevationStructure { phasorKernels?: PhasorKernel[] }
+export interface ElevationStructure {
+    phasorKernels?: PhasorKernel[];
+    /** Called with the stage 1–3 fields as computed (the reference pass records them). */
+    onFields?: (f: StageFields) => void;
+    /** Replaces the stage 1–3 fields before stage 4 (the detail pass supplies fields prolonged from the reference). */
+    fields?: (computed: StageFields) => StageFields;
+}
 interface ArcCandidate { r: number; x: number; y: number; z: number; stressNorm: number; score: number }
 interface VolcCandidate { r: number; x: number; y: number; z: number; score: number; stressLocal: number }
 /** Volcano; invS2 is attached after placement. */
@@ -184,9 +190,11 @@ interface Dome extends TangentFrame {
     invS2Caldera: number; ageFactor: number;
 }
 interface LipSite extends TangentFrame { x: number; y: number; z: number; sigma: number; height: number; aspect: number }
-type Tect = ReturnType<typeof computeTectonicState>;
-type Fields = ReturnType<typeof computeSpatialFields>;
-type Terrain = ReturnType<typeof classifyTerrain>;
+export type Tect = ReturnType<typeof computeTectonicState>;
+export type Fields = ReturnType<typeof computeSpatialFields>;
+export type Terrain = ReturnType<typeof classifyTerrain>;
+/** The tectonic, spatial and classification fields of stages 1–3, which every later stage reads. */
+export interface StageFields { tect: Tect; sf: Fields; tt: Terrain }
 
 // ─────────────────────────────────────────────────────────────────────────
 //  Preserved low-level helpers (used internally by stages 1-2)
@@ -2600,15 +2608,18 @@ export function assignElevation(mesh: PortMesh, r_xyz: Xyz, plateIsOcean: Readon
     };
 
     // Stage 1
-    const tect = computeTectonicState(mesh, r_xyz, plateIsOcean, r_plate, plateVec, plateSeeds, plateDensity, noise, superPlateData, r_mantleField, spread);
+    let tect = computeTectonicState(mesh, r_xyz, plateIsOcean, r_plate, plateVec, plateSeeds, plateDensity, noise, superPlateData, r_mantleField, spread);
     _timing.push({ stage: '1. Tectonic state', ms: performance.now() - _t0 }); _t0 = performance.now();
 
     // Stage 2
-    const sf = computeSpatialFields(mesh, r_xyz, r_plate, plateIsOcean, tect, seed, superPlateData);
+    let sf = computeSpatialFields(mesh, r_xyz, r_plate, plateIsOcean, tect, seed, superPlateData);
     _timing.push({ stage: '2. Spatial fields', ms: performance.now() - _t0 }); _t0 = performance.now();
 
     // Stage 3
-    const tt = classifyTerrain(mesh, r_xyz, tect, sf, seed);
+    let tt = classifyTerrain(mesh, r_xyz, tect, sf, seed);
+    // Phase 4b (design note 14 §3.4): record the fields, or replace them with the reference's, before stage 4.
+    structure?.onFields?.({ tect, sf, tt });
+    if (structure?.fields) ({ tect, sf, tt } = structure.fields({ tect, sf, tt }));
     debugLayers.basin = tt.r_basinFactor;
     debugLayers.tecActivity = tt.r_tectonicActivity;
     debugLayers.noiseAmp = tt.r_noiseAmp;

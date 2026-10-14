@@ -10,12 +10,12 @@
 // result. Anchoring in metres was measured to lose 4–5 points of land fraction: orogen's height map is linear to
 // −5 km at sea but quartic near the coast, so cell means in metres are dominated by ocean depth.
 import { type Drainage, MinHeap, MultiLevel, type SphereMesh } from '@mapmaker/core';
-import { CLIMATE } from '../../vendor/js/climate-config.js';
 import type { OrogenParams } from '../params';
 import * as port from '../port';
 import { computeDetailDampenField, computeOrogenicField, runPostProcessing } from '../orchestration';
 import { type OMesh, type OrogenLib, type Scratch, type Tectonics, computeTectonics } from '../scratch';
 import type { ReferenceState } from './reference';
+import type { StageFields } from '../port/elevation';
 
 const lib = port as unknown as OrogenLib;
 
@@ -23,6 +23,9 @@ const lib = port as unknown as OrogenLib;
 export const SIGN_LOCK_FLOOR = 1e-4;
 /** Rounds of sign lock followed by smooth anchoring, before the exact sign-safe step. */
 export const SIGN_LOCK_ROUNDS = 8;
+
+/** Mean cell spacing (km) of an N-cell sphere mesh: h(N) = πR/√N (design note 14 §2). */
+export const cellSpacingKm = (n: number): number => (Math.PI * 6371) / Math.sqrt(n);
 
 /** orogen raw elevation → metres (F2). */
 export const rawToMetres = (e: number): number => port.elevToHeightKm(e) * 1000;
@@ -61,22 +64,89 @@ export interface ElevationDetail {
   signViolations: number;
 }
 
+/** P on L0 values where all three interpolation vertices are finite; elsewhere the parent's value (Infinity or not). */
+function prolongFinite(ml: MultiLevel, a: ArrayLike<number>, scale = 1): Float32Array<ArrayBuffer> {
+  const C = ml.interpCells, W = ml.interpWeights, out = new Float32Array(ml.n1);
+  for (let i = 0, k = 0; i < ml.n1; i++, k += 3) {
+    const a0 = a[C[k]!]!, a1 = a[C[k + 1]!]!, a2 = a[C[k + 2]!]!;
+    out[i] = Number.isFinite(a0) && Number.isFinite(a1) && Number.isFinite(a2)
+      ? (W[k]! * a0 + W[k + 1]! * a1 + W[k + 2]! * a2) * scale
+      : a[ml.parentOf[i]!]! * scale;
+  }
+  return out;
+}
+
+function prolongNearestTyped<T extends Uint8Array | Int8Array>(ml: MultiLevel, a: T): T {
+  const out = new (a.constructor as new (n: number) => T)(ml.n1);
+  return ml.prolongNearest(a, out);
+}
+
+/**
+ * orogen's stage 1–3 fields at N, taken from the reference (design note 14 §3.4): continuous fields by P, hop-count
+ * distances by P rescaled from L0 hops to N hops (×√(N/N_ref)), flags and boundary types by parent, the stress
+ * direction by interpolation re-projected onto the tangent plane. N's own plate-based ocean mask, cell sets and
+ * resolution-scaled parameters are kept: they follow the plate partition and the mesh spacing at N.
+ */
+export function prolongStageFields(ml: MultiLevel, ref: StageFields, atN: StageFields, fine_xyz: ArrayLike<number>): StageFields {
+  const hops = Math.sqrt(ml.n1 / ml.n0);
+  const c = (a: ArrayLike<number>) => prolongFinite(ml, a);
+  const d = (a: ArrayLike<number>) => prolongFinite(ml, a, hops);
+  const { tect: rt, sf: rs, tt: rtt } = ref;
+  const dir: Float32Array<ArrayBuffer> = new Float32Array(3 * ml.n1);
+  {
+    const C = ml.interpCells, W = ml.interpWeights, sd = rt.r_stressDir;
+    for (let i = 0, k = 0; i < ml.n1; i++, k += 3) {
+      let x = 0, y = 0, z = 0;
+      for (let j = 0; j < 3; j++) { const v = 3 * C[k + j]!, w = W[k + j]!; x += w * sd[v]!; y += w * sd[v + 1]!; z += w * sd[v + 2]!; }
+      const px = fine_xyz[3 * i]!, py = fine_xyz[3 * i + 1]!, pz = fine_xyz[3 * i + 2]!;
+      const rad = x * px + y * py + z * pz;
+      x -= rad * px; y -= rad * py; z -= rad * pz;
+      const len = Math.sqrt(x * x + y * y + z * z);
+      if (len > 1e-6) { dir[3 * i] = x / len; dir[3 * i + 1] = y / len; dir[3 * i + 2] = z / len; }
+    }
+  }
+  return {
+    tect: {
+      ...atN.tect,
+      r_stress: c(rt.r_stress), r_stressDir: dir, r_subductFactor: c(rt.r_subductFactor),
+      r_boundaryType: prolongNearestTyped(ml, rt.r_boundaryType), r_bothOcean: prolongNearestTyped(ml, rt.r_bothOcean),
+      r_hasOcean: prolongNearestTyped(ml, rt.r_hasOcean), r_mantleNorm: rt.r_mantleNorm ? c(rt.r_mantleNorm) : null, maxStress: rt.maxStress,
+    },
+    sf: {
+      ...atN.sf,
+      dist_mountain: d(rs.dist_mountain), dist_ocean: d(rs.dist_ocean), dist_coastline: d(rs.dist_coastline),
+      dist_coast: d(rs.dist_coast), dist_coast_land: d(rs.dist_coast_land), dBdry: d(rs.dBdry),
+      coastStressMax: c(rs.coastStressMax), coastSubductMax: c(rs.coastSubductMax), coastConvergent: prolongNearestTyped(ml, rs.coastConvergent),
+      riftDist: d(rs.riftDist), ridgeDist: d(rs.ridgeDist), fractureDist: d(rs.fractureDist), backArcDist: d(rs.backArcDist),
+      backArcStress: c(rs.backArcStress),
+    },
+    tt: {
+      r_basinFactor: c(rtt.r_basinFactor), r_tectonicActivity: c(rtt.r_tectonicActivity), r_t_foldBelt: c(rtt.r_t_foldBelt),
+      r_t_craton: c(rtt.r_t_craton), r_t_basin: c(rtt.r_t_basin), r_t_plateau: prolongNearestTyped(ml, rtt.r_t_plateau), r_noiseAmp: c(rtt.r_noiseAmp),
+    },
+  };
+}
+
 export function runElevationDetail(L1: SphereMesh, ref: ReferenceState, p: OrogenParams): ElevationDetail {
   const omesh = new port.VendorSphereMesh(L1.triangles, L1.halfedges, L1.numRegions) as OMesh;
   const r_xyz = L1.orogenPoints() as Float32Array;
   const s: Scratch = { mesh: omesh, r_xyz, neighborDist: port.computeNeighborDist(omesh, r_xyz) };
 
+  const ml = new MultiLevel(ref.mesh, L1);
+  const n1 = L1.numRegions;
   const tect = computeTectonics(s, p, lib);
   const noise = new port.SimplexNoise(p.seed);
   const res = port.assignElevation(omesh, r_xyz, tect.plateIsOcean, tect.r_plate, tect.plateVec, tect.plateSeeds, noise, p.nMag, p.seed, 5,
-    tect.plateDensity, tect.superPlateData, tect.r_mantleField, { phasorKernels: ref.structure.phasorKernels });
+    tect.plateDensity, tect.superPlateData, tect.r_mantleField, {
+      phasorKernels: ref.structure.phasorKernels,
+      fields: (atN: StageFields) => prolongStageFields(ml, ref.fields, atN, r_xyz),
+    });
   const debug = res.debugLayers as Record<string, Float32Array>;
   const F = new Float32Array(res.r_elevation as Float32Array);
   runPostProcessing(omesh, r_xyz, F, p, s.neighborDist, p.seed, debug['hotspot'],
     computeDetailDampenField(debug['cratonWeight'], debug['basinWeight']), computeOrogenicField(debug['orogenicPower']), lib);
 
-  const ml = new MultiLevel(ref.mesh, L1);
-  const n1 = L1.numRegions, n0 = ref.mesh.numRegions;
+  const n0 = ref.mesh.numRegions;
   const native = Float64Array.from(F);
   const refE = Float64Array.from(ref.elevRaw);
   const detail = ml.zeroMeanPerParent(native);
@@ -196,8 +266,11 @@ export interface ClimateDetail {
 /**
  * Climate at N from the reference climate:
  * - wind, currents and pressure: prolonged (vectors in 3D, re-projected);
- * - temperature: T = P(T_ref) + Γ·(P(h_ref) − h), orogen's moisture-dependent lapse rate Γ (temperature.ts) on land,
- *   then anchored additively so R(T) = T_ref;
+ * - temperature: P(T_ref), anchored additively so R(T) = T_ref. The reference temperature already carries orogen's
+ *   lapse rate at the reference scale. Note 14 §3.6 adds Γ·(P(h_ref) − h) for sub-reference relief; measured at 200k
+ *   against 1M (seed 12345), that term drops preview/final Köppen agreement from 0.97 to 0.72 (1° grid: 0.94 to 0.54),
+ *   because sub-reference relief at N is not the same at every N. It stays off until that relief is consistent across N
+ *   (reported at Checkpoint 4b);
  * - precipitation (orogen's 0–1 moisture index): prolonged and anchored multiplicatively (stays ≥ 0, R(P) = P_ref).
  *   The sub-reference orographic term (Smith–Barstad 2004) is not applied yet: Phase 4b M9 decides on it.
  * - Köppen: orogen's classifier per L1 cell from the downscaled fields.
@@ -205,8 +278,6 @@ export interface ClimateDetail {
 export function runClimateDetail(ref: ReferenceState, d: ElevationDetail): ClimateDetail {
   const { ml } = d;
   const { wind, ocean, precip, temp } = ref.climate;
-  const n1 = ml.n1;
-  const hRef = ml.prolong(Float64Array.from(ref.elevRaw, (e) => (e > 0 ? port.elevToHeightKm(e) : 0)));
   const season = (name: 'summer' | 'winter'): SeasonClimate => {
     const [windEast, windNorth] = prolongEastNorth(ml, ref.r_xyz, d.r_xyz, wind[`r_wind_east_${name}`], wind[`r_wind_north_${name}`]);
     const [currentEast, currentNorth] = prolongEastNorth(ml, ref.r_xyz, d.r_xyz, ocean[`r_ocean_current_east_${name}`], ocean[`r_ocean_current_north_${name}`]);
@@ -215,13 +286,6 @@ export function runClimateDetail(ref: ReferenceState, d: ElevationDetail): Clima
     const precipN = Float32Array.from(ml.anchorMultiplicative(ml.prolong(pRef), pRef));
     const tRef = temp[`r_temperature_${name}`];
     const t = ml.prolong(tRef);
-    for (let i = 0; i < n1; i++) {
-      const e = d.elevRaw[i]!;
-      if (e <= 0) continue;
-      const moisture = precipN[i]!;
-      const lapse = CLIMATE.TEMP_MOIST_LAPSE_C_PER_KM + CLIMATE.TEMP_DRY_LAPSE_EXTRA_C_PER_KM * (1 - moisture);
-      t[i]! += lapse * (hRef[i]! - port.elevToHeightKm(e));
-    }
     const tempN = Float32Array.from(ml.anchorAdditive(t, tRef));
     return { windEast, windNorth, currentEast, currentNorth, pressure, temp: tempN, precip: precipN };
   };

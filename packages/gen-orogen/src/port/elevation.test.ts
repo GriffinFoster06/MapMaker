@@ -188,4 +188,18 @@ describe('shared structure (Phase 4b M4)', () => {
     expect(bytes(replay.r_elevation)).toEqual(bytes(stock.r_elevation));
     expect(bytes(replay.debugLayers.phasorRidge)).toEqual(bytes(stock.debugLayers.phasorRidge));
   });
+
+  it('the fields hooks see the stage 1–3 fields, and an identity replacement reproduces the field exactly', () => {
+    const inp = buildInputs(20000, 777);
+    const run = (structure?: p.ElevationStructure) => {
+      const a = copyArgs(inp, true, true);
+      return p.assignElevation(inp.pmesh, a[0], a[1], a[2], a[3], a[4], new SimplexNoise(777), 0.4, 777, 5, a[5], a[6], a[7], structure);
+    };
+    const stock = run();
+    let seen: p.StageFields | undefined;
+    const hooked = run({ onFields: (f) => { seen = f; }, fields: (f) => f });
+    expect(bytes(hooked.r_elevation)).toEqual(bytes(stock.r_elevation));
+    expect(seen!.tect.r_stress.length).toBe(inp.pmesh.numRegions);
+    expect(seen!.tt.r_t_foldBelt.length).toBe(inp.pmesh.numRegions);
+  });
 });

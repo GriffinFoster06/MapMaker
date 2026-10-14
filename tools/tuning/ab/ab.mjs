@@ -9,15 +9,19 @@
 //   refMode 'spike' reference = the first run's own mesh, as spike 1c did (used to reproduce the spike's numbers).
 import { OrogenLcg, SphereMesh } from '@mapmaker/core';
 import { runPipeline } from '@mapmaker/engine';
-import { createOrogenWorld, orogenStages, getScratch } from '@mapmaker/gen-orogen';
+import { createOrogenWorld, orogenStages, getScratch, structuredStages, STRUCTURED } from '@mapmaker/gen-orogen';
 import { elevToHeightKm } from '../../../packages/gen-orogen/vendor/js/color-map.js';
 import { COARSE_JITTER, N_COARSE } from '../../../packages/gen-orogen/vendor/js/terrain-config.js';
 import { adjacency, dualArea, makeLocator, gridIndex, pointSet, basins, R_KM } from './sphere.mjs';
 
 export const GW = 360, GH = 180, NK = 31, TOPB = 10, MOUNTAIN_M = 1500;
 
-/** Run the shell's orogen pipeline and keep only what the metrics need. */
-export async function summarizeRun({ N, seed, ref, onLog }) {
+/**
+ * Run the shell's orogen pipeline and keep only what the metrics need. `pipeline` 'parity' runs stock orogen (Phase 4a);
+ * 'structured' runs the reference and detail passes (Phase 4b). The metrics are computed identically for both.
+ */
+export async function summarizeRun({ N, seed, ref, onLog, pipeline = 'parity' }) {
+  if (pipeline === 'structured') return summarizeStructured({ N, seed, ref, onLog });
   const t0 = performance.now();
   const world = createOrogenWorld({ N, seed });
   await runPipeline(world, orogenStages, { strict: false });
@@ -35,6 +39,24 @@ export async function summarizeRun({ N, seed, ref, onLog }) {
   for (let r = 0; r < nR; r++) precip[r] = (ps[r] + pw[r]) / 2;
   const koppen = world.layers.get('global', 'koppen');
   return finishRun({ N, nR, ms, xyz: new Float32Array(xyz), adj: { off: new Int32Array(adj.off), list: new Int32Array(adj.list) }, area, E: new Float32Array(E), elevM, precip, koppen: new Uint8Array(koppen), ref, onLog, seed });
+}
+
+async function summarizeStructured({ N, seed, ref, onLog }) {
+  const t0 = performance.now();
+  const world = createOrogenWorld({ N, seed });
+  await runPipeline(world, [...orogenStages, ...structuredStages], { variant: STRUCTURED, strict: false });
+  const ms = performance.now() - t0;
+  const mesh = world.meshes.get('global').mesh;
+  const nR = mesh.numRegions, xyz = mesh.orogenPoints();
+  const area = dualArea(mesh.triangles, xyz, nR);
+  const E = world.layers.get('global', 'detail.elevRaw');
+  const elevM = new Float32Array(nR);
+  for (let r = 0; r < nR; r++) elevM[r] = elevToHeightKm(E[r]) * 1000;
+  const ps = world.layers.get('global', 'precip.summer'), pw = world.layers.get('global', 'precip.winter');
+  const precip = new Float32Array(nR);
+  for (let r = 0; r < nR; r++) precip[r] = (ps[r] + pw[r]) / 2;
+  const koppen = world.layers.get('global', 'koppen');
+  return finishRun({ N, nR, ms, xyz: new Float32Array(xyz), adj: { off: new Int32Array(mesh.adjOffset), list: new Int32Array(mesh.adjList) }, area, E: new Float32Array(E), elevM, precip, koppen: new Uint8Array(koppen), ref, onLog, seed });
 }
 
 function finishRun({ N, nR, ms, xyz, adj, area, E, elevM, precip, koppen, ref, onLog, seed }) {
@@ -262,13 +284,13 @@ export function compare(R, a, b) {
  * One seed: runs the shell pipeline at each N (previews first, the last N is the final) and compares every earlier run
  * with every later one that is listed in `finals`. Returns the spike-1c-shaped result plus the Checkpoint 2 metrics.
  */
-export async function runAb({ seed, Ns, refMode = 'L0', finals = [Ns[Ns.length - 1]], onLog = () => {} }) {
+export async function runAb({ seed, Ns, refMode = 'L0', finals = [Ns[Ns.length - 1]], onLog = () => {}, pipeline = 'parity' }) {
   const refBox = makeRef(refMode, seed);
   const runs = [];
-  for (const N of Ns) runs.push(await summarizeRun({ N, seed, ref: refBox, onLog }));
+  for (const N of Ns) runs.push(await summarizeRun({ N, seed, ref: refBox, onLog, pipeline }));
   const R = refBox.get();
   const results = {
-    seed, Ns, refMode, refN: R.nR, mountainThresholdM: MOUNTAIN_M,
+    seed, Ns, refMode, pipeline, refN: R.nR, mountainThresholdM: MOUNTAIN_M,
     runs: runs.map((r) => ({ N: r.N, numRegions: r.nR, ms: r.ms, cellKm: +r.cellKm.toFixed(1), landFrac: +r.landFrac.toFixed(4), coastCells: r.coast.length / 3 })),
     vsFinal: {},
     consecutive: runs.slice(1).map((r, i) => compare(R, runs[i], r)),
