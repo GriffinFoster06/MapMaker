@@ -12,11 +12,19 @@
     #controls input { width: 7rem; }
     #globe { width: 100%; height: min(70vh, 640px); background: #05060d; border-radius: 6px; display: block; touch-action: none; }
     #timing { max-height: 10rem; }
+    #settings > summary { cursor: pointer; font-weight: 600; margin: .25rem 0; }
+    .sgroup { border: 1px solid #ddd; border-radius: 6px; padding: .25rem .75rem .5rem; margin: .5rem 0; }
+    .sgroup h3 { font-size: .95rem; margin: .4rem 0; }
+    .sgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .4rem 1.5rem; }
+    .setting label { display: flex; justify-content: space-between; gap: .5rem; }
+    .setting input[type=range] { width: 100%; }
+    .setting .ends { display: flex; justify-content: space-between; font-size: .75rem; color: #777; }
+    .setting .val { font-variant-numeric: tabular-nums; color: #333; }
   </style>
 </head>
 <body>
   <h1>MapMaker</h1>
-  <p>Phase 4b: structured generation. Every structural decision is made once on a fixed 20k reference world, and each tier adds detail on top, so the preview is the final's structure at lower resolution. Stock orogen (Phase 4a, parity-tested) stays available as the "stock" pipeline.</p>
+  <p>Pick a seed and a resolution, adjust the world settings, then press Generate. The same seed and settings always give the same world; a low-resolution preview shows the same continents, mountains and climates as the full-resolution world. Settings changes take effect on the next Generate.</p>
   <div id="controls">
     <label>Seed <input id="seed" type="number" value="12345" /></label>
     <label>Tier <select id="tier"></select></label>
@@ -26,6 +34,13 @@
     <label>Layer <select id="layer"></select></label>
     <span id="status">idle</span>
   </div>
+  <details id="settings" open>
+    <summary>World settings</summary>
+    <div id="settingGroups"></div>
+    <button id="resetSettings" type="button">Reset to defaults</button>
+    <button id="copyLink" type="button">Copy link to this world</button>
+    <span id="linkStatus"></span>
+  </details>
   <canvas id="globe"></canvas>
   <pre id="timing"></pre>
   <details>
