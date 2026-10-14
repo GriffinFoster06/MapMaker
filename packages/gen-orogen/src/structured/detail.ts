@@ -21,6 +21,13 @@ const lib = port as unknown as OrogenLib;
 
 /** Sea-level sign floor (raw units): a locked cell is moved at least this far to the reference's side of sea level. */
 export const SIGN_LOCK_FLOOR = 1e-4;
+/**
+ * A reference cell's land/sea sign is locked when it is further from sea level than this fraction of its children's
+ * largest detail excursion. Phase 4b tuning round 1 (seed 12345, previews vs a 1M final): 1 → 0.5 takes coast p95
+ * from 2.10/1.66 to 1.74/1.42 preview cells (50k/200k) and gives a coastline dimension of ≈1.24 between 200k and 1M,
+ * Earth's ≈1.2–1.3 (1: ≈1.31; 0.25: ≈1.18; 0, every cell locked: ≈1.08, coasts snap to L0 cells).
+ */
+export const SIGN_LOCK_MARGIN = 0.5;
 /** Rounds of sign lock followed by smooth anchoring, before the exact sign-safe step. */
 export const SIGN_LOCK_ROUNDS = 8;
 
@@ -155,7 +162,7 @@ export function runElevationDetail(L1: SphereMesh, ref: ReferenceState, p: Oroge
   // from sea level than that, detail alone cannot legitimately flip land and sea (note 14 §3.5).
   const margin = new Float64Array(n0);
   for (let i = 0; i < n1; i++) { const c = ml.parentOf[i]!; margin[c] = Math.max(margin[c]!, Math.abs(detail[i]!)); }
-  const locked = (c: number) => ml.childCount[c]! > 0 && Math.abs(refE[c]!) > margin[c]!;
+  const locked = (c: number) => ml.childCount[c]! > 0 && Math.abs(refE[c]!) > SIGN_LOCK_MARGIN * margin[c]!;
 
   let e = ml.prolong(refE);
   for (let i = 0; i < n1; i++) e[i]! += detail[i]!;
