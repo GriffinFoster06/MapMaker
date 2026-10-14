@@ -933,6 +933,15 @@ Added at Checkpoint 1 (D5):
 
 **Checkpoint 4b**: measured Q7 metrics against the targets, the climate-gate result (and whether the 80k fallback was needed), whether the D8 fallback was taken, and a review of the targets themselves. Stop and wait.
 
+**Outcome (2026-10-14, `docs/checkpoints/CHECKPOINT_4B.md`).**
+- **Pipeline:** the structured pipeline (`ref.pass` on L0, `detail.pass` at N) is the default; stock orogen remains the `parity` variant.
+- **Q7:** all seven original targets are met at the 200k preview tier for every seed against both finals. Two gaps remain:
+  - coast p95 at 50k vs 2.56M (2.02 preview cells);
+  - native-cell hypsometry, which is worse than stock because sub-reference detail differs between N (I3 does not hold).
+- **D7** passes without L0′. **D8** was not taken (one tuning round used).
+- **Timing:** 2.56M runs 2.7× faster than stock in Node.
+- **Awaiting the user:** the deviations from note 14 and the target revisions are listed in the report.
+
 ### Phase 5: Projection and distortion layer
 
 - `ProjectionView` with the d3 projection set, the exact CPU inverse sampler, GPU shaders for the common projections, the vector path via `geoPath`, distortion overlays, the Tissot overlay, and 16-bit PNG heightmap export through the exact path.
