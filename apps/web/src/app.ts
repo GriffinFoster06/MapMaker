@@ -3,6 +3,7 @@ import { type TypedArray, bytesOf, sha256 } from '@mapmaker/core';
 import { EngineClient, type PortLike, type WorldStats } from '@mapmaker/engine';
 import { Globe } from './globe/globe';
 import { RAW_ELEVATION, makeLayers } from './globe/colors';
+import { SETTING_GROUPS, SETTINGS, changedParams, decodeState, encodeState } from './settings';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -14,7 +15,7 @@ export type Variant = 'structured' | 'parity';
 
 export interface GlobeHook {
   /** Resolves when the first generation finished and the globe shows a layer. */
-  generate(opts: { N: number; seed: number; variant?: Variant }): Promise<{ stages: Record<string, number>; totalMs: number; stats: WorldStats }>;
+  generate(opts: GenerateOpts): Promise<{ stages: Record<string, number>; totalMs: number; stats: WorldStats }>;
   setLayer(id: string): Promise<void>;
   layerHash(id: string): Promise<string>;
   litFraction(): number;
@@ -22,7 +23,57 @@ export interface GlobeHook {
   layers: string[];
 }
 
+/** `params`: orogen generation settings that differ from the defaults (World settings panel). */
+export interface GenerateOpts { N: number; seed: number; variant?: Variant; params?: Record<string, number> }
+
 declare global { interface Window { __globe?: GlobeHook } }
+
+/** Builds the World settings panel and returns a reader of the current slider values. */
+function buildSettings(initial: Record<string, number>, onChange: () => void): { values(): Record<string, number>; reset(): void } {
+  const inputs = new Map<string, HTMLInputElement>();
+  const host = $('settingGroups');
+  for (const g of SETTING_GROUPS) {
+    const box = document.createElement('div');
+    box.className = 'sgroup';
+    const h = document.createElement('h3');
+    h.textContent = g.title;
+    const grid = document.createElement('div');
+    grid.className = 'sgrid';
+    for (const st of g.settings) {
+      const wrap = document.createElement('div');
+      wrap.className = 'setting';
+      wrap.title = st.tip;
+      const label = document.createElement('label');
+      const name = document.createElement('span');
+      name.textContent = st.label;
+      const val = document.createElement('span');
+      val.className = 'val';
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.id = `set-${st.key}`;
+      input.min = String(st.min); input.max = String(st.max); input.step = String(st.step);
+      input.value = String(initial[st.key] ?? st.def);
+      const show = () => { val.textContent = input.value; };
+      show();
+      input.addEventListener('input', () => { show(); onChange(); });
+      label.htmlFor = input.id;
+      label.append(name, val);
+      const ends = document.createElement('div');
+      ends.className = 'ends';
+      ends.innerHTML = '<span></span><span></span>';
+      ends.children[0]!.textContent = st.lo; ends.children[1]!.textContent = st.hi;
+      wrap.append(label, input, ends);
+      grid.append(wrap);
+      inputs.set(st.key, input);
+    }
+    box.append(h, grid);
+    host.append(box);
+  }
+  return {
+    values: () => Object.fromEntries(SETTINGS.map((st) => [st.key, Number(inputs.get(st.key)!.value)])),
+    reset: () => { for (const st of SETTINGS) { const i = inputs.get(st.key)!; i.value = String(st.def); i.dispatchEvent(new Event('input')); } },
+  };
+}
 
 export function startApp(): void {
   const worker = new Worker(new URL('./engine-worker.ts', import.meta.url), { type: 'module' });
@@ -37,6 +88,23 @@ export function startApp(): void {
   const tier = $<HTMLSelectElement>('tier');
   for (const k of Object.keys(TIERS)) tier.add(new Option(`${k} cells`, k));
   tier.value = '50k';
+  const seedInput = $<HTMLInputElement>('seed');
+
+  // Page state from the URL (shared links): seed, tier, pipeline and non-default settings.
+  const init = decodeState(location.search);
+  if (init.seed !== undefined) seedInput.value = String(init.seed);
+  if (init.tier && init.tier in TIERS) tier.value = init.tier;
+  if (init.pipeline === 'parity' || init.pipeline === 'structured') pipelineSel.value = init.pipeline;
+  const pageState = () => encodeState({ seed: Number(seedInput.value) || 12345, tier: tier.value, pipeline: pipelineSel.value, params: settings.values() });
+  const syncUrl = () => { const q = pageState(); history.replaceState(null, '', q ? `?${q}` : location.pathname); };
+  const settings = buildSettings(init.params, syncUrl);
+  for (const el of [seedInput, tier, pipelineSel]) el.addEventListener('change', syncUrl);
+  $('resetSettings').addEventListener('click', () => settings.reset());
+  $('copyLink').addEventListener('click', () => {
+    syncUrl();
+    navigator.clipboard.writeText(location.href).then(() => { $('linkStatus').textContent = 'link copied'; },
+      () => { $('linkStatus').textContent = location.href; });
+  });
 
   const status = $('status');
   let busy = false;
@@ -48,7 +116,7 @@ export function startApp(): void {
     globe.colorsChanged();
   }
 
-  async function generate(opts: { N: number; seed: number; variant?: Variant }, label = '') {
+  async function generate(opts: GenerateOpts, label = '') {
     if (busy) throw new Error('already generating');
     busy = true;
     try {
@@ -58,7 +126,7 @@ export function startApp(): void {
       const stages: Record<string, number> = {};
       let cur = '', curStart = t0;
       const close = (t: number) => { if (cur) stages[cur] = (stages[cur] ?? 0) + (t - curStart); };
-      await client.create({ N: opts.N, seed: opts.seed });
+      await client.create({ ...(opts.params ?? {}), N: opts.N, seed: opts.seed });
       status.textContent = 'generating…';
       await client.run({
         variant,
@@ -83,14 +151,17 @@ export function startApp(): void {
   }
 
   $('generate').addEventListener('click', () => {
-    const N = TIERS[tier.value]!, seed = Number($<HTMLInputElement>('seed').value) || 12345;
+    const N = TIERS[tier.value]!, seed = Number(seedInput.value) || 12345;
     const v = pipelineSel.value as Variant;
+    const params = changedParams(settings.values());
+    syncUrl();
     const previewFirst = v === 'structured' && $<HTMLInputElement>('preview').checked && N > PREVIEW_N;
     void (async () => {
       // Phase 4b: the preview is the final's structure at a lower resolution (same seed, same reference world), so it
       // is shown first and replaced by the final when that is ready.
-      if (previewFirst) await generate({ N: PREVIEW_N, seed, variant: v }, 'preview: ');
-      await generate({ N, seed, variant: v }, previewFirst ? 'final: ' : '');
+      // The preview and the final use the same settings.
+      if (previewFirst) await generate({ N: PREVIEW_N, seed, variant: v, params }, 'preview: ');
+      await generate({ N, seed, variant: v, params }, previewFirst ? 'final: ' : '');
     })().catch((e: unknown) => { status.textContent = `error: ${e instanceof Error ? e.message : String(e)}`; });
   });
   sel.addEventListener('change', () => { void paint(sel.value); });

@@ -39,3 +39,29 @@ for (const variant of ['structured', 'parity'] as const) {
     expect(errors).toEqual([]);
   });
 }
+
+// World settings: orogen's generation sliders on the page, read from a shared link, and sent to the generator. The
+// world generated through the Generate button with non-default settings equals a Node run with the same settings.
+test('world settings panel: link state, Generate with settings equals Node', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('./?seed=777&tier=20k&landCoverage=0.5&P=40&temperatureOffset=-5');
+  await page.waitForFunction(() => !!window.__globe);
+  await expect(page.locator('#settings input[type=range]')).toHaveCount(14);
+  await expect(page.locator('#set-landCoverage')).toHaveValue('0.5');
+  await expect(page.locator('#set-P')).toHaveValue('40');
+  await expect(page.locator('#seed')).toHaveValue('777');
+  await expect(page.locator('#tier')).toHaveValue('20k');
+
+  await page.locator('#generate').click();
+  await expect(page.locator('#status')).toContainText('cells in', { timeout: 120_000 });
+  const w = createOrogenWorld({ N: 20000, seed: 777, landCoverage: 0.5, P: 40, temperatureOffset: -5 });
+  await runPipeline(w, [...orogenStages, ...structuredStages], { strict: false, variant: STRUCTURED });
+  expect(await page.evaluate(() => window.__globe!.layerHash('koppen')))
+    .toBe(await sha256(['koppen', 'detail.elevRaw'].map((id) => bytesOf(w.layers.get('global', id)))));
+
+  await page.locator('#resetSettings').click();
+  await expect(page.locator('#set-landCoverage')).toHaveValue('0.3');
+  expect(new URL(page.url()).searchParams.get('landCoverage')).toBeNull();
+  expect(errors).toEqual([]);
+});

@@ -962,6 +962,7 @@ Added at Checkpoint 1 (D5):
 - Editing tools on the globe and flat views: elevation sculpt and paint (raise, lower, smooth, flatten, noise), land/sea paint, plate-boundary and hotspot seeds, and a categorical paint for any enum layer.
 - System switches (`simulate | manual | off`) for every existing stage.
 - The full parameter panel (simple, advanced, expert) generated from the parameter registry, with presets (note 17).
+  - **Brought forward (2026-10-14):** orogen's 14 generation sliders, with seed and tier, have been in the app since Checkpoint 4b. They live in `apps/web/src/settings.ts`, are kept in the page URL, and have tests in `settings.test.ts`, `structured/params.test.ts` and the e2e settings test. Phase 5b replaces them with the registry-generated panel and adds the remaining parameters.
 - Re-simulation UX: dirty-stage display, progress, cancel, and "re-run from stage X".
 - Tests: an edit replay is deterministic (save → load → hash equality); pinned values survive re-simulation; unedited regions are unchanged where the stage is local; undo restores the previous hash.
 
