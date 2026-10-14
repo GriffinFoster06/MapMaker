@@ -26,6 +26,33 @@ jobs:
       - run: npm run build
       - run: npm run provenance:check
 
+  # Q7 A/B gate (Phase 4b): the structured pipeline's previews (50k, 200k) against a 1M final, three seeds, compared
+  # with tools/tuning/ab-baseline.structured.json. Fails on regression only. The 2.56M final runs nightly.
+  ab-gate:
+    name: Q7 A/B gate (structured)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: A/B run (seeds 1, 777, 12345; previews 50k, 200k; final 1M)
+        env:
+          NODE_OPTIONS: --max-old-space-size=12000
+        run: npx tsx tools/tuning/ab/run.mjs --pipeline structured --seeds 1,777,12345 --previews 50000,200000 --finals 1000000 --out ab-current.json
+      - name: Gate
+        run: npx tsx tools/tuning/ab/gate.mjs --current tools/tuning/ab-current.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ab-gate
+          path: |
+            tools/tuning/ab-current.json
+            tools/tuning/results/ab/
+          retention-days: 30
+
   # Q3: cross-engine bit-exactness is a CI-tested goal. The same probe runs in Node and in Chromium, Firefox and
   # WebKit on Linux, macOS and Windows/x64 (the one platform spike 1a could not test), and is compared with
   # tools/determinism/golden.json. Strict keys must match everywhere: RNG, topology, history, and every `fd.` key (the
