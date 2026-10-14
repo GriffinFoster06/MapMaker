@@ -4,12 +4,13 @@ import { type PortLike, attachHost } from '@mapmaker/engine';
 import { type OrogenParams } from './params';
 import { createOrogenWorld } from './create';
 import { orogenStages } from './stages';
+import { structuredStages } from './structured/stages';
 
 /** Call first thing in a worker: asserts dmath is in its default fdlibm mode, then serves the engine protocol. */
 export function startOrogenHost(port: PortLike, engine: string): void {
   initRealm();
   attachHost(port, {
-    stages: orogenStages,
+    stages: [...orogenStages, ...structuredStages],
     engine,
     create: (params) => createOrogenWorld((params ?? {}) as Partial<OrogenParams>),
   });

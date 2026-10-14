@@ -16,10 +16,12 @@
 </head>
 <body>
   <h1>MapMaker</h1>
-  <p>Phase 4a: orogen (vendored, parity-tested) running in the engine worker. Generation is in dmath fdlibm mode, with orogen's own code in native mode.</p>
+  <p>Phase 4b: structured generation. Every structural decision is made once on a fixed 20k reference world, and each tier adds detail on top, so the preview is the final's structure at lower resolution. Stock orogen (Phase 4a, parity-tested) stays available as the "stock" pipeline.</p>
   <div id="controls">
     <label>Seed <input id="seed" type="number" value="12345" /></label>
     <label>Tier <select id="tier"></select></label>
+    <label>Pipeline <select id="pipeline"><option value="structured">structured</option><option value="parity">stock (parity)</option></select></label>
+    <label><input id="preview" type="checkbox" checked /> preview first</label>
     <button id="generate">Generate</button>
     <label>Layer <select id="layer"></select></label>
     <span id="status">idle</span>
