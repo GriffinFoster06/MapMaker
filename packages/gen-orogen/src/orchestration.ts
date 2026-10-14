@@ -1,11 +1,9 @@
 // Provenance: orogen js/planet-worker.js @ cc2662b — computeTriangleElevations, computeDetailDampenField,
 // computeOrogenicField and runPostProcessing, ported to TypeScript. `handleGenerate`'s call sequence is split across
 // the shell's stages (stages.ts). Per-step timing (performance.now) is dropped; the arithmetic and call order are unchanged.
-import {
-  DETAIL_NOISE_DAMPEN_STRENGTH, applyDetailNoise, applySoilCreep, erodeComposite, sharpenRidges, smoothElevation, warpTerrain,
-} from './vendor';
+import * as vendor from './vendor';
 import type { OrogenParams } from './params';
-import type { OMesh } from './scratch';
+import type { OMesh, OrogenLib } from './scratch';
 
 export function computeTriangleElevations(mesh: OMesh, r_elevation: Float32Array): Float32Array {
   const t_elevation = new Float32Array(mesh.numTriangles);
@@ -46,8 +44,9 @@ type Sliders = Pick<OrogenParams, 'smoothing' | 'glacialErosion' | 'hydraulicEro
 /** Terrain post-processing: mutates r_elevation in place and returns the erosion delta layer. */
 export function runPostProcessing(
   mesh: OMesh, r_xyz: Float32Array, r_elevation: Float32Array, params: Sliders, neighborDist: Float32Array, seed: number,
-  r_hotspot: Float32Array | undefined, r_dampen: Float32Array | null, r_orogenic: Float32Array | null,
+  r_hotspot: Float32Array | undefined, r_dampen: Float32Array | null, r_orogenic: Float32Array | null, lib: OrogenLib = vendor,
 ): Float32Array {
+  const { DETAIL_NOISE_DAMPEN_STRENGTH, applyDetailNoise, applySoilCreep, erodeComposite, sharpenRidges, smoothElevation, warpTerrain } = lib;
   const { smoothing, glacialErosion, hydraulicErosion, thermalErosion, ridgeSharpening, terrainWarp } = params;
 
   if (terrainWarp > 0) warpTerrain(mesh, r_elevation, r_xyz, seed, terrainWarp, r_hotspot);

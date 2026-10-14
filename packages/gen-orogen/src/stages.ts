@@ -15,6 +15,8 @@ import {
 } from './vendor';
 
 export const OROGEN_STAGE_VERSION = '1';
+/** Variants that run stock orogen (Phase 4a parity). The `structured` variant (Phase 4b) runs the reference/detail passes instead. */
+export const PARITY_VARIANTS = ['default', 'parity'];
 const MESH_ID = 'global';
 
 const native = <T>(fn: () => T): T => dmath.withMode('native', fn);
@@ -59,6 +61,7 @@ const tectonicsStage: Stage = {
   id: STAGE.tectonics,
   version: OROGEN_STAGE_VERSION,
   parity: true,
+  variants: PARITY_VARIANTS,
   mesh: MESH_ID,
   reads: [],
   writes: [...writesOf(STAGE.tectonics), 'table:plates'],
@@ -86,6 +89,7 @@ const elevationStage: Stage = {
   id: STAGE.elevation,
   version: OROGEN_STAGE_VERSION,
   parity: true,
+  variants: PARITY_VARIANTS,
   mesh: MESH_ID,
   reads: ['plate', 'table:plates'],
   writes: writesOf(STAGE.elevation),
@@ -113,6 +117,7 @@ const erosionStage: Stage = {
   id: STAGE.erosion,
   version: OROGEN_STAGE_VERSION,
   parity: true,
+  variants: PARITY_VARIANTS,
   mesh: MESH_ID,
   reads: ['orogen.elevPre', 'orogen.debug.hotspot', 'orogen.debug.cratonWeight', 'orogen.debug.basinWeight', 'orogen.debug.orogenicPower'],
   writes: writesOf(STAGE.erosion),
@@ -137,6 +142,7 @@ const climateStage: Stage = {
   id: STAGE.climate,
   version: OROGEN_STAGE_VERSION,
   parity: true,
+  variants: PARITY_VARIANTS,
   mesh: MESH_ID,
   reads: ['orogen.elevRaw', 'plate', 'table:plates'],
   writes: writesOf(STAGE.climate),
@@ -184,6 +190,7 @@ const koppenStage: Stage = {
   id: STAGE.koppen,
   version: OROGEN_STAGE_VERSION,
   parity: true,
+  variants: PARITY_VARIANTS,
   mesh: MESH_ID,
   reads: ['orogen.elevRaw', 'temp.summer', 'temp.winter', 'precip.summer', 'precip.winter', 'orogen.westness'],
   writes: ['koppen'],

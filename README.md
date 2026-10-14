@@ -8,11 +8,48 @@ The project prioritizes physical plausibility, deterministic generation, exact s
 
 ## Current implementation
 
-**Phase 4a, in progress:** the TypeScript shell runs orogen's terrain and climate stages in a worker and displays a Three.js globe with selectable layers. The core includes spherical meshes, typed layers, entities, timelines, seeded RNGs, deterministic math, and a versioned save container. Most later simulation systems are still planned. See [STATUS.md](STATUS.md) for current checks and unfinished work.
+**Phase 4b (complete):** planet generation in the browser.
+- Plate tectonics, terrain, erosion, climate and Köppen climate zones from the orogen generator.
+- The result is shown on a 3D globe with selectable layers.
+- Generation is *structured*: every large-scale decision is made once, on a fixed 20,000-cell reference world, and each resolution adds detail on top. A quick low-resolution preview of a seed therefore shows the same continents, mountain ranges, climates and river basins as the slow high-resolution run (see `docs/checkpoints/CHECKPOINT_4B.md`).
+
+Editing, flat map projections, cartography and the deeper simulations (ice, oceans, life, civilizations) are planned and not yet built; see `docs/ARCHITECTURE.md` §7.0 for the roadmap.
+
+## How to use it
+
+Open the app, either the live site below or a local copy (see [Run locally](#run-locally)), and use the controls above the globe.
+
+1. **Seed:** any whole number. The same seed always gives the same world, on every browser and computer.
+2. **Tier:** the number of cells in the world, from 20k to 2.56M. More cells give finer detail but take longer.
+
+   | Tier | Time measured in Chromium on a 4-core cloud VM |
+   |---|---|
+   | 50k | 5 s |
+   | 200k | 10 s |
+   | 1M | 40 s |
+   | 2.56M | about 2 minutes |
+3. **Pipeline:**
+   - `structured` (the default) is the faithful-preview generator.
+   - `stock (parity)` runs the original orogen generator unchanged, for comparison.
+4. **Preview first:** when checked and the tier is above 50k, a 50k preview of the same world appears within seconds and is then replaced by the full-resolution result.
+5. **Generate:** builds the world. The status text shows progress, and the box under the globe lists each stage's time.
+6. **Layer:** chooses what the globe shows. You can switch layers at any time without regenerating. The layers are:
+   - elevation;
+   - Köppen climate zones;
+   - plates;
+   - tectonic stress;
+   - summer and winter temperature, precipitation, pressure and wind speed;
+   - ocean current speed.
+7. **Globe:** drag to rotate, and scroll or pinch to zoom.
+
+A typical workflow: try seeds at 50k until you like a world, then generate the same seed at 1M or 2.56M for the detailed version. The large-scale layout stays the same. "Diagnostics", at the bottom of the page, runs the cross-browser determinism check; ordinary use does not need it.
 
 ## Live site
 
-The app deploys to Cloudflare Pages (primary, cross-origin isolated) and to GitHub Pages at https://griffinfoster06.github.io/MapMaker/ (mirror). See `docs/ARCHITECTURE.md` Q18.
+- Primary: https://mapmaker-aw8.pages.dev/ on Cloudflare Pages. It is cross-origin isolated and deploys from `main`; every pull request gets its own preview link.
+- Mirror: https://griffinfoster06.github.io/MapMaker/ on GitHub Pages.
+
+See `docs/ARCHITECTURE.md` Q18.
 
 ## Run locally
 
@@ -23,7 +60,11 @@ scripts/node24.sh npm ci
 scripts/node24.sh npm run dev -w @mapmaker/web
 ```
 
-On a fresh machine, set up `.tools/bin/fnm` first; see [Development](docs/DEVELOPMENT.md). Follow the Vite URL printed in the terminal.
+1. On a fresh machine, set up `.tools/bin/fnm` first; see [Development](docs/DEVELOPMENT.md).
+2. Open the URL Vite prints, usually http://localhost:5173/.
+3. Generate a world as described above.
+
+Large tiers need a desktop browser with several GB of free memory: about 2 GB for Chromium at 2.56M, more for Firefox and Safari.
 
 ## Find your way around
 

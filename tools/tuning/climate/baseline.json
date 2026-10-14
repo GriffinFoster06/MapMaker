@@ -1,5 +1,5 @@
 {
-  "_note": "Earth K\u00f6ppen objective of the shell's orogen climate (seed 1234, jitter 0.75), identical to spike 1a's stock-harness numbers. Needs the Kottek data (tools/tuning/climate/fetch-kottek.sh).",
+  "_note": "Earth Köppen objective of the shell's orogen climate (seed 1234, jitter 0.75), identical to spike 1a's stock-harness numbers. Needs the Kottek data (tools/tuning/climate/fetch-kottek.sh).",
   "commit": "4f9d98b",
   "runs": {
     "40000": {
@@ -34,5 +34,28 @@
         "landAgreement": 0.9659839573256902
       }
     }
-  }
+  },
+  "structured": {
+    "40000": {
+      "objective": 0.6630482487095442,
+      "gradedAcc": 0.8172615167001146,
+      "exactAcc": 0.380092363516411,
+      "majorAcc": 0.7160646544614877,
+      "macroF1": 0.1905602921631047,
+      "groupBalance": 0.9392215075045357,
+      "watchlistF1": 0.0687759808017113,
+      "scored": 12126
+    },
+    "160000": {
+      "objective": 0.663619696822357,
+      "gradedAcc": 0.8167851665053404,
+      "exactAcc": 0.3784513310805242,
+      "majorAcc": 0.7096142751174482,
+      "macroF1": 0.19189032246929452,
+      "groupBalance": 0.9314678974697107,
+      "watchlistF1": 0.08308902771062181,
+      "scored": 48532
+    }
+  },
+  "_noteStructured": "Phase 4b (D7): the structured pipeline on the same Earth example (L0 climate solve, downscaled to N). Must stay within 0.02 of the stock objective."
 }

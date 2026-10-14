@@ -2,6 +2,7 @@
 import { Timeline, World } from '@mapmaker/core';
 import { type OrogenParams, PARAM_KEY } from './params';
 import { registerOrogenLayers } from './layers';
+import { registerStructuredLayers } from './structured/layers';
 
 const CALENDAR = { epoch: 'AD', yearLengthDays: 365, monthLengthsDays: [30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 35] };
 const DEFAULT_MASTER = '00112233445566778899aabbccddeeff';
@@ -15,5 +16,6 @@ export function createOrogenWorld(params: Partial<OrogenParams> = {}, opts: { ma
     timeline: new Timeline(CALENDAR, [{ fromTick: 0, dtYears: 1 }], { tStartMyr: 0, dtMyr: 5, keyframeEveryMyr: 50 }),
   });
   registerOrogenLayers(w);
+  registerStructuredLayers(w);
   return w;
 }

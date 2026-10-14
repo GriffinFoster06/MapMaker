@@ -215,6 +215,17 @@ Applied at Checkpoint 2:
 2. **§3** gains `meshes.reference`, the `structures` entity table, and `referenceHash` in stage manifests.
 3. **§3.6** marks orogen climate at N as the parity mode only.
 
+### 3.12 As built in Phase 4b (Checkpoint 4b)
+
+The design above was implemented with measured deviations. `docs/checkpoints/CHECKPOINT_4B.md` gives the numbers.
+
+- **C (§3.4)** is guarded R∘P iterations plus per-cell bumps that vanish on Voronoi edges. The Richardson iteration diverges on the jittered L0 mesh.
+- **Anchoring and the sign lock** work in orogen's raw elevation units; metres are orogen's height map applied to the result. The lock margin is half the largest child detail, chosen so the coastline's fractal dimension stays ≈ 1.24.
+- **Detail (§3.4)** is orogen's elevation stages at N, run on stage 1–3 fields prolonged from L0 and on phasor kernels chosen on L0, high-passed (D = F − C(R(F))). It is not a term-by-term band synthesis, and I3 does not hold: detail at 200k and 1M correlate at r = 0.58.
+- **Climate (§3.6)** is solved on L0 and prolonged and anchored. It has no sub-reference lapse rate and no Smith–Barstad term, because both would carry the I3 inconsistency into Köppen. The D7 gate passes without L0′.
+- **Keyed structures and geodesic distances (§3.3, §3.1)** were not needed: the reference pass runs on the fixed L0 mesh, where stock orogen's draws and hop counts are already N-independent.
+- **The Q7 gate (§3.9)** runs per commit with the 1M final and nightly with the 2.56M final, against `tools/tuning/ab-baseline.structured.json`. D8 was not taken.
+
 ## 4. Upstream references (algorithm level)
 
 - **orogen `cc2662b`.** `coarse-plates.js` (the reference-mesh pattern, `projectCoarsePlates` with continuous FBM wobble), `elevation.js` (stages 1–13, `applyPhasorRidges`), `terrain-post.js`, and the climate modules. Code is ported under GPL-3.0.

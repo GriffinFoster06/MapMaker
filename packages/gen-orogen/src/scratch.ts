@@ -5,10 +5,14 @@
 // keeps single-shot stages resumable from their recorded inputs (§5): after a save and load the scratch is empty and
 // is recomputed on demand, deterministically.
 import { type World } from '@mapmaker/core';
-import {
-  SUPER_PLATE_PHYSICS_MULT, SimplexNoise, VendorSphereMesh, applyPlatePhysics, buildSuperPlates, computeNeighborDist,
-  expandPlatePhysicsDebug, generateCoarsePlates, makeRng, projectCoarsePlates, smoothAndReconnectPlates,
-} from './vendor';
+import * as vendor from './vendor';
+import { SimplexNoise, VendorSphereMesh, computeNeighborDist } from './vendor';
+
+/**
+ * The orogen module set the orchestration calls: the vendored JS (`./vendor`, parity stages, native mode) or the
+ * TypeScript ports (`./port`, same exports, any dmath mode).
+ */
+export type OrogenLib = typeof vendor;
 import type { OrogenParams } from './params';
 
 /** The vendored SphereMesh (orogen's own class), as the vendored stage functions expect it. */
@@ -69,10 +73,14 @@ export function getScratch(world: World, meshId = 'global'): Scratch {
 }
 
 /**
- * Plate partition, plate physics and super plates (planet-worker.js handleGenerate lines 219-304). Runs the vendored
- * code, so the caller must be inside dmath.withMode('native').
+ * Plate partition, plate physics and super plates (planet-worker.js handleGenerate lines 219-304). With the default
+ * `lib` it runs the vendored code, so the caller must be inside dmath.withMode('native').
  */
-export function computeTectonics(s: Scratch, p: OrogenParams): Tectonics {
+export function computeTectonics(s: Scratch, p: OrogenParams, lib: OrogenLib = vendor): Tectonics {
+  const {
+    SUPER_PLATE_PHYSICS_MULT, applyPlatePhysics, buildSuperPlates, expandPlatePhysicsDebug, generateCoarsePlates, makeRng,
+    projectCoarsePlates, smoothAndReconnectPlates,
+  } = lib;
   const { seed, P, numContinents, continentSizeVariety, landCoverage } = p;
   const { mesh, r_xyz } = s;
   const { coarseMesh, coarse_xyz, coarse_r_plate, coarsePlateSeeds, coarsePlateVec, coarsePlateIsOcean } =

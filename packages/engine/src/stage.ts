@@ -20,7 +20,10 @@ export interface Stage {
   mesh?: string;
   /** Orogen-parity stage: may enter dmath 'native' mode, but only through dmath.withMode('native', ...). Canonical stages may not. */
   parity?: true;
-  /** Layer ids, or `table:<name>` for entity tables. */
+  /**
+   * Layer ids, or `table:<name>` for entity tables. A read may name another mesh as `<mesh>/<layerId>` (a detail
+   * stage reading the reference mesh's layers); unqualified reads are on the stage's own mesh.
+   */
   reads: string[];
   writes: string[];
   /** World params keys that influence the stage (hashed into its input). */
@@ -41,7 +44,7 @@ export interface StageContext {
   /** Yield to the event loop and throw CancelledError if cancellation was requested. */
   yield(): Promise<void>;
   throwIfCancelled(): void;
-  /** Arrays of a layer the stage declared in `reads` or `writes`. */
+  /** Arrays of a layer the stage declared in `reads` or `writes`; `<mesh>/<layerId>` for a mesh-qualified read. */
   layer(layerId: string): TypedArray[];
   /** Allocate (first call) or fetch the arrays of a layer the stage declared in `writes`. */
   writeLayer(layerId: string): TypedArray[];
@@ -52,4 +55,10 @@ export interface StageContext {
 export interface PipelineSpec {
   variant: string;
   stages: Stage[];
+}
+
+/** Splits a read into its mesh and layer id: `<mesh>/<layerId>`, or the stage's own mesh when unqualified. */
+export function splitRead(read: string, stageMesh: string): { mesh: string; id: string } {
+  const i = read.indexOf('/');
+  return i < 0 ? { mesh: stageMesh, id: read } : { mesh: read.slice(0, i), id: read.slice(i + 1) };
 }

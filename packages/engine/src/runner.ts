@@ -2,7 +2,7 @@
 // mid-stage checkpoints and cooperative cancellation. Original shell code.
 import { type EntityTable, type TableSpec, type TypedArray, type World, EntityTable as Table, arrayIds, hashString, canonicalJson, dmath } from '@mapmaker/core';
 import { hashInputs, hashTable, snapshotHashes } from './hash-state';
-import { CancelledError, type CancelFlag, type Stage, type StageContext } from './stage';
+import { CancelledError, type CancelFlag, type Stage, type StageContext, splitRead } from './stage';
 
 export interface RunOptions {
   variant?: string;
@@ -51,8 +51,9 @@ export function checkProducers(world: World, stages: Stage[], variant: string): 
     }
   }
   for (const s of stages) {
-    for (const r of s.reads) {
-      if (r.startsWith('table:')) continue;
+    for (const read of s.reads) {
+      if (read.startsWith('table:')) continue;
+      const r = splitRead(read, s.mesh ?? 'global').id;
       if (!world.registry.has(r)) throw new Error(`stage ${s.id} reads unregistered layer ${r}`);
       const d = world.registry.get(r);
       if (d.visibility === 'private' && !s.id.startsWith(`${r.split('.')[0]}.`)) throw new Error(`stage ${s.id} reads private layer ${r}`);
@@ -163,7 +164,8 @@ function makeContext(world: World, stage: Stage, meshId: string, signal: CancelF
     async yield() { await macrotask(); throwIfCancelled(); },
     layer(layerId) {
       if (!canRead(layerId)) throw new Error(`stage ${stage.id} did not declare ${layerId} in reads`);
-      return arrayIds(world.registry.get(layerId)).map((a) => world.layers.get(meshId, a));
+      const { mesh, id } = splitRead(layerId, meshId);
+      return arrayIds(world.registry.get(id)).map((a) => world.layers.get(mesh, a));
     },
     writeLayer(layerId) {
       if (!stage.writes.includes(layerId)) throw new Error(`stage ${stage.id} did not declare ${layerId} in writes`);

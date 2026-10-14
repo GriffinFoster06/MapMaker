@@ -5,3 +5,9 @@
 - **Peak RSS** sums every process started from the Playwright browser install, sampled every 100 ms. The baseline is sampled when a tier starts and can include processes left over from the previous tier, so "above baseline" is approximate; for WebKit at 200k the baseline even exceeds the peak.
 - **Reading the budget.** §6.2 budgets the working set (mesh and layer arrays), and that is within budget at every tier, at the top edge for 2.56M (607 MB vs ~400–600 MB). At 2.56M, real process growth above baseline is 2.1–2.3× the working set (1.25–1.39 GB), likely from copies across the worker transfer, globe geometry and software-rendered GPU buffers (not yet broken down). Below 2.56M the ratio is dominated by baseline noise and is not meaningful. Reducing that is later work and must not lower output quality (REQUIREMENTS, Realism and performance).
 - **Where the time goes.** `orogen.climate` is the slowest stage at every tier in every browser, and its share grows with size: 42–46% of generation at 50k, 66–71% at 2.56M.
+
+## Phase 4b, structured pipeline (2026-10-14)
+
+- Same VM and method; files `phase4b-<browser>-linux.json`. `BENCH_VARIANT=structured` (the default) selects the pipeline; `BENCH_VARIANT=parity` runs stock orogen and writes the `phase4a-*` files. Firefox was again run headed: `BENCH_VARIANT=structured xvfb-run -a scripts/node24.sh npx playwright test -c playwright.bench.config.ts --project=firefox --headed`.
+- Stages are now `mesh`, `ref.pass` (the 20k reference mesh L0, about 2 s at every tier) and `detail.pass`. Climate is solved on L0 and downscaled, so the slowest stage of Phase 4a is gone; `detail.pass` (orogen elevation, erosion and drainage at N) is 50–90 % of generation.
+- Peak RSS at 2.56M is higher than stock in every browser, most in WebKit (4625 MB against 2899 MB), while the working set is smaller (552 MB against 607 MB). Results and the open issue are in `docs/checkpoints/CHECKPOINT_4B.md` (Performance).

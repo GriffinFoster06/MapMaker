@@ -29,3 +29,53 @@ jobs:
         run: npm test
       - name: Provenance check (byte-compares vendored files with upstream)
         run: npm run provenance:check
+
+  ab-gate-full:
+    name: Q7 A/B gate, 2.56M final (structured)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: A/B run (seeds 1, 777, 12345; previews 50k, 200k; finals 1M, 2.56M)
+        env:
+          NODE_OPTIONS: --max-old-space-size=13000
+        run: npx tsx tools/tuning/ab/run.mjs --pipeline structured --seeds 1,777,12345 --previews 50000,200000 --finals 1000000,2560000 --out ab-current.json
+      - name: Gate
+        run: npx tsx tools/tuning/ab/gate.mjs --current tools/tuning/ab-current.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ab-gate-full
+          path: |
+            tools/tuning/ab-current.json
+            tools/tuning/results/ab/
+          retention-days: 30
+
+  realism-gate:
+    name: Realism gate, 2.56M (structured)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Realism run (seeds 1, 777, 12345; structured only, compared with the committed stock and structured baseline)
+        env:
+          NODE_OPTIONS: --max-old-space-size=13000
+        run: npx tsx tools/tuning/realism/realism.mjs --N 2560000 --seeds 1,777,12345 --pipelines structured --out realism-current.json
+      - name: Gate
+        run: npx tsx tools/tuning/realism/gate.mjs --current realism-current.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: realism-gate
+          path: realism-current.json
+          retention-days: 30

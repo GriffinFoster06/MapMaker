@@ -45,18 +45,23 @@ function idColor(id: number): [number, number, number] {
   return [f(0), f(1), f(2)];
 }
 
-export const LAYERS: LayerChoice[] = [
+/**
+ * The globe's layers. Elevation and Köppen colours use orogen's raw elevation: `orogen.elevRaw` from the stock (parity)
+ * stages, `detail.elevRaw` from the structured pipeline (Phase 4b).
+ */
+export function makeLayers(rawId: string): LayerChoice[] {
+  return [
   {
-    id: 'elevation', label: 'Elevation', need: ['orogen.elevRaw'],
+    id: 'elevation', label: 'Elevation', need: [rawId],
     paint(data, out) {
-      const e = data['orogen.elevRaw']![0]!;
+      const e = data[rawId]![0]!;
       for (let i = 0; i < e.length; i++) { const c = elevationToColor(e[i]!) as number[]; out[3 * i] = c[0]!; out[3 * i + 1] = c[1]!; out[3 * i + 2] = c[2]!; }
     },
   },
   {
-    id: 'koppen', label: 'Köppen climate', need: ['koppen', 'orogen.elevRaw'],
+    id: 'koppen', label: 'Köppen climate', need: ['koppen', rawId],
     paint(data, out) {
-      const k = data['koppen']![0]!, e = data['orogen.elevRaw']![0]!;
+      const k = data['koppen']![0]!, e = data[rawId]![0]!;
       for (let i = 0; i < k.length; i++) { const c = biomeColor(k[i]!, e[i]!) as number[]; out[3 * i] = c[0]!; out[3 * i + 1] = c[1]!; out[3 * i + 2] = c[2]!; }
     },
   },
@@ -78,6 +83,8 @@ export const LAYERS: LayerChoice[] = [
   scalar('wind.winter', 'Wind speed, winter', 'wind.winter', magnitude),
   scalar('current.summer', 'Ocean current speed, summer', 'current.summer', magnitude),
   scalar('current.winter', 'Ocean current speed, winter', 'current.winter', magnitude),
-];
+  ];
+}
 
-export const ALL_NEEDED = [...new Set(LAYERS.flatMap((l) => l.need))];
+/** Raw elevation layer per pipeline variant. */
+export const RAW_ELEVATION: Record<string, string> = { structured: 'detail.elevRaw', parity: 'orogen.elevRaw', default: 'orogen.elevRaw' };

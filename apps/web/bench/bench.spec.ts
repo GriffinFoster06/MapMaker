@@ -1,4 +1,4 @@
-// Per-browser memory and timing benchmark of the orogen pipeline in the engine worker, through the real app path
+// Per-browser memory and timing benchmark of a generation pipeline in the engine worker, through the real app path
 // (generate, transfer the mesh, build the globe, paint a layer). One fresh page per tier.
 //
 // Memory: two figures, because browsers expose different things.
@@ -16,6 +16,10 @@ import { test } from '@playwright/test';
 const TIERS: Record<string, number> = { '50k': 50_000, '200k': 200_000, '500k': 500_000, '1M': 1_000_000, '2.56M': 2_560_000 };
 const wanted = (process.env['BENCH_TIERS'] ?? Object.keys(TIERS).join(',')).split(',');
 const OUT = resolve(process.cwd(), 'docs/benchmarks');
+// Pipeline variant: `structured` (Phase 4b, the app default) or stock orogen `parity` (the Phase 4a record).
+const VARIANT = process.env['BENCH_VARIANT'] ?? 'structured';
+if (VARIANT !== 'structured' && VARIANT !== 'parity') throw new Error(`BENCH_VARIANT must be structured or parity, not ${VARIANT}`);
+const LABEL = VARIANT === 'parity' ? 'phase4a' : 'phase4b';
 
 /** Sum of RSS (MB) of processes whose command line contains `needle`. */
 function rssMB(needle: string): number | null {
@@ -39,7 +43,7 @@ const results: TierResult[] = [];
 test.describe.configure({ mode: 'serial' });
 
 for (const tier of wanted) {
-  test(`orogen pipeline at ${tier} cells`, async ({ browser }) => {
+  test(`${VARIANT} pipeline at ${tier} cells`, async ({ browser }) => {
     const cells = TIERS[tier]!;
     // Processes of this browser install: the Playwright browser directory is in every command line.
     const needle = process.env['PLAYWRIGHT_BROWSERS_PATH'] || 'ms-playwright';
@@ -52,7 +56,7 @@ for (const tier of wanted) {
     try {
       await page.goto('./');
       await page.waitForFunction(() => !!window.__globe, null, { timeout: 30_000 });
-      const run = await page.evaluate((N) => window.__globe!.generate({ N, seed: 12345 }), cells);
+      const run = await page.evaluate(([N, variant]) => window.__globe!.generate({ N, seed: 12345, variant }), [cells, VARIANT] as const);
       r.ok = true;
       r.totalMs = Math.round(run.totalMs);
       r.stagesMs = Object.fromEntries(Object.entries(run.stages).map(([k, v]) => [k, Math.round(v)]));
@@ -77,8 +81,8 @@ for (const tier of wanted) {
 test.afterAll(({}, info) => {
   mkdirSync(OUT, { recursive: true });
   const meta = {
-    browser: info.project.name, platform: `${platform()} ${arch()}`, cpu: cpus()[0]?.model ?? 'unknown', cores: cpus().length,
+    browser: info.project.name, variant: VARIANT, platform: `${platform()} ${arch()}`, cpu: cpus()[0]?.model ?? 'unknown', cores: cpus().length,
     ramGB: Math.round(totalmem() / 2 ** 30), date: new Date().toISOString(),
   };
-  writeFileSync(resolve(OUT, `phase4a-${info.project.name}-${platform()}.json`), JSON.stringify({ meta, results }, null, 1) + '\n');
+  writeFileSync(resolve(OUT, `${LABEL}-${info.project.name}-${platform()}.json`), JSON.stringify({ meta, results }, null, 1) + '\n');
 });

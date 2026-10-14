@@ -1,8 +1,9 @@
 // Q7 A/B baseline runner. Usage:
 //   NODE_OPTIONS=--max-old-space-size=24000 tsx tools/tuning/ab/run.mjs [--seeds 1,777,12345] [--previews 50000,200000]
-//                                                                        [--finals 1000000,2560000] [--out ab-baseline.json]
-// Runs stock orogen's pipeline through the shell, compares each preview with each final on the L0 reference mesh, and writes
-// the compact baseline (the ten Q7 metrics). Full per-run results go to tools/tuning/results/ab/ (gitignored).
+//                                       [--finals 1000000,2560000] [--pipeline parity|structured] [--out <file>]
+// Runs the shell's pipeline (stock orogen, or the Phase 4b structured passes), compares each preview with each final on
+// the L0 reference mesh, and writes the compact baseline (the ten Q7 metrics). Default output: ab-baseline.json
+// (parity) or ab-baseline.structured.json. Full per-run results go to tools/tuning/results/ab/ (gitignored).
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -16,7 +17,8 @@ const list = (s) => s.split(',').map(Number);
 const seeds = list(arg('seeds', '1,777,12345'));
 const previews = list(arg('previews', '50000,200000'));
 const finals = list(arg('finals', '1000000,2560000'));
-const outFile = path.resolve(HERE, '..', arg('out', 'ab-baseline.json'));
+const pipeline = arg('pipeline', 'parity');
+const outFile = path.resolve(HERE, '..', arg('out', pipeline === 'structured' ? 'ab-baseline.structured.json' : 'ab-baseline.json'));
 
 /** The ten Q7 metrics of one preview-vs-final comparison. */
 export function q7(c) {
@@ -41,8 +43,10 @@ export function q7(c) {
 
 const commit = execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: HERE }).toString().trim();
 const baseline = {
-  _note: 'Q7 baseline of stock orogen run through the shell (Phase 4a). Reference = L0 (orogen coarse mesh, seed+137). No gate yet: Phase 4b defines regression against this file.',
-  commit, previews, finals, refMode: 'L0',
+  _note: pipeline === 'structured'
+    ? 'Q7 record of the structured pipeline (Phase 4b: reference pass on L0, detail pass at N). Reference = L0. Structured stages run in fdlibm only.'
+    : 'Q7 baseline of stock orogen run through the shell (Phase 4a). Reference = L0 (orogen coarse mesh, seed+137). No gate yet: Phase 4b defines regression against this file.',
+  commit, pipeline, previews, finals, refMode: 'L0',
   // Orogen's parity stages run in native-libm mode, so the last bits can differ across OSes and CPUs.
   platform: { os: `${os.platform()} ${os.arch()}`, cpu: os.cpus()[0]?.model ?? 'unknown', node: process.version, date: new Date().toISOString() },
   seeds: {},
@@ -50,8 +54,8 @@ const baseline = {
 fs.mkdirSync(path.join(HERE, '..', 'results', 'ab'), { recursive: true });
 for (const seed of seeds) {
   const Ns = [...previews, ...finals].sort((a, b) => a - b);
-  const r = await runAb({ seed, Ns, refMode: 'L0', finals, onLog: (m) => console.error(m) });
-  fs.writeFileSync(path.join(HERE, '..', 'results', 'ab', `ab-s${seed}.json`), JSON.stringify(r, null, 1));
+  const r = await runAb({ seed, Ns, refMode: 'L0', finals, pipeline, onLog: (m) => console.error(m) });
+  fs.writeFileSync(path.join(HERE, '..', 'results', 'ab', `ab-${pipeline}-s${seed}.json`), JSON.stringify(r, null, 1));
   baseline.seeds[seed] = { runs: r.runs, vsFinal: {} };
   for (const f of finals) {
     baseline.seeds[seed].vsFinal[f] = {};

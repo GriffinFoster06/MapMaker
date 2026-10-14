@@ -27,9 +27,11 @@ describe('strict vs transcendental-dependent keys', () => {
 });
 
 describe('probe', () => {
+  // Two full probe runs; since v4 each includes the structured pipeline at 20k and 200k, 30 s per run on a 2-core
+  // CI runner and 40 s on the 4-core dev VM, so the 60 s default is too short.
   it('is stable across repeated runs in one process', async () => {
     const a = await runProbe(), b = await runProbe();
     expect(a.hashes).toEqual(b.hashes);
     expect(Object.keys(a.hashes).length).toBeGreaterThan(60);
-  });
+  }, 300_000);
 });
