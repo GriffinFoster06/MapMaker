@@ -1,0 +1,93 @@
+{
+ "meta": {
+  "browser": "webkit",
+  "variant": "structured",
+  "platform": "linux x64",
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.80GHz",
+  "cores": 4,
+  "ramGB": 16,
+  "date": "2026-10-14T02:04:13.292Z"
+ },
+ "results": [
+  {
+   "tier": "50k",
+   "cells": 50000,
+   "ok": true,
+   "totalMs": 4545,
+   "stagesMs": {
+    "mesh": 223,
+    "ref.pass": 1817,
+    "detail.pass": 2411
+   },
+   "generationMs": 4451,
+   "workingSetMB": 17,
+   "layerArrays": 75,
+   "baselineRssMB": 395,
+   "peakRssMB": 1102
+  },
+  {
+   "tier": "200k",
+   "cells": 200000,
+   "ok": true,
+   "totalMs": 8736,
+   "stagesMs": {
+    "mesh": 641,
+    "ref.pass": 1834,
+    "detail.pass": 5904
+   },
+   "generationMs": 8379,
+   "workingSetMB": 49,
+   "layerArrays": 75,
+   "baselineRssMB": 404,
+   "peakRssMB": 1210
+  },
+  {
+   "tier": "500k",
+   "cells": 500000,
+   "ok": true,
+   "totalMs": 18724,
+   "stagesMs": {
+    "mesh": 1576,
+    "ref.pass": 1774,
+    "detail.pass": 14824
+   },
+   "generationMs": 18174,
+   "workingSetMB": 113,
+   "layerArrays": 75,
+   "baselineRssMB": 395,
+   "peakRssMB": 1639
+  },
+  {
+   "tier": "1M",
+   "cells": 1000000,
+   "ok": true,
+   "totalMs": 39315,
+   "stagesMs": {
+    "mesh": 3332,
+    "ref.pass": 2343,
+    "detail.pass": 32614
+   },
+   "generationMs": 38289,
+   "workingSetMB": 220,
+   "layerArrays": 75,
+   "baselineRssMB": 1282,
+   "peakRssMB": 2197
+  },
+  {
+   "tier": "2.56M",
+   "cells": 2560000,
+   "ok": true,
+   "totalMs": 119671,
+   "stagesMs": {
+    "mesh": 10297,
+    "ref.pass": 1815,
+    "detail.pass": 105074
+   },
+   "generationMs": 117186,
+   "workingSetMB": 552,
+   "layerArrays": 75,
+   "baselineRssMB": 1499,
+   "peakRssMB": 4625
+  }
+ ]
+}

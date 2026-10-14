@@ -14,6 +14,7 @@ Date: 2026-10-14. Branch `claude/bold-dijkstra-k0fgj1`, draft PR GriffinFoster06
   - **Native-cell hypsometry KS** is worse than stock in three of four comparisons. The cause is that detail below the reference scale is not yet the same at different N (invariant I3 does not hold; see Invariants).
 - **D7 climate gate passes:** 0.663 vs 0.678 at 40k and 0.664 vs 0.668 at 160k (allowed: 0.02 below). The 80k climate mesh L0′ is not needed.
 - **D8: the fallback was not taken.** One tuning round of the two allowed was used.
+- **Not flattened.** At 2.56M the structured world is higher and at least as steep as stock on all three seeds, with Hack's exponent unchanged (0.58–0.61) and slightly denser rivers (see Realism).
 - **Faster than stock at large N.** 2.56M takes 89 s in Node against stock's 232–242 s; 1M takes 31 s against 71–74 s. Climate is solved once on L0 and downscaled.
 
 ## What was built
@@ -94,7 +95,21 @@ The 80k climate mesh L0′ was not needed. `tuning.test.ts` enforces both condit
 
 ## Realism (2.56M, structured against stock)
 
-_Pending: tools/tuning/realism/realism.mjs, three seeds._
+`tools/tuning/realism/realism.mjs` (seeds 1, 777, 12345; output `tools/tuning/results/realism-2560000.json`, not committed). Land cells only; both worlds are routed by the same priority flood on their own raw elevation.
+
+| Seed | Pipeline | Land | Hypsometry p25 / p50 / p75 / p95 / p99 (m) | Slope p50 / p90 / p99 (m/km) | Hack h | Rivers ≥10³ / ≥10⁴ km² (km per 1000 km²) |
+|---|---|---|---|---|---|---|
+| 1 | stock | 0.294 | 6 / 28 / 123 / 1177 / 2766 | 1.08 / 20.0 / 66.3 | 0.602 | 16.7 / 6.12 |
+| 1 | structured | 0.289 | 18 / 67 / 372 / 2848 / 5900 | 2.09 / 31.0 / 95.2 | 0.594 | 18.4 / 6.34 |
+| 777 | stock | 0.277 | 8 / 42 / 231 / 2353 / 5195 | 1.65 / 30.8 / 88.6 | 0.614 | 16.7 / 6.25 |
+| 777 | structured | 0.266 | 13 / 52 / 278 / 2671 / 5854 | 1.79 / 29.3 / 95.8 | 0.578 | 18.2 / 6.36 |
+| 12345 | stock | 0.280 | 6 / 29 / 120 / 1402 / 3841 | 0.98 / 20.8 / 68.1 | 0.606 | 16.8 / 6.24 |
+| 12345 | structured | 0.280 | 17 / 69 / 333 / 2892 / 5868 | 1.98 / 30.8 / 94.2 | 0.603 | 18.4 / 6.47 |
+
+- **Not flattened.** On every seed the structured world is as high or higher at every percentile and at least as steep, except slope p90 on seed 777 (29.3 against 30.8). Hack's exponent stays in 0.58–0.61 (Earth: ≈ 0.5–0.6), and river density is 4–10 % higher.
+- **Land fraction** moves by at most 1.1 points (seed 777).
+- **Variation across seeds is smaller.** Stock's p95 ranges 1177–2353 m; structured's 2671–2892 m. I have not isolated the cause. A plausible one is that structured takes its stage 1–3 fields from L0, where their resolution-dependent scalings were tuned, rather than recomputing them at 2.56M. That is unverified.
+- **Proposed bounds** for a future realism regression gate (target review item 6), per seed at 2.56M: land fraction within ±0.02 of stock; hypsometry p95 and slope p50 not below stock's; Hack h in [0.5, 0.65].
 
 ## Performance
 
@@ -108,7 +123,17 @@ Whole pipeline in Node (A/B harness, this machine: Xeon @ 2.8 GHz, Node 24.21), 
 | 2.56M | 232–242 | 89–94 |
 
 - **Breakdown:** the reference pass on L0 takes ≈ 2.5 s, which dominates at 50k. Above 200k the structured pipeline is faster, because climate runs on L0 and is downscaled instead of being solved at N.
-- **Browsers:** _pending (`npm run bench`)._
+- **Browsers** (`BENCH_VARIANT=structured npm run bench`, the Phase 4a method on the same 4-core VM; Firefox headed under Xvfb; files `docs/benchmarks/phase4b-*-linux.json`). Total time from generate to painted globe, seconds, stock (Phase 4a) → structured:
+
+  | Browser | 50k | 200k | 500k | 1M | 2.56M |
+  |---|---|---|---|---|---|
+  | Chromium | 4.0 → 5.1 | 14.5 → 11.0 | 39.0 → 21.9 | 79.9 → 39.2 | 258 → 110 |
+  | Firefox | 4.2 → 5.1 | 14.3 → 11.0 | 39.1 → 23.7 | 90.8 → 46.6 | 329 → 134 |
+  | WebKit | 4.0 → 4.5 | 14.7 → 8.7 | 45.7 → 18.7 | 107 → 39.3 | 374 → 120 |
+
+  - The reference pass costs 1.8–2.4 s in every browser and at every tier. That is why 50k is 0.5–1.1 s slower than stock; from 200k up, structured is faster, by 2.2–3.1× at 2.56M.
+  - **Working set** (mesh and layer arrays): 552 MB at 2.56M, against stock's 607 MB.
+  - **Peak resident memory is higher.** At 2.56M, peak RSS is 1969 MB (stock 1813) in Chromium, 2645 MB (2304) in Firefox and 4625 MB (2899) in WebKit. WebKit's growth above its tier baseline is ≈ 3.1 GB against stock's ≈ 1.25 GB. The detail pass holds the reference state, the operator tables and orogen's scratch at N at the same time; the breakdown has not been measured. See Open issues.
 
 ## Deviations from note 14
 
@@ -146,6 +171,7 @@ Whole pipeline in Node (A/B harness, this machine: Xeon @ 2.8 GHz, Node 24.21), 
 
   The candidates are an explicit band-limited synthesis of orogen's sub-reference terms (domes, phasor, octaves), and erosion expressed in physical rather than hop units. **Proposal:** fold this into Phase 7 (erosion), which re-runs the A/B with the slow pass as final.
 - **A_major = 2×10⁵ km².** It is used only by the constrained drainage; the harness's basin metric does not depend on it. It is untuned and unchanged.
+- **Peak browser memory at 2.56M is higher than stock** (WebKit 4.6 GB against 2.9 GB peak RSS), although the working set is smaller. The cause is unmeasured; a breakdown of the detail pass's transient arrays comes first, and any reduction must leave the output bit-identical.
 - **Previews below 20k** (orogen's slider goes down to 5k) cannot satisfy I1 on every L0 cell; several hundred are childless at 5k.
 
 ## Checks run
@@ -153,6 +179,7 @@ Whole pipeline in Node (A/B harness, this machine: Xeon @ 2.8 GHz, Node 24.21), 
 - **Repository checks:** lint, typecheck, `npm test`, build and `provenance:check` pass.
 - **Climate tests:** the Kottek data present locally; `tools/tuning/climate` passes 5 of 5 (D7 included).
 - **Node probe:** 0 strict mismatches. 22 report-only native-libm keys differ on this machine, as before.
+- **Browser benchmark** (`npm run bench`, structured): all 15 tier runs pass in the three browsers.
 - **`npm run e2e`** (Chromium, Firefox headed under Xvfb, WebKit): 15 of 15 pass.
 - **Q7:** the full three-seed A/B was run twice, for round 0 and round 1; the gate passes against its baseline.
 - **CI:** green on every completed run of the branch.

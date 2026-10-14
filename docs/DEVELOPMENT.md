@@ -92,7 +92,7 @@ scripts/node24.sh npx tsx tools/tuning/ab/gate.mjs --current tools/tuning/ab-bas
 NODE_OPTIONS=--max-old-space-size=13000 scripts/node24.sh npx tsx tools/tuning/realism/realism.mjs
 ```
 
-Browser measurements write `docs/benchmarks/phase4a-*.json`; the report writes `docs/benchmarks/PHASE4A.md`. The Q7 runner writes `tools/tuning/ab-baseline.json`, with raw runs under ignored `tools/tuning/results/ab/`. Fix metric correctness before recording the baseline. Review measured artifacts and provenance before committing them. The benchmark spec records per-tier failures in JSON, so inspect `ok`/`error` fields as well as process exit status.
+Browser measurements write `docs/benchmarks/phase4b-*.json` for the structured pipeline (default) or `docs/benchmarks/phase4a-*.json` with `BENCH_VARIANT=parity` (stock orogen); the report writes `docs/benchmarks/PHASE4A.md`. The Q7 runner writes `tools/tuning/ab-baseline.json`, with raw runs under ignored `tools/tuning/results/ab/`. Fix metric correctness before recording the baseline. Review measured artifacts and provenance before committing them. The benchmark spec records per-tier failures in JSON, so inspect `ok`/`error` fields as well as process exit status.
 
 ## Switching between Claude Code and Codex
 
