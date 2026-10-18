@@ -335,7 +335,9 @@ export function runDrainageDetail(ref: ReferenceState, d: ElevationDetail, L1: S
   const seen = new Uint8Array(n);
   const order = new Int32Array(n);
   let m = 0;
-  const heap = new MinHeap(adjList.length + n);
+  // Every push below marks its cell seen first, so each cell is pushed at most once and n slots suffice (Phase 5 M0;
+  // was adjList.length + n ≈ 7n). The heap's order does not depend on its capacity.
+  const heap = new MinHeap(n);
   for (let r = 0; r < n; r++) if (elev[r]! <= 0) seen[r] = 1;
   for (let r = 0; r < n; r++) {
     if (elev[r]! <= 0) continue;
