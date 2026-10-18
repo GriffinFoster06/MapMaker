@@ -49,7 +49,9 @@ Drawing a mountain stamp is annotation (map art); sculpting elevation is a world
 
 ## 4. Upstream references (algorithm level)
 
-- **Azgaar** relief icons, its emblem (heraldry) generator, and its burg and marker icons (exact files located when Phase 10b starts): heraldry and symbol sets to extract.
+- **Azgaar** (MIT code; checked in reconciliation group 6a):
+  - the emblem generator, `src/generators/emblems-generator.ts`. It outputs data, uses the global `Math.random`, and needs an injected RNG. The SVG is drawn by `src/renderers/emblems/renderer.ts` with shield geometry in `shieldPositions.ts`;
+  - assets: 338 heraldry charges in `public/charges/`, relief icon `<symbol>`s in `src/index.html` (catalogue `src/data/relief-icons.ts`), and burg and marker icons in `public/images/icons/` and `public/images/markers/`. **These assets have no documented licence** upstream (`docs/wiki/Policy.md:54` says they carry their own licences but names none). Find each source before shipping any.
 - **Godot** `editor/` canvas tools and undo-redo patterns; `core/math/` geometry helpers.
 - **Candidates to audit:** open-source map-drawing tools and CC0 asset packs (listed in the matrix).
 - Inkarnate and Wonderdraft are proprietary: feature reference only, by public documentation.

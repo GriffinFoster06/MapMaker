@@ -4,7 +4,7 @@
 
 **Scope:** only the claims that drive decisions for Phase 5 (projections) and Phase 5c (cartography v1): which file or function is the pick, whether it exists, what it does, whether it can run deterministically through `dmath` in a worker, frame and units, and licence.
 
-**Status of this pass: findings recorded, edits to other files NOT yet made.** The session hit its usage limit after verification. The corrections below still have to be applied to `audit/Azgaars-Fantasy-Map-Generator.md`, `audit/QGIS.md`, `audit/CesiumJS.md`, `audit/CAPABILITY_MATRIX.md` and notes 18 and 19, followed by a grep of each edited audit for contradictions.
+**Edited:** `audit/Azgaars-Fantasy-Map-Generator.md` (banner; §1–2 sizes; §3.2, §3.13, §3.19, §3.20, §3.24; new §3.28 cartographic rendering; §5; §6 rows; §7), `audit/QGIS.md` (banner; §1–2 sizes; §3.1, §3.2; new §3.6 PAL and rule-based styles; §5; §6 projection row; §7), `audit/CesiumJS.md` (banner; §1; §3.1, §3.2, §3.5, §3.8; labels; §4; §5; §6 projection row; §7), `audit/CAPABILITY_MATRIX.md` (corrections 2–3, rows 19–21, the "New domains" cartography row, the licence table, the nothing-to-extract paragraph), note 18 §4, note 19 §4, and note 6 §4 (the CesiumJS cross-fade, K5). Each edited audit was grepped for the superseded claims (sizes, projections, OGL, licences, cross-fade, collision); the leftovers found (a duplicate CesiumJS geometry size, the Azgaar OGL open question, and three "could serve" or rating lines) were corrected. Phase text in `docs/ARCHITECTURE.md` was not edited; the manifest (configuration) was not edited.
 
 **Method:** as in groups 1–3. One subagent per repo (Sonnet) checked the claims. The coordinator then re-read the key facts in the source. The first reports had these errors:
 - the CesiumJS report summed the three projection files to 344 lines (they are 314);
@@ -72,7 +72,6 @@ Frame: the ECEF unit normal is (cosφ cosλ, cosφ sinλ, sinφ) (`packages/core
 4. **Phase 5c symbols and coastlines:** Azgaar relief placement uses the global `Math.random`; it needs a cell-keyed RNG to satisfy note 18 §3.2. All Azgaar geometry is planar pixels and must run in a local tangent frame.
 5. **Asset licences:** Azgaar's charges and icons have no documented licence. Before any are bundled (note 18 open question 1, note 19), they need a source.
 
-## Remaining work
+## Not re-checked
 
-- Apply A1–A11, Q1–Q6 and K1–K7 to the three audits, to `audit/CAPABILITY_MATRIX.md` (line 16 also misses `geoOrthographic`; row 21 needs the CesiumJS path and line count; the licence table needs QGIS GPL-2.0-or-later and the PAL GPL-3.0-or-later) and to notes 18 §4 and 19 §4.
-- Grep each edited audit for contradictions.
+Claims outside Phases 5 and 5c in the three audits (Azgaar generators other than the cartography picks, QGIS processing and I/O, CesiumJS terrain providers and 3D Tiles) were not re-checked in this pass.

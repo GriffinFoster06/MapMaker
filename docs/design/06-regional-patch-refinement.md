@@ -124,7 +124,7 @@ These refine the existing text and do not change direction.
 ## 4. Upstream references (algorithm level)
 
 - **Note 14** operators. **Multigrid:** Briggs, Henson & McCormick (2000).
-- **CesiumJS** `QuadtreePrimitive.js` and `Globe.js`: the level-of-detail selection and cross-fade ideas for the renderer. Concepts only. The code is Apache-2.0 and could be used, but it is not needed.
+- **CesiumJS** `packages/engine/Source/Scene/QuadtreePrimitive.js` and `Globe.js`: screen-space-error level-of-detail selection for the renderer (CesiumJS has no imagery cross-fade; reconciliation group 6a). Concepts only. The code is Apache-2.0 and could be used, but it is not needed.
 - **orogen** `sphere-mesh.js`: jitter magnitude and Delaunay via stereographic projection.
 - **Spherical Delaunay legalisation:** Renka (1997), STRIPACK, *ACM TOMS* 23. Algorithm only.
 - **Badlands-style routing** (note 14 and Phase 7) with inflow boundary conditions, as in Braun & Willett (2013).

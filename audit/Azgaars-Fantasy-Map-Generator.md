@@ -1,15 +1,17 @@
 # Audit: Azgaars-Fantasy-Map-Generator
 
+> **Reconciled 2026-10-18** for Phases 5 and 5c only, against the source at `3d94b80` (`docs/reconciliation/group-6a.md`). Corrected: sizes, the projection claims (there is no projection code; the map is a linear lat/lon box), the 3D view, the relief-icon RNG, the cartography picks (coastline, rivers, labels; no label collision avoidance), the emblem generator size, and the licence notes (no OGL content; bundled assets have no documented licence). Claims outside that scope were not re-checked.
+
 ## 1. Overview
 
-Azgaar's Fantasy Map Generator is a mature, well-maintained open-source web application for procedurally generating, editing, and visualizing fantasy maps. Built primarily in TypeScript/JavaScript with ~122k LOC across 500 files, it has been actively developed since 2017 (current HEAD: 3d94b809). The tool targets writers, game masters, and cartographers, offering browser deployment via GitHub Pages and an optional Electron desktop wrapper. The codebase is in gradual transition from vanilla JS to TypeScript and follows a four-layer architecture (state, generators, editors, renderers).
+Azgaar's Fantasy Map Generator is a mature, well-maintained open-source web application for procedurally generating, editing, and visualizing fantasy maps. Built in TypeScript (431 `.ts` files and 111,746 lines in `src/`; 452 `.ts`/`.js` files and 114,217 lines with `public/`, mostly vendored libraries), it has been actively developed since 2017 (current HEAD: 3d94b809). The tool targets writers, game masters, and cartographers, offering browser deployment via GitHub Pages and an optional Electron desktop wrapper. The codebase is in gradual transition from vanilla JS to TypeScript and follows a four-layer architecture (state, generators, editors, renderers).
 
 ## 2. Language, runtime, dependencies, build
 
 **Languages & LOC:**
-- TypeScript: ~476 files, ~95% of codebase
-- JavaScript: ~24 files, ~5% of codebase
-- Total: ~122k LOC
+- TypeScript: 431 files in `src/` (111,746 lines); no `.js` in `src/`
+- JavaScript: 21 files in `public/`, mostly vendored libraries
+- Total: 114,217 lines of `.ts`/`.js` in `src/` and `public/`
 
 **Runtime:** Browser-first (vanilla JS/TS + Vite bundler) with optional Electron desktop app (v43.5.0).
 
@@ -36,10 +38,10 @@ Build script is `tsc && vite build && node scripts/pwa-precache.mjs`. Dockerfile
 - **Requirements capabilities it could serve:** Heightmap generation, partial-world inference (can resample from imported heightmap).
 
 ### 3.2 Erosion (relief icons)
-- **Where:** `src/generators/relief-generator.ts` (~200 LOC)
+- **Where:** `src/generators/relief-generator.ts` (210 lines); `ReliefModule.generate` with a Poisson-disc sampler (`:149–210`). `src/renderers/draw-relief-icons.ts` (52 lines) only writes `<use>` elements; the symbols are inline `<symbol>`s in `src/index.html`, catalogued in `src/data/relief-icons.ts`
 - **What it does:** Generates relief icons (visual symbols for mountains, hills, conifer forests, etc.) placed on terrain cells based on height, biome, temperature, and density parameters. Not a true erosion simulation (e.g., no stream-power law, no sediment transport); purely visual/symbolic.
 - **Quality & realism rating: 2/5.** Decorative icon placement using biome-dependent symbol libraries and density thresholds. No geomorphological processes; terrain already exists from heightmap stage. Useful for cartographic style but not scientific erosion modeling.
-- **Extractability: loosely coupled.** Depends on `pack`, `grid`, `styles`, and biome data. Pure placement logic (~150 LOC) extractable to browser JS. Effort: low.
+- **Extractability: loosely coupled.** Depends on `pack`, `grid`, `styles`, and biome data, and calls the global `Math.random` (`:28`, `:60`, `:64`, `:193`, `:197`, `:198`) and `ra()`. The placement logic ports to TypeScript with an injected RNG keyed by cell. Frame: pixels, heights 0–100. Effort: low.
 - **Requirements capabilities it could serve:** Visual terrain detail (relief overlay); does not satisfy heightmap/erosion requirements on its own.
 
 ### 3.3 Hydrology (rivers, lakes, watersheds)
@@ -110,7 +112,7 @@ Build script is `tsc && vite build && node scripts/pwa-precache.mjs`. Dockerfile
 - **Requirements capabilities it could serve:** Population & settlement, cities (burg placement).
 
 ### 3.13 Cities & towns
-- **Where:** Burgs (settlements) are classified by size (capital, town, village, etc.) in `burgs-generator.ts`. Names generated in `names-generator.ts` (~300 LOC). Emblems (coats of arms) in `emblems-generator.ts` (~600 LOC).
+- **Where:** Burgs (settlements) are classified by size (capital, town, village, etc.) in `burgs-generator.ts`. Names generated in `names-generator.ts` (~300 LOC). Emblems (coats of arms) in `emblems-generator.ts` (503 lines; outputs data and uses the global `Math.random`), drawn by `src/renderers/emblems/renderer.ts`; 338 charge SVGs in `public/charges/`.
 - **What it does:** Burg size derived from population. Each burg has name (drawn from culture-specific name lists), emblem (procedural heraldic shield), and position. State capitals assigned manually or auto-selected from largest burg.
 - **Quality & realism rating: 3/5.** Visually rich (emblems, names, hierarchy). Names culturally themed. Lacks city growth models, infrastructure, defense/fortification details.
 - **Extractability: loosely coupled.** Name/emblem generation moderately coupled to UI and `pack`. Core generators refactorable. Effort: medium.
@@ -152,18 +154,18 @@ Build script is `tsc && vite build && node scripts/pwa-precache.mjs`. Dockerfile
 - **Requirements capabilities it could serve:** Planet-scale + regional patches (partial).
 
 ### 3.19 Globe view
-- **Where:** `src/renderers/view-3d-renderer.ts` (~600 LOC), Three.js 3D rendering.
-- **What it does:** Renders heightmap as a 3D globe or flat orthographic projection using WebGL (Three.js). Allows rotation, zoom, and texture mapping (satellite imagery, river flow). Supports both globe and flat views (equirectangular, Mercator, equidistant, etc.).
-- **Quality & realism rating: 4/5.** Smooth 3D rendering, multiple projections, good visual quality. Limited to WebGL performance (no WASM heightfield compute). Can handle globe-scale maps.
+- **Where:** `src/renderers/view-3d-renderer.ts` (1,228 lines), Three.js 3D rendering.
+- **What it does:** Two modes (`isGlobe`, `:91–92`): a globe that maps the planar map as a canvas texture onto `SphereGeometry(1,64,64)` (`:997`), or a `PlaneGeometry` heightfield with displacement and an erosion bake (`:740`, `:751`). There is no projection in either mode.
+- **Quality & realism rating: 2/5.** Good visual quality, but the globe is a texture of a planar map, not a sphere-native model.
 - **Extractability: standalone (for 3D rendering).** Three.js integration is well-encapsulated. Effort: low to medium (Three.js is external dependency).
-- **Requirements capabilities it could serve:** Globe view, projections.
+- **Requirements capabilities it could serve:** Globe view (reference only; orogen is the pick).
 
 ### 3.20 Flat projections
-- **Where:** Projection logic distributed in export/rendering; examples in `export.ts` (GeoJSON export uses lat/lon), view-3d renders Mercator/equirectangular.
-- **What it does:** Supports Mercator, equirectangular, equal-area, and other projections. Conversions between canvas coords and geographic coords (lon/lat). Integrated into 3D view and GeoJSON export.
-- **Quality & realism rating: 3/5.** Multiple projections available; mathematically correct. Lacks some exotic projections (e.g., Mollweide, sinusoidal). Sufficient for standard cartography.
-- **Extractability: loosely coupled.** Projection math is ~100 LOC, refactorable. Dependent on map bounds (options object). Effort: low.
-- **Requirements capabilities it could serve:** Flat projections.
+- **Where:** There is no projection code. The map is a linear lat/lon box: `getLongitude` and `getLatitude` (`src/utils/commonUtils.ts:245`, `:257`), with the box set in `src/generators/coordinates.ts:70–84`. There is no inverse. The only d3-geo users are `geoEquirectangular` for the graticule (`src/renderers/draw-coordinates.ts:25`) and `geoOrthographic` for a 200 px preview globe in the settings UI (`src/controllers/world-configurator.ts:8`).
+- **What it does:** Converts pixels to lon/lat linearly (equirectangular in effect). GeoJSON export uses these coordinates.
+- **Quality & realism rating: 1/5.** No Mercator, equal-area, equidistant or any other projection.
+- **Extractability: n/a.** Nothing to extract for Phase 5; MapMaker uses d3-geo (ARCHITECTURE D1).
+- **Requirements capabilities it could serve:** None.
 
 ### 3.21 Partial-world inference
 - **Where:** Not explicitly implemented; regional heightmap import possible, but no inference of surrounding continental structure.
@@ -185,7 +187,7 @@ Build script is `tsc && vite build && node scripts/pwa-precache.mjs`. Dockerfile
 - **Requirements capabilities it could serve:** None; is a gap.
 
 ### 3.24 Export (PNG/SVG/STL/other)
-- **Where:** `src/services/io/export.ts` (~900 LOC)
+- **Where:** `src/services/io/export.ts` (909 lines). PNG and JPEG rasterise the serialised SVG in a canvas; GeoJSON coordinates are the linear lon/lat (`toGeoCoordinates`, `:27–29`)
 - **What it does:** Exports to SVG (full map vector graphic), PNG (raster at configurable resolution), JPEG (legacy), PNG tiles (tiled map), and GeoJSON (cells, routes, rivers, markers, zones). STL export not present.
 - **Quality & realism rating: 3/5.** SVG/PNG exports high quality; GeoJSON useful for GIS. Missing STL (3D model for 3D printing). PNG tiles support web tile serving (e.g., Leaflet).
 - **Extractability: loosely coupled.** Export logic is functional and modular; SVG rendering dependencies on DOM. Core export logic ~400 LOC refactorable. Effort: medium.
@@ -211,6 +213,18 @@ Build script is `tsc && vite build && node scripts/pwa-precache.mjs`. Dockerfile
 - **Quality & realism rating: 2/5.** Parameters are intuitive (e.g., "temperature at equator") but lack physical grounding. No derivation from planet mass, axial tilt, solar constant, etc. Purely empirical tuning.
 - **Extractability: N/A.** UI-driven configuration, not a simulation module.
 - **Requirements capabilities it could serve:** None directly (this is configuration, not derivation).
+
+### 3.28 Cartographic rendering (added 2026-10-18, group 6a)
+- **Where:** `src/renderers/` (10,446 lines with tests; subfolders `labels/`, `emblems/`, `overlays/`, `viewport/`); coastline and relief placement live in `src/generators/`.
+- **What it does:**
+  - coastlines: `coastline-generator.ts` (`fractalize`, seeded per feature with Alea, `:73`), plus `coastal-waves.ts`, `draw-coastal-bands.ts` (SVG masks), `lake-ripples.ts` and `heightmap-hachures.ts`;
+  - rivers: `river-generator.ts:487–576` (`addMeandering`, `getRiverPath`) with `meander` (`utils/pathUtils.ts:424`);
+  - labels: state labels are fitted along rays cast from the state's pole (`renderers/labels/fit-state-label.ts`, `label-raycast.ts`); burg labels follow a 3-point arc (`label-arc.ts`). Text width is estimated heuristically. **There is no label collision avoidance**; overlap is controlled only by per-group zoom bounds;
+  - styles: 14 JSON presets in `public/styles/` (schema `src/generators/styles-schema.ts`).
+  - The only shading is the WebGL satellite texture (`draw-satellite-texture.ts:352`); there is no 2D hillshade.
+- **Quality & realism rating: 3/5.** A rich fantasy vocabulary, but no label collision handling and no hillshade.
+- **Extractability: loosely coupled.** The geometry functions are pure apart from the `pack`/`options` globals and use a local Alea or no randomness. They port to TypeScript in a local tangent frame (pixels → metres). DOM-only drawers (`draw-*.ts`) are references.
+- **Requirements capabilities it could serve:** cartographic rendering (note 18).
 
 ## 4. Internal data representation
 
@@ -238,9 +252,9 @@ Build script is `tsc && vite build && node scripts/pwa-precache.mjs`. Dockerfile
 
 **Copyright:** 2017–2024 Max Haniyeu (Azgaar).
 
-**Vendored code / third-party:** Checked `public/libs/` for legacy vendored code (e.g., objexporter.min.js). No vendored production code in `src/`; all deps from npm. Note: project uses some Open Game License (OGL) content for name lists and reference material (not code), but all source is MIT.
+**Vendored code / third-party:** `public/libs/` holds vendored libraries, mostly without licence headers (`alea.min.js` MIT/BSD, `loopsubdivison.min.js` MIT, `simplify.js` © Agafonkin with no licence text). No vendored production code in `src/`. A repo-wide grep finds **no Open Game License content**; the name bases (`src/data/name-bases.ts`) carry no licence header. **Bundled assets have no documented licence:** the heraldry charges (`public/charges/`), relief symbols and icons. `docs/wiki/Policy.md:54` says they "carry their own licences", but `docs/wiki/Dependencies.md` names none. The root `LICENSE` is the only licence file.
 
-**Mixed licenses:** None detected in source code. All TS/JS is MIT.
+**Mixed licenses:** None in `src/` code. Assets: undocumented (above).
 
 **Practical notes:** MIT is maximally permissive; derivatives (including MapMaker extractions) can be relicensed or closed-source. No patent clauses. No EULAs or restrictions on generated maps.
 
@@ -250,7 +264,7 @@ Build script is `tsc && vite build && node scripts/pwa-precache.mjs`. Dockerfile
 |---|---|---|---|---|---|
 | Tectonics | no | — | — | (none) | No plate tectonics or crustal simulation. |
 | Heightmap generation | yes | 3/5 | loose | `heightmap-generator.ts` | Blob/line noise with templates; lacks geological realism. |
-| Erosion | partial | 2/5 | loose | `relief-generator.ts` | Visual relief icons only; no geomorphic erosion model. |
+| Erosion | partial | 2/5 | loose | `relief-generator.ts` | Visual relief icons only (global `Math.random`); no geomorphic erosion model. |
 | Hydrology (rivers/lakes/watersheds) | yes | 3/5 | loose | `river-generator.ts`, `lakes.ts`, `features-generator.ts` | D8 flow routing, discharge-based widths, watershed implicit; lacks delta formation. |
 | Climate – temperature | yes | 3/5 | standalone | `temperature-generator.ts` | Latitude-driven baseline + altitude lapse (6.5°C/km); lacks currents/albedo. |
 | Climate – wind | partial | 2/5 | standalone | `precipitation-generator.ts` (`getWinds()`) | Six latitude-tier wind angles; no vector field or dynamics. |
@@ -267,8 +281,8 @@ Build script is `tsc && vite build && node scripts/pwa-precache.mjs`. Dockerfile
 | Trade | yes | 2/5 | loose | `routes-generator.ts`, goods/production | Static trade network with profit calculation; no mercantile simulation. |
 | Long-run history/war/economics/politics sim | no | 1/5 | loose | `states-generator.ts` (campaigns/diplomacy only) | Pre-generated labels only; no simulation, causality, or dynamics. |
 | Planet-scale + regional patches (multi-resolution/zoom consistency) | partial | 2/5 | loose | `resample.ts`, entire pipeline | Seed-driven consistency; lacks hierarchical LOD or hard inter-scale constraints. |
-| Globe view | yes | 4/5 | standalone | `view-3d-renderer.ts` | Three.js WebGL 3D globe and orthographic projections. |
-| Flat projections | yes | 3/5 | loose | projection logic in export, 3D view | Mercator, equirectangular, equal-area, equidistant; correct mathematics. |
+| Globe view | partial | 2/5 | standalone | `view-3d-renderer.ts` | Three.js sphere textured with the planar map, or a heightfield plane; no projections. |
+| Flat projections | no | 1/5 | — | `utils/commonUtils.ts` (linear lat/lon) | No projection code; linear lat/lon box, d3 equirectangular graticule only. |
 | Partial-world inference | no | — | — | (none) | Not implemented; no algorithm infers surrounding continental context from partial map. |
 | Import of heightmaps/layers | yes | 3/5 | loose | `load.ts`, import dialogs | PNG grayscale-to-height; .map file loading; lacks multi-layer blending. |
 | Fidelity/speed slider with same-seed preview | no | — | — | (none) | Not implemented; no real-time preview or fidelity control. |
@@ -289,7 +303,7 @@ Build script is `tsc && vite build && node scripts/pwa-precache.mjs`. Dockerfile
 
 4. **Biomes classification** (low effort, ~150 LOC): Lookup-table biome assignment is portable and works. Lacks complexity but suitable for fantasy maps.
 
-5. **Export infrastructure** (medium effort): SVG/PNG/GeoJSON export logic is modular and production-hardened. Three.js 3D globe is excellent. Reuse export.ts as-is, adapt rendering.
+5. **Export infrastructure** (medium effort): SVG/PNG/GeoJSON export logic is modular and production-hardened, but DOM-bound (it serialises the live SVG), so it is a reference for MapMaker's exact-path export, not code to reuse as-is. The 3D view is a textured sphere of the planar map.
 
 6. **Full-state serialization** (low effort, ~200 LOC core): `.map` file format and serialization logic are clean and versioned. Good model for MapMaker's save format.
 
@@ -322,7 +336,7 @@ Build script is `tsc && vite build && node scripts/pwa-precache.mjs`. Dockerfile
 1. Does Azgaars' Voronoi grid scale well to >100k cells for regional detail (MapMaker's zoom consistency)?
 2. How much refactoring is needed to lift global `pack`/`grid` to explicit parameters?
 3. Can the three.js 3D renderer be extended to true 3D terrain (heightfield geometry, not just texture mapping)?
-4. What is the licensing status of the name/culture data (OGL content)?
+4. ~~What is the licensing status of the name/culture data (OGL content)?~~ Answered 2026-10-18: there is no OGL content; the name bases carry no licence header, and the bundled charges, relief symbols and icons have no documented licence (§5).
 
 **Summary:** Azgaars is a mature, production-grade fantasy map generator with excellent UI/UX and solid procedural generation for *fantasy-scale* climate, biomes, hydrology, and trade networks. Core subsystems are extractable to browser JS/TS with low to medium effort. However, it is not a planet-scale physical simulation tool; MapMaker's requirements for tectonics, long-run history sim, and Earth calibration will require substantial new development. Use Azgaars as a foundation for terrain/climate/hydrology/trade subsystems; build new modules for tectonics, history sim, and calibration.
 

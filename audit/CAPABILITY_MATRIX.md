@@ -13,11 +13,11 @@ Basis: the 28 per-repo audits in this directory (`audit/<repo>.md`), plus my own
 ## Corrections to the audits and requirements (read first)
 
 1. **orogen is not a multi-projection reference.** I grepped `upstream/orogen`: it implements **equirectangular only**, plus a 3D globe. Its README, `index.html` and `js/planet-mesh.js` all say so, and its own `V1_REVIEW.md` notes pole and antimeridian seam artifacts. The requirements' "orogen is a strong reference for projections" does not hold. It is, however, the strongest repo overall for generation (see below).
-2. **Azgaar's audit overstated projections.** It claimed "Mercator, equirectangular, equal-area, equidistant; correct mathematics". A grep of `src/` finds only `d3.geoEquirectangular` (used for the graticule in `renderers/draw-coordinates.ts`). I downgraded Azgaar's flat-projection capability to 1/5.
+2. **Azgaar's audit overstated projections.** It claimed "Mercator, equirectangular, equal-area, equidistant; correct mathematics". A grep of `src/` finds only two d3-geo users: `geoEquirectangular` for the graticule (`renderers/draw-coordinates.ts:25`) and `geoOrthographic` for a 200 px preview globe in the settings UI (`controllers/world-configurator.ts:8`). The map itself is a linear lat/lon box (`utils/commonUtils.ts:245`, `:257`; group 6a A1). I downgraded Azgaar's flat-projection capability to 1/5.
 3. **No upstream repo contains browser-ready multi-projection code.** What exists:
    - GPlates: `src/gui/MapProjection.h` offers Rectangular, Mercator, Mollweide, Robinson plus an orthographic globe, via PROJ in C++.
-   - CesiumJS: only `WebMercatorProjection` and `GeographicProjection`.
-   - QGIS and PostGIS: use PROJ but don't contain it.
+   - CesiumJS: only `WebMercatorProjection` (spherical, on the ellipsoid's maximum radius) and `GeographicProjection` (plate carrée), in `packages/core/Source/` (314 lines with `MapProjection.js`).
+   - QGIS and PostGIS: use PROJ but don't contain it. QGIS `QgsCoordinateReferenceSystem::factors` only forwards `proj_factors` (scale factors, Tissot axes).
    - Azgaar: already depends on `d3` 7.9, which ships `d3-geo` (Mercator, Equal Earth, azimuthal and others). That is a third-party package, not an `upstream/` repo.
    - See Decision D1.
 4. **CESM is an empty shell in this checkout.** All 21 submodules in its `.gitmodules` (11 components such as cam, clm, mom and mosart, 5 libraries, cime, share and others) are empty, because it is a git-fleximod submodule layout; the 104 files present are build configuration, git-fleximod and five user-guide pages (re-checked in reconciliation group 3). The audit's 5/5 climate ratings describe the real CESM model, not code present here. I treat CESM as a *reference by name only*. The code that is present in other checkouts: MOM6, CTSM, MARBL (MOM6's GSW-Fortran and CVMix submodules and CTSM's FATES submodule are empty too).
@@ -247,7 +247,7 @@ Added after the first pass: `tectonics.js` (see `audit/tectonics.js.md`, `docs/s
 | Rank | Repo | Rating | Note |
 |---|---|---|---|
 | 1 | orogen | 4 | Resolution-independent ~20,000-region coarse plate pipeline projected to the high-res mesh (README step 5-7; `detail-scale.js`, `coarse-plates.js`). Scale-invariant erosion and noise. Design is built for it, but no true nested refinement. |
-| 2 | CesiumJS | 4 | Quadtree LOD *rendering* (`QuadtreePrimitive.js`, `Globe.js`). Streams data; does not generate it. |
+| 2 | CesiumJS | 4 | Quadtree LOD *rendering* (`packages/engine/Source/Scene/QuadtreePrimitive.js`, `Globe.js`): screen-space-error selection (`maximumScreenSpaceError` 2); no imagery cross-fade. Streams data; does not generate it. |
 | 3 | PostGIS / GPlates | 4 / 4 | Geodetic math and zoom-consistent projections. Math only. |
 
 **Pick: orogen for generation consistency, CesiumJS's quadtree design as the rendering reference.** Making regional patches refine the global field deterministically (a local mesh whose coarse content equals the global result) is original design work; see Gaps.
@@ -257,8 +257,8 @@ Added after the first pass: `tectonics.js` (see `audit/tectonics.js.md`, `docs/s
 | Rank | Repo | Rating | Extractability | License | Note |
 |---|---|---|---|---|---|
 | 1 | orogen | 4 | loose | GPL-3.0 | Three.js sphere, Voronoi cell mesh, atmosphere, poles OK (`scene.js`, `planet-mesh.js`). |
-| 2 | Azgaar | 4 (per audit) | standalone | MIT | Three.js 3D view (`renderers/view-3d-renderer.ts`, `controllers/view-3d.ts`) of the planar map. |
-| 3 | CesiumJS | 4 | loose | Apache-2.0 | WGS84 globe engine; heavy (~50k LOC if extracted). Earth ellipsoid assumptions. |
+| 2 | Azgaar | 2 (was 4 per audit; group 6a) | standalone | MIT | Three.js 3D view (`renderers/view-3d-renderer.ts`, 1,228 lines): the planar map as a texture on `SphereGeometry(1,64,64)`, or a `PlaneGeometry` heightfield (group 6a A1). |
+| 3 | CesiumJS | 4 | loose | Apache-2.0 | WGS84 globe engine; heavy (~50k LOC if extracted). Earth ellipsoid assumptions, but the ECEF axes match the canonical frame (`Ellipsoid.js:326–335`) and `Ellipsoid.UNIT_SPHERE` exists. Shading is Lambert only (no hillshade); slope/aspect/contour/elevation-band materials and imagery colour adjustments are small closed forms (group 6a K2). |
 
 **Pick: orogen.**
 
@@ -267,10 +267,10 @@ Added after the first pass: `tectonics.js` (see `audit/tectonics.js.md`, `docs/s
 | Rank | Repo | Rating | Note |
 |---|---|---|---|
 | 1 | GPlates | 4 | Rectangular, Mercator, Mollweide, Robinson as PROJ calls on the WGS84 ellipsoid (`src/gui/MapProjection.cc:67-71`); no projection maths of its own. Reference only. |
-| 2 | CesiumJS | 4 | `WebMercatorProjection`, `GeographicProjection` only (standalone, ~500 LOC). |
+| 2 | CesiumJS | 4 | `WebMercatorProjection` (spherical, clamped at ≈85.0511°) and `GeographicProjection` (plate carrée) only, in `packages/core/Source/` (314 lines with `MapProjection.js`). Golden-value references for d3. |
 | 3 | orogen | 2 | Equirectangular only (see correction 1). |
 | 4 | Azgaar | 1† | Equirectangular graticule only. |
-| - | QGIS / PostGIS | 5 / 4.5 | Delegate to PROJ, which is not in the checkout. |
+| - | QGIS / PostGIS | 5 / 4.5 | Delegate to PROJ, which is not in the checkout. QGIS has no projection maths of its own (`src/core/proj/`, 13,665 lines of wrappers). |
 
 **Pick: none from `upstream/`.** Needs a decision (D1): use `d3-geo` (+ `d3-geo-projection`) or `proj4js`, which are third-party packages outside `upstream/`.
 
@@ -398,7 +398,7 @@ Q12 lifted licence restrictions and Q13 widened the scope to every domain in `do
 | Religion, ideology, culture | New | Azgaar t0, UrbanSim logit, SongsOfFOSS, SLiM | 32 |
 | Characters, dynasties, chronicle | New | SongsOfFOSS succession and coups, Azgaar names | 33 |
 | Town and city plans | Candidate: watabou TownGeneratorOS | UrbanSim, PostGIS geometry, Godot geometry | 34 |
-| Cartography and map art | **Azgaar** renderers; **QGIS** symbology and labelling design | CesiumJS, orogen colour maps; candidates mapgen4, mewo2/terrain | 18, 19 |
+| Cartography and map art | **Azgaar** relief placement (`generators/relief-generator.ts`), coastline (`generators/coastline-generator.ts`, `renderers/coastal-waves.ts`), river paths and label path fitting (no label collision handling); **QGIS** hillshade renderer (`core/raster/qgshillshaderenderer.cpp`, incl. multi-directional) and **PAL** label placement (`core/pal/`, FALP + chain search; needs GEOS replaced); rule-based styles as design | CesiumJS slope/aspect/contour materials and imagery colour adjustments, orogen colour maps; candidates mapgen4, mewo2/terrain | 18, 19 |
 | Editing, undo, plugins | New | Godot undo-redo and plugins, QGIS Processing, SLiM Eidos | 16, 37 |
 | Parameter registry | New, after **MARBL** settings registry (its metadata fields and ordered categories; MARBL has no ranges or generated documentation and declares each parameter twice) | orogen config, Azgaar options | 17 |
 | Earth test datasets | Downloaded at tuning time (Q8) | orogen tuning harness | 15 |
@@ -425,11 +425,12 @@ These are not in `upstream-manifest.json` yet. Each needs an audit in `audit/` (
 | Repo | License (verified in audits) | Flag |
 |---|---|---|
 | orogen | GPL-3.0 | Core of the plan. |
-| Azgaar | MIT | |
+| Azgaar | MIT | Code only. The bundled heraldry charges (`public/charges/`, 338 SVGs), relief symbols and icons have **no documented licence** (group 6a); verify before bundling. No OGL content. |
 | VPLanet | MIT | Verified (`LICENSE`). |
 | Badlands | GPL-3.0 | Root `LICENSE` and `pyproject.toml` say GPL-3.0; `COPYING.LESSER` and the two files with headers (`model.py`, `__init__.py`) say LGPL-3.0-or-later; the rest point to a missing `LICENSE.md`. Recorded as GPL-3.0. |
 | GPlates | GPL-2.0-only | Verified: `COPYING` preamble says "version 2 ... not any later version". Incompatible with GPL-3.0; was math reference only, may be ported since Q12. |
-| CesiumJS | Apache-2.0 | |
+| QGIS | GPL-2.0-or-later | Verified (group 6a): `COPYING` is the GPL-2 text, but source headers say "version 2 … or (at your option) any later version". The PAL label engine (`src/core/pal/`) is **GPL-3.0-or-later** (libpal, HEIG-VD). Both may be included in GPL-3.0-only MapMaker. |
+| CesiumJS | Apache-2.0 | Includes the §3 patent grant. `LICENSE.md` appends 44 third-party entries (NVIDIA FXAA custom terms, OFL font, CC-BY example icons) and lists Cesium patents. |
 | LPJmL, FLAMEGPU2 | AGPL-3.0 | Network-copyleft. |
 | Eurace | custom EULA | **Do not extract** without legal review. Owner-controlled modification and redistribution (verified in `LICENSE.md`). |
 | WRF-Hydro | custom UCAR | **No sale/licensing for a fee of the Software or any work containing it** (verified in `LICENSE.txt` section 1, lines 6–7). Blocks any commercial use; recorded, not enforced, since Q12. `src/Rapid_routing/` is BSD-3-Clause. |
@@ -441,7 +442,7 @@ Combined work: the recommended core mixes GPL-3.0 (orogen, Badlands-derived), MI
 
 ## Repos with nothing to extract (reference or skip)
 
-ASPECT, CESM (empty checkout), CTSM, Delft3D, MARBL, MOM6, ParFlow, PISM, WRF-Hydro (HPC Fortran/C++, no browser path; physics references only, except small closed-form pieces: WRF-Hydro's channel-routing and level-pool kernels, PISM's exact solutions, Delft3D's transport formulas, MOM6's polynomial EOS and tidal astronomy, CTSM's pedotransfer and baseflow formulas, MARBL's productivity rate laws), MESSAGEix, Eurace, LIAM2, OpenSpiel, FLAMEGPU2, Godot, SLiM, GAMA, RangeShiftR, UrbanSim (domain mismatch or unportable; design references only). QGIS and PostGIS offer ideas and algorithm references (projection handling, terrain filters, geometry) but depend on PROJ/GDAL/GEOS, which are not present.
+ASPECT, CESM (empty checkout), CTSM, Delft3D, MARBL, MOM6, ParFlow, PISM, WRF-Hydro (HPC Fortran/C++, no browser path; physics references only, except small closed-form pieces: WRF-Hydro's channel-routing and level-pool kernels, PISM's exact solutions, Delft3D's transport formulas, MOM6's polynomial EOS and tidal astronomy, CTSM's pedotransfer and baseflow formulas, MARBL's productivity rate laws), MESSAGEix, Eurace, LIAM2, OpenSpiel, FLAMEGPU2, Godot, SLiM, GAMA, RangeShiftR, UrbanSim (domain mismatch or unportable; design references only). QGIS and PostGIS offer ideas and algorithm references (projection handling, terrain filters, geometry) but depend on PROJ/GDAL/GEOS, which are not present; QGIS's hillshade formulas and the PAL placement algorithm are the portable exceptions (group 6a).
 
 ## Decisions for you
 
