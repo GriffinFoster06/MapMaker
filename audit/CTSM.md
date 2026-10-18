@@ -1,8 +1,10 @@
 # Audit: CTSM
 
+> **Reconciled 2026-10-18** against the source at `b334aa0` (`docs/reconciliation/group-3.md`). All 13 submodules are empty, including FATES (`src/fates/`). Corrected: the Python size, several paths and sizes, the glacier surface mass balance (water bookkeeping on top of the full energy balance, not a degree-day scheme), the active-layer calculation (the interpolated 0 °C depth in the soil temperature profile, not a zero-amplitude depth), the soil hydraulic parameters (Cosby et al. 1984 pedotransfer, Clapp & Hornberger retention), the photosynthesis module, the RNG claim (there is none outside a unit test), and the licence (an NCSA-style grant with three conditions). The CLM5 technical note is in the checkout (`doc/source/tech_note/`).
+
 ## 1. Overview
 
-The Community Terrestrial Systems Model (CTSM, formerly CLM) is a land surface model developed by UCAR's National Center for Atmospheric Research, actively maintained by a team of ~15 scientists/engineers. CTSM simulates soil hydrology, vegetation dynamics, carbon–nitrogen cycling, fire, snow/glacier processes, and land–atmosphere exchange for climate models coupled to CESM. The codebase is mature (~5.4 series), modular, and scientifically sophisticated. Approximately 220K LOC Fortran, 39K LOC Python tools, 321 Fortran source files, 147 Python files; Git HEAD: b334aa0584c0df888ff21badf9376cab04651766 (master branch, 2025-11).
+The Community Terrestrial Systems Model (CTSM, formerly CLM) is a land surface model developed by UCAR's National Center for Atmospheric Research, actively maintained by a team of ~15 scientists/engineers. CTSM simulates soil hydrology, vegetation dynamics, carbon–nitrogen cycling, fire, snow/glacier processes, and land–atmosphere exchange for climate models coupled to CESM. The codebase is mature (~5.4 series), modular, and scientifically sophisticated. Approximately 220K LOC Fortran in 321 files under `src/` (374 `.F90` files in the repo) and 45K LOC of Python in 198 files; Git HEAD: b334aa0584c0df888ff21badf9376cab04651766 (master branch, 2025-11).
 
 ## 2. Language, runtime, dependencies, build
 
@@ -10,7 +12,7 @@ The Community Terrestrial Systems Model (CTSM, formerly CLM) is a land surface m
 
 **Runtime/Platform:** Fortran-based scientific model designed to run on high-performance computing (HPC) clusters via CESM framework; requires MPI (mpi-serial included for serial runs), OpenMP. Not browser-native; would require full WASM port or Fortran→C/JavaScript rewrite.
 
-**Key dependencies (from .gitmodules):**
+**Key dependencies (from .gitmodules; every submodule directory is empty in this checkout):**
 - CESM framework components:
   - CMEPS (v1.1.71): coupled model mediator
   - CDEPS (v1.0.110): data atmosphere models
@@ -18,7 +20,7 @@ The Community Terrestrial Systems Model (CTSM, formerly CLM) is a land surface m
   - CESM_share (v1.1.21): shared utilities
   - ParallelIO (v2_6_8): parallel I/O library
   - mpi-serial (v2.5.4): MPI stub for serial runs
-- FATES (Functionally Assembled Terrestrial Ecosystem Simulator, v1.92.7): dynamic ecosystem demography model (internal submodule at src/fates/)
+- FATES (Functionally Assembled Terrestrial Ecosystem Simulator, tag `sci.1.92.7_api.46.0.0`): dynamic ecosystem demography model (submodule at `src/fates/`, empty here)
 - CISM (ice sheet model, v2.2.015): glacier dynamics
 - MOSART (v1.1.13) / RTM (v1_0_89): river transport models
 - mizuRoute (v3.1.1): hydrologic response unit river routing
@@ -46,7 +48,7 @@ WASM feasibility for core numerics: *Medium*. Individual modules (hydrology solv
 
 ### 3.1 Hydrology (soil water, surface runoff, canopy interception)
 
-- **Where:** `src/biogeophys/Hydrology*.F90` (HydrologyDrainageMod, HydrologyNoDrainageMod, LakeHydrologyMod), `src/biogeophys/CanopyHydrologyMod.F90`, `src/biogeophys/InfiltrationExcessRunoffMod.F90`, `src/utils/SoilWaterMovementMod.F90` (~8K LOC combined).
+- **Where:** `src/biogeophys/Hydrology*.F90` (HydrologyDrainageMod, HydrologyNoDrainageMod, LakeHydrologyMod), `src/biogeophys/CanopyHydrologyMod.F90`, `src/biogeophys/InfiltrationExcessRunoffMod.F90`, `src/biogeophys/SoilWaterMovementMod.F90` (Richards solver: Zeng & Decker 2009 `soilwater_zengdecker2009` at `:414`, moisture form at `:976`), `src/biogeophys/SoilHydrologyMod.F90` (`WaterTable` `:615`, `Drainage` `:872` with TOPMODEL-style baseflow `rsub_top = imped·rsub_top_max·exp(−f·zwt)` at `:1218`, `PerchedWaterTable` `:1533`, `SubsurfaceLateralFlow` `:2037`).
 - **What it does:** Solves Richards' equation for soil water movement (vertical and hillslope lateral flow with D8 or hillslope-based routing); canopy rain interception and throughfall; snowpack hydrology; subsurface drainage (to water table or bedrock); perched water; lake thermodynamics and mixing; aquifer layer options (VIC-style or full groundwater). Hillslope hydrology option enables small-scale spatial variability. Infiltration-excess runoff generation. Lateral flow via subsurface and stream channels.
 - **Quality & realism rating: 4/5.** Sophisticated coupled soil-water system; validated against observational networks and process models (Badlands, ParFlow benchmarks exist in literature). Subsurface flow solved with careful vertical discretization; lateral routing has established physical basis (Manning's equation, hillslope emergence). Limitations: assumes local soil properties constant (no fine-scale heterogeneity), stream channel representation simplified (reaches, not full hydraulic geometry), hillslope routing assumes simplified topography. Excellent for land LSM at 1–100 km grid spacing; less suitable for fantasy worlds without observed climate forcing.
 - **Extractability: tangled.** Tightly wired to CESM water state/flux types (WaterStateBulkType, WaterFluxBulkType, wateratm2lndbulk_inst, etc.), atmospheric forcing interface (atm2lnd_type for rain/snow), vertical soil layer structure (nlevgrnd, nlevsno). Module interdependencies are deep (TemperatureType, SoilStateType, balance checking). Extractable core (Richards solver, Manning routing) ~3–4K LOC; wrapping and state management ~4–5K. Effort to lift to browser: **high** (state management, MPI parallelism, I/O patterns must be rewritten; core numerics ~medium).
@@ -54,13 +56,13 @@ WASM feasibility for core numerics: *Medium*. Individual modules (hydrology solv
 
 ### 3.2 Vegetation dynamics & biomes (CN/DGVM + FATES)
 
-- **Where:** `src/biogeochem/CNDVDriverMod.F90`, `src/biogeochem/CNDVType.F90`, `src/biogeochem/CNDVEstablishmentMod.F90`, `src/biogeochem/CNDVLightMod.F90` (~4K LOC for DGVM core); FATES integrated at `src/fates/` (external git submodule, not source code here, ~15K+ LOC, Functionally Assembled Terrestrial Ecosystem Simulator).
+- **Where:** `src/biogeochem/CNDVDriverMod.F90`, `src/biogeochem/CNDVType.F90`, `src/biogeochem/CNDVEstablishmentMod.F90`, `src/biogeochem/CNDVLightMod.F90` (1,682 lines in the four files; LPJ-derived, e.g. "S. Levis version of LPJ's routine climate20", `CNDVDriverMod.F90:78`); FATES at `src/fates/` (external git submodule, empty here, so its size is not known from this checkout).
 - **What it does:** 
   - *CNDV (CLM Dynamic Global Vegetation Model):* Individual-based plant demography model resolving tree/grass establishment, survival, and competition based on temperature (Tmin, Twmax, GDD), light, and carbon availability. Tracks individuals per PFT, LAI per individual, crown area. Ecophysiological parameters constrain which PFTs can exist (e.g., no tropical trees below Tcmin threshold).
   - *FATES (optional):* Full ecosystem demography model with structural heterogeneity (cohort-based age/size distribution per patch), disturbance (fire, logging), hydraulics, allometry; more realistic but computationally heavier.
   - Both modules integrate with carbon–nitrogen cycling (CNMod.F90) and fire models.
 - **Quality & realism rating: 4/5.** CNDV is a classic DGVM (cf. LPJ-DGVM, TRIFFID); validated in CMIP6 simulations. Constraints are ecophysiologically sound (growing degree days, minimum temperature thresholds, competition for light). FATES is state-of-art for forest demography (published in Nature Climate Change). Limitations for fantasy worlds: (1) both require input climate (temperature, precip, light) to drive dynamics, not generative; (2) PFT definitions fixed (modern Earth plant types), not easily customizable to alien flora; (3) FATES calibration assumes contemporary plant physiology. For Earth-like planets with prescribed climate: excellent; for standalone world generation without climate: poor fit.
-- **Extractability: tangled.** Both modules depend on: atmospheric forcing (temperature, precip, radiation), soil water/nitrogen, carbon pools (entire BGC module), fire models, landuse transitions, time manager, history output system. Interdependencies radiate through 50+ other modules (CNDriverMod calls everything). FATES is an external repo with its own build system and 100+ files. Extractable core (DGVM tree establishment/mortality logic) ~500–1K LOC; orchestration ~3–4K. Effort: **very high**. Would require (a) extracting climate driver interface (define minimal atm forcing), (b) decoupling from CESM time/history/state management, (c) subsetting PFTs to a fantasy set, (d) adapting FATES coupling or replacing with simpler CNDV. FATES alone is non-trivial (C++ core + Fortran wrappers, ~15K LOC).
+- **Extractability: tangled.** Both modules depend on: atmospheric forcing (temperature, precip, radiation), soil water/nitrogen, carbon pools (entire BGC module), fire models, landuse transitions, time manager, history output system. Interdependencies radiate through 50+ other modules (CNDriverMod calls everything). FATES is an external repo with its own build system and 100+ files. Extractable core (DGVM tree establishment/mortality logic) ~500–1K LOC; orchestration ~3–4K. Effort: **very high**. Would require (a) extracting climate driver interface (define minimal atm forcing), (b) decoupling from CESM time/history/state management, (c) subsetting PFTs to a fantasy set, (d) adapting FATES coupling or replacing with simpler CNDV. FATES is not in this checkout.
 - **Requirements capabilities:** Biomes; partial vegetation modeling (but depends on input climate).
 
 ### 3.3 Soil biogeochemistry (Carbon–nitrogen cycling, decomposition, nutrient uptake)
@@ -73,7 +75,7 @@ WASM feasibility for core numerics: *Medium*. Individual modules (hydrology solv
 
 ### 3.4 Fire (multiple models)
 
-- **Where:** `src/biogeochem/CNFireBaseMod.F90` (base class, 115K LOC(!)), `src/biogeochem/CNFireLi2014/2016/2021/2024Mod.F90` (multiple burn area parameterizations), `src/biogeochem/CNFireNoFireMod.F90` (null option). FATES has embedded fire module.
+- **Where:** `src/biogeochem/CNFireBaseMod.F90` (base class, 1,365 lines), `src/biogeochem/CNFireLi2014/2016/2021/2024Mod.F90` (multiple burn area parameterizations), `src/biogeochem/CNFireNoFireMod.F90` (null option). FATES has embedded fire module.
 - **What it does:** 
   - *CLM fire (Li et al. 2014–2024 variants):* Prognostic fire occurrence and burn area based on fuel availability, moisture, lightning ignition, human suppression. Separates natural (lightning) from anthropogenic fire. Parameterized burn fraction; emits aerosols (CO2, BC, OC, NO2) and trace gases to atmosphere.
   - *FATES fire:* Explicit tracking of fire spread, scars, cohort mortality, post-fire recovery.
@@ -84,13 +86,13 @@ WASM feasibility for core numerics: *Medium*. Individual modules (hydrology solv
 
 ### 3.5 Snow, ice, glaciers
 
-- **Where:** `src/biogeophys/SnowSnicarMod.F90` (snow aging & spectral albedo, 2–3K LOC), `src/biogeophys/GlacierSurfaceMassBalanceMod.F90` (glacier mass balance, ~1K LOC), `src/biogeophys/ActiveLayerMod.F90` (permafrost active layer, ~0.5K LOC).
+- **Where:** `src/biogeophys/SnowSnicarMod.F90` (snow aging & spectral albedo, 2,264 lines), `src/biogeophys/GlacierSurfaceMassBalanceMod.F90` (glacier mass-balance bookkeeping, 359 lines), `src/biogeophys/ActiveLayerMod.F90` (permafrost active layer, 350 lines).
 - **What it does:** 
   - *Snow:* Tracks snow depth, density, age, grain size; SNICAR radiative transfer for spectrally-dependent albedo (grain size affects absorption); compaction by overburden + wind packing.
-  - *Glacier/ice sheet:* Surface mass balance (melt + sublimation vs. accumulation) computed locally; coupling to CISM ice sheet model (2-way: SMB sent to ice sheet, ice topography returned to CLM).
-  - *Permafrost:* Active layer thickness derived from zero-amplitude depth (annual freeze–thaw cycle).
-- **Quality & realism rating: 3.5/5.** Snow albedo (SNICAR) is validated against Alpine/Arctic observations; grain size tracking adds realism over bulk albedo. Glacier SMB is PDD-based (degree-day empirical), standard in climate modeling but simplified vs. detailed energy balance. Permafrost representation is 1-D diagnostic (not fully prognostic freeze-thaw with latent heat; that's in soil temperature module). Suitable for high-latitude regions and mountain snow cover; not validated for fantasy worlds.
-- **Extractability: loosely coupled.** Snow module reads from atmosphere (precip, radiation, temperature), writes to fluxes/albedo. Glacier module is a wrapper around CISM (handles MPI exchange). Extractable core (snow compaction + SNICAR albedo) ~1K LOC; ice–sheet coupling requires CISM submodule (~10K+ LOC external). Effort: **medium** for snow-only; **high** if full ice sheet dynamics needed.
+  - *Glacier/ice sheet:* Surface mass balance is bookkeeping: `qflx_glcice = qflx_glcice_frz − qflx_glcice_melt` (`GlacierSurfaceMassBalanceMod.F90:214`). Accumulation is the snow-capping overflow on glacier columns, or on columns snow-covered for `glc_snow_persistence_max_days` (`:209`); melt is the liquid water that CLM's surface energy balance and soil/snow phase change (`SoilTemperatureMod.F90` `PhaseChange`) left in the glacier ice layers (`HandleIceMelt`, `:132`). Coupling to CISM ice sheet model (2-way: SMB sent to ice sheet, ice topography returned to CLM).
+  - *Permafrost:* `alt_calc` (`ActiveLayerMod.F90:59–185`) finds the deepest thawed layer in the prognostic soil temperature profile, interpolates the 0 °C depth between layers, and keeps the annual maximum. It is a diagnostic on CLM's soil thermal model, not a zero-amplitude depth or a mean-annual-temperature formula.
+- **Quality & realism rating: 3.5/5.** Snow albedo (SNICAR) is validated against Alpine/Arctic observations; grain size tracking adds realism over bulk albedo. Glacier SMB is not a degree-day scheme: melt comes from the full surface energy balance, and the module only books the water. Permafrost representation is 1-D diagnostic (not fully prognostic freeze-thaw with latent heat; that's in soil temperature module). Suitable for high-latitude regions and mountain snow cover; not validated for fantasy worlds.
+- **Extractability: loosely coupled.** Snow module reads from atmosphere (precip, radiation, temperature), writes to fluxes/albedo. The glacier module books SMB for CISM (not in this checkout). Extractable core (snow compaction + SNICAR albedo) ~1K LOC; ice–sheet coupling requires CISM submodule (~10K+ LOC external). Effort: **medium** for snow-only; **high** if full ice sheet dynamics needed.
 - **Requirements capabilities:** Climate – partial (snow/ice thermal/hydrologic effects on energy balance); foundation for Tectonics if ice-sheet isostasy were included (not present in CTSM proper; in CISM).
 
 ### 3.6 Soil & canopy temperature
@@ -111,7 +113,7 @@ WASM feasibility for core numerics: *Medium*. Individual modules (hydrology solv
 
 ### 3.8 Urban model
 
-- **Where:** `src/biogeophys/UrbanFluxesMod.F90` (~1K LOC), `src/biogeophys/UrbanAlbedoMod.F90`, `src/biogeophys/UrbanRadiationMod.F90`. Landunit type: urban (istdlak index 71–75).
+- **Where:** `src/biogeophys/UrbanFluxesMod.F90` (~1K LOC), `src/biogeophys/UrbanAlbedoMod.F90`, `src/biogeophys/UrbanRadiationMod.F90`. Landunit types: urban, indices 7–9 (`isturb_MIN = 7`, `isturb_MAX = 9`, `src/main/landunit_varcon.F90:26`, `:30`).
 - **What it does:** Tracks heat storage in walls/roofs, window transmission, street canyon radiation trapping, anthropogenic heat release (air conditioning, vehicles). Can run with or without explicit building geometry (currently simplified, not full CFD).
 - **Quality & realism rating: 2.5/5.** Urban scheme is phenomenological (empirical heat storage + mixing). Does not include detailed building-scale aerodynamics, population-dependent heat release variability, or time-dependent human behavior. Suitable for global climate models (1–10 km grid); not for city-scale simulation. Not relevant for fantasy world generation.
 - **Extractability: loosely coupled.** Self-contained if urban area fraction & building parameters specified.
@@ -127,7 +129,7 @@ WASM feasibility for core numerics: *Medium*. Individual modules (hydrology solv
 
 ### 3.10 River transport (external submodules)
 
-- **Where:** Components are git submodules (not in this repo): MOSART (src/components/mosart/ stub), RTM (src/components/rtm/ stub), mizuRoute (src/components/mizuRoute/ stub). CLM side: `src/biogeophysics/HillslopeHydrologyMod.F90` (~2K LOC) interfaces to hillslope routing.
+- **Where:** Components are git submodules, all empty here: MOSART (`components/mosart/`), RTM (`components/rtm/`), mizuRoute (`components/mizuRoute/`). CLM side: `src/biogeophys/HillslopeHydrologyMod.F90` (1,220 lines) interfaces to hillslope routing.
 - **What it does:** MOSART / mizuRoute: 1-D channel flow routing (reach-based or HRU-based network), Manning's equation. Connects gridcell runoff to downstream ocean discharge. No in-stream biogeochemistry in CLM (handed off to ocean model).
 - **Quality & realism rating: 3.5/5** (assessed from doc, not source). River reach representation is appropriate for GCM scale; no meandering, delta, or coastal inundation modeling. Hillslope routing (D8 or hillslope-based) in CLM is well-tested.
 - **Extractability: tangled.** River routing is in separate repos; CLM provides interface (runoff time series) but details unknown without checking MOSART/RTM source. Hillslope hydrology can operate standalone (local D8 routing, Manning's eq.).
@@ -135,7 +137,7 @@ WASM feasibility for core numerics: *Medium*. Individual modules (hydrology solv
 
 ### 3.11 Photosynthesis, plant physiology
 
-- **Where:** Scattered in `src/biogeochem/` (not a single module): `src/biogeochem/CNPhotosynthesisMod.F90` (~1K LOC), `src/biogeochem/CropType.F90` (crop-specific physiology), `src/biogeophys/CanopyFluxesMod.F90` (stomatal resistance). Ball-Berry model for stomatal conductance.
+- **Where:** `src/biogeophys/PhotosynthesisMod.F90` (stomatal conductance by Ball–Berry 1987 or Medlyn 2011, `:82–83`), `src/biogeochem/CropType.F90` (crop-specific physiology), `src/biogeophys/CanopyFluxesMod.F90` (stomatal resistance). Ball-Berry model for stomatal conductance.
 - **What it does:** A/gs (photosynthesis–stomatal conductance) coupling using Ball-Berry or similar empirical model. Crop physiology separately (season timing, grain fill, yield). Photosynthetic parameters (Vcmax, Jmax, respiration) PFT-specific.
 - **Quality & realism rating: 3/5.** Photosynthesis scheme is simplified (big-leaf, no subcanopy vertical gradient). Ball-Berry model is empirical (not mechanistic). Suitable for GCM-scale radiation & water stress but not detailed canopy dynamics.
 - **Extractability: loosely coupled.** Photosynthesis module depends on atmospheric CO2, radiation, temperature, water stress (VPD, soil moisture). Can operate if these are provided. Integration into NEP (net ecosystem production) calculation is straightforward.
@@ -176,30 +178,30 @@ The following are **NOT in CTSM** or are present only as stubs/placeholders:
 
 **Resolution:** Typically 0.1–2.0 degrees (lat-lon). Finer regional grids possible via subset tools (tools/site_and_regional/). Subgrid tiling: each grid cell contains landunits (naturally vegetated, urban, glacier, lake, wetland), each with columns (soil, urban wall, lake water, etc.), each with patches (plant functional types). Hierarchy: gridcell > landunit > column > patch (max 500+ patches per gridcell in DGVM mode).
 
-**Units:** SI (meters, seconds, kg, K). Soil depths: typically 0–3.8 m (42 vertical layers nlevgrnd = 25, extendible). Heights above sea level in m. Temperature in Kelvin. Water content in kg/m² or m³/m³. Carbon/nitrogen in kg/m² (column-integrated) or per unit PFT area.
+**Units:** SI (meters, seconds, kg, K). Soil depths: typically 0–3.8 m (42 vertical layers nlevgrnd = 25, extendible). Heights above sea level in m. Temperature in Kelvin. Water content in kg/m² or m³/m³. Carbon/nitrogen in kg/m² (column-integrated) or per unit PFT area. Soil hydraulic parameters come from sand and clay percentages by the Cosby et al. (1984) Table 5 pedotransfer function (`src/main/FuncPedotransferMod.F90:83–103`, the default at `:28`; Table 4 and Noilhan & Lacarrère 1995 are options): porosity, saturated suction in mm and saturated conductivity in mm/s. The Clapp & Hornberger (1978) exponent is then set to `bsw = 2.91 + 0.159·clay`, mixed with organic matter (`src/biogeophys/SoilStateInitTimeConstMod.F90:554–555`), and the Clapp & Hornberger retention curve is the default (`SoilWaterRetentionCurveFactoryMod.F90:51`; van Genuchten 1980 is the alternative).
 
 **Coordinate system:** Spherical lat-lon (−90 to +90, −180 to +180). Poles handled via CESM pole-wrapping (longitude irrelevant at poles). Cartographic projection: only lat-lon native; coupling to CESM ocean/ice uses conformal/cubed-sphere internally but not exposed to land model.
 
 **Wraparound:** Yes, zonal (longitude); poles are singularities (handled by CESM driver). Regional grids (subset) do NOT wrap.
 
-**Time stepping:** Model time step configurable (dtime, typically 30 min to 1 hour). Time manager tracks calendar date, year, month, day, second within day. Restart capability: exact state checkpoint at any timestep (NetCDF restart files, binary, ~10 GB per global run at 1° resolution). RNG: Fortran RANDOM_NUMBER intrinsic used for subgrid sampling (fire stochasticity, etc.); NOT seeded deterministically (stochastic components not reproducible across runs with different PE layout).
+**Time stepping:** Model time step configurable (dtime, typically 30 min to 1 hour). Time manager tracks calendar date, year, month, day, second within day. Restart capability: exact state checkpoint at any timestep (NetCDF restart files, binary, ~10 GB per global run at 1° resolution). RNG: none. The only `random_number` call is in a unit test (`src/utils/test/matrix_test/test_matrix.pf`); the model is deterministic.
 
 **Serialization:** CLM restart files (NetCDF): `clm2.r.YYYY-MM-DD-SSSSS.nc` format, binary-platform-dependent (little-endian assumed). No portable JSON/text dump. History output: monthly/daily means in NetCDF. No custom export to JSON/HDF5/other formats in core (tools/postprocess scripts handle conversion downstream).
 
-**Same-seed reproducibility:** NOT guaranteed for stochastic features (fire ignition, subgrid sampling). Deterministic output is achievable only by fixing random seed and ensuring identical PE layout (MPI rank ordering). Not suitable for previewing stochastic features.
+**Same-seed reproducibility:** CTSM uses no random numbers, so a run is deterministic for a given input and build; bit-for-bit equality across processor layouts was not checked.
 
 ## 5. License
 
-**SPDX:** `BSD-3-Clause-style (custom UCAR)` (NOT strictly SPDX-compliant; UCAR variant of BSD-3-Clause with custom modifications).
+**SPDX:** nearest is `NCSA`: an MIT-style permission grant (lines 8–13) with three conditions (retain the notice in source and binary, no endorsement; lines 15–22) and the BSD warranty disclaimer. The manifest's "BSD-3-Clause-style (custom UCAR)" is a fair description.
 
-**File:** `/Users/griffinfoster/Projects/MapMaker/upstream/CTSM/LICENSE` (verified, lines 1–35).
+**File:** `/Users/griffinfoster/Projects/MapMaker/upstream/CTSM/LICENSE` (verified, 34 lines).
 
 **License text:** Copyright 2005–2018 UCAR. Permits use, modification, sublicense, and distribution with conditions: (1) retain copyright notice and disclaimer, (2) no endorsement without permission, (3) no warranty or liability. Functionally equivalent to BSD-3-Clause (permissive, allows commercial use and modification).
 
 **Per-file licenses:** None found. Entire codebase under single UCAR license.
 
 **Vendored third-party code:** 
-- FATES (git submodule): separate license (typically BSD or Apache; not checked here).
+- FATES (empty git submodule): its own "FATES License" per the CESM `LICENSE.txt` component table; not checkable here.
 - External submodules (CISM, MOSART, etc.) have own licenses (CESM/UCAR-like, likely compatible).
 - CESM_share, ParallelIO: UCAR license.
 - No GPL/AGPL code detected in core CTSM (biogeochem, biogeophys, main).
@@ -209,7 +211,7 @@ The following are **NOT in CTSM** or are present only as stubs/placeholders:
 - No patent clauses or EULA restrictions.
 - UCAR custom BSD is well-established and broadly accepted in scientific software.
 - Suitable for browser/commercial integration (can be combined with MIT/Apache-licensed JS libs).
-- No conflicts with MapMaker's stated Apache-2.0 or MIT target (brief does not specify MapMaker license yet).
+- MapMaker is GPL-3.0-only; a permissive licence imposes nothing beyond keeping the notice.
 
 **Manifest compliance:** License recorded in `upstream-manifest.json` line 10 as "BSD-3-Clause-style (custom UCAR)" — **matches verification**.
 
@@ -240,7 +242,7 @@ The following are **NOT in CTSM** or are present only as stubs/placeholders:
 | Flat projections | no | — | — | — | See orogen upstream ref for projection logic. |
 | Partial-world inference | no | — | — | — | Not implemented; partial-world inference tool would need to be external. |
 | Import of heightmaps/layers | partial | 3/5 | standalone | src/init_interp/ | Can ingest raster datasets; interpolation to grid performed. |
-| Fidelity/speed slider (same-seed preview) | no | — | — | — | Not applicable; CTSM is deterministic at fixed PE count (stochastic features not reproducible). |
+| Fidelity/speed slider (same-seed preview) | no | — | — | — | Not applicable; CTSM has no RNG. |
 | Export (PNG/SVG/STL/other) | no | — | — | — | Outputs NetCDF only; see tools/unsupported/ for downstream postprocessing. |
 | Full-state save/resume format | partial | 2/5 | tangled | Restart file I/O in src/main/restFileMod.F90 | Restart files capture state; binary, CESM-specific, not portable to JS. |
 | Earth-data calibration (elevation/climate/Köppen) | partial | 3/5 | — | PFT parameters, fire params are calibrated to obs; see *.xml defaults. | Implicit calibration in parameters; no standalone tool. |
@@ -268,7 +270,9 @@ The following are **NOT in CTSM** or are present only as stubs/placeholders:
 
 - **Soil C/N biogeochemistry (decomposition, nutrient cycling):** Rating 4/5. Well-tested, published, modular. Extractable core (decomposition ODEs, nutrient uptake) ~1–2K LOC. Issue: depends on vegetation input and soil texture/properties (requires prior allocation). WASM: medium effort.
 
-- **Vegetation dynamics (CNDV, simplified FATES):** Rating 3.5–4/5 for individual algorithms; overall tangled (full integration ~50K LOC). CNDV alone (~4K LOC) could be extracted for simple PFT competition model. Full FATES (~15K LOC) is too complex for browser without significant rewrite.
+- **Vegetation dynamics (CNDV, simplified FATES):** Rating 3.5–4/5 for individual algorithms; overall tangled (full integration ~50K LOC). CNDV alone (1,682 lines) could be extracted for simple PFT competition model. FATES is not in this checkout.
+
+- **Closed-form pieces that port through `dmath`:** the Cosby et al. (1984) pedotransfer functions, the Clapp & Hornberger curves and the TOPMODEL-style baseflow (paths in §3.1 and §4). Each is a few lines of arithmetic and `pow`/`exp`; the CLM5 technical note in `doc/source/tech_note/` documents the equations.
 
 **What to skip:**
 
@@ -279,7 +283,7 @@ The following are **NOT in CTSM** or are present only as stubs/placeholders:
 
 **Open questions/unverified:**
 
-1. Stochasticity (fire ignition, subgrid sampling) not reproducible across MPI layouts. Confirm whether this is a blocker for "same-seed preview" requirement or if determinism at fixed PE count suffices.
+1. Resolved in reconciliation: CTSM uses no random numbers (only a unit test does).
 2. FATES ecosystem demography model (external repo, not checked in detail): Does it have a standalone API? Can it be used without full CLM coupling? Needs investigation.
 3. River routing (MOSART, mizuRoute, RTM): These are external repos; CLM-side integration is via HillslopeHydrologyMod. Need to evaluate MOSART/RTM separately for extraction.
 4. Calibration: Are fire and biogeochem parameters documented and easily tunable for a fantasy planet? Or hardcoded to Earth?
@@ -290,7 +294,7 @@ The following are **NOT in CTSM** or are present only as stubs/placeholders:
 - **Selectively port core algorithms** (hydrology solver, fire parameterization, C/N decomposition cascade) from Fortran to JavaScript/WASM, wrapping each as an independent library with clearly defined inputs/outputs.
 - **Develop custom climate generation module** (temperature, wind, precipitation fields from planetary parameters); CTSM biogeochemistry/hydrology can then operate on these fields.
 - **Consider lighter alternatives** for certain subsystems:
-  - Erosion: Badlands (Python/C++, LGPL-3.0, smaller codebase, erosion-focused).
+  - Erosion: Badlands (Python/Fortran/C; GPL-3.0 at the root, LGPL-3.0 in two file headers, see `audit/Badlands.md`; erosion-focused).
   - Biomes: LPJmL (AGPL-3.0, global vegetation model, standalone).
   - River routing: Topographic flow routing is simpler to implement directly (D8/D-infinity algorithms, ~200 LOC).
 - **Reference architecture:** Climate generator → Terrain/hydrology (extracted CTSM hydrology) → Biogeochemistry (extracted CTSM BGC + FATES simplified) → Visualization layer (CesiumJS for globe).

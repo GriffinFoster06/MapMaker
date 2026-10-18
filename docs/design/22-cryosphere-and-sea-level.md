@@ -25,7 +25,7 @@ orogen has glacial erosion and an `iceCover` classification, but no ice that flo
 
 ### 3.1 Surface mass balance
 
-Positive-degree-day melt from the seasonal temperature harmonics (note 11) and accumulation from snowfall (precipitation below a temperature threshold), with an elevation feedback. CTSM's glacier surface-mass-balance scheme is the reference for a physically based option.
+Positive-degree-day melt from the seasonal temperature harmonics (note 11) and accumulation from snowfall (precipitation below a temperature threshold), with an elevation feedback. A physically based option needs a surface energy balance. CTSM computes melt from its full energy balance and soil/snow phase change and only books the result in `GlacierSurfaceMassBalanceMod.F90` (`:209`, `:214`), so the reference is the CLM5 technical note (`doc/source/tech_note/Glacier/`, `Soil_Snow_Temperatures/`), not a standalone scheme.
 
 ### 3.2 Ice flow
 
@@ -41,12 +41,12 @@ Eustatic sea level from total land-ice volume (and, on the geologic axis, ocean-
 
 ### 3.5 Sea ice and permafrost
 
-Sea-ice fraction from SST and air temperature (note 23); permafrost from mean annual ground temperature with snow insulation (CTSM `ActiveLayerMod` as a reference).
+Sea-ice fraction from SST and air temperature (note 23); permafrost from mean annual ground temperature with snow insulation, which is new code: CTSM's `ActiveLayerMod.F90` (`alt_calc`, `:59–185`) only interpolates the 0 °C depth in its prognostic soil temperature profile, so it is a reference only if a layered soil thermal model is added.
 
 ## 4. Upstream references (algorithm level)
 
 - **PISM** `src/stressbalance/` (SIA in `sia/SIAFD.cc`, Mahaffy staggered-grid diffusivity at `:158–188`; SSA in `ssa/SSAFD.cc`, Picard iteration with PETSc), `src/stressbalance/timestepping.cc:201` (diffusivity CFL step), `src/energy/` (enthalpy), `src/geometry/GeometryEvolution.cc` (mass transport), `src/verification/tests/exactTestsABCD.c` (exact solutions: B is Halfar at `:86`, C and D Bueler et al.), `src/earth/` (bed deformation, Lingle–Clark viscous half-space; a reference for §3.4 glacial isostatic adjustment): formulas and tests as references for a new SIA solver on the sphere; the closed-form tests A–D port as golden values. PISM has no glacial-erosion law (`src/earth/BedDef.hh:27` lists bed erosion as future work).
-- **CTSM** `src/biogeophys/GlacierSurfaceMassBalanceMod.F90`, `SnowSnicarMod.F90`, `ActiveLayerMod.F90`.
+- **CTSM** `src/biogeophys/GlacierSurfaceMassBalanceMod.F90` (SMB bookkeeping), `SnowSnicarMod.F90` (snow albedo), `ActiveLayerMod.F90` (thaw depth from the soil temperature profile), and the CLM5 technical note in `doc/source/tech_note/`: formulation references.
 - **orogen** `terrain-post.js` glacial erosion (parity and fast path).
 - **VPLanet** `src/poise.c` ice-sheet module (a 1D latitudinal ice model, for fast paleo runs: `PoiseIceSheets` :7552, Glen's-law flow with n = 3 at :7662, bedrock depression; heights in m). It is integrated by `evolve.c`'s RK4 step.
 - **Literature:** Cuffey & Paterson, *The Physics of Glaciers*; Huybrechts (1990s) ice-sheet modelling; Peltier ICE-6G (validation).

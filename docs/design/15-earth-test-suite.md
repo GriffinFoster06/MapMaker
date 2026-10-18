@@ -64,8 +64,8 @@ Decision Q17; §7.0 assigns tests to phases.
 ## 4. Upstream references (algorithm level)
 
 - **orogen** `tuning/climate/` (`evaluate.mjs`, `lib/ground-truth.mjs`): the existing Köppen objective, already run headless (Phase 4a).
-- **PISM** `src/verification/` and **MOM6** test cases: verification patterns for ice and ocean.
-- **LPJmL**, **CTSM**: their benchmarking practices (biome and NPP comparisons).
+- **PISM** `src/verification/` and **MOM6** `.testing/`: verification patterns for ice and ocean. MOM6's are invariance tests (grid symmetry, processor layout, restart equivalence, build optimisation, dimensional rescaling; `.testing/README.rst:221–242`) on small configurations. They match MapMaker's resume and determinism tests, and have no analytic or observational targets.
+- **LPJmL**, **CTSM**: their benchmarking practices (biome and NPP comparisons). CTSM's checkout has no benchmarking code, so for CTSM this is a literature reference.
 - **Literature:** Kottek et al. (2006); Beck et al. (2018); Bird (2003); Müller et al. (2008); Hack (1957); Messager et al. (2016) HydroLAKES; Klein Goldewijk et al. (2017) HYDE; Turchin et al. (Seshat); Taagepera (1978–97).
 
 ## 5. Validation

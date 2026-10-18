@@ -20,7 +20,7 @@ Basis: the 28 per-repo audits in this directory (`audit/<repo>.md`), plus my own
    - QGIS and PostGIS: use PROJ but don't contain it.
    - Azgaar: already depends on `d3` 7.9, which ships `d3-geo` (Mercator, Equal Earth, azimuthal and others). That is a third-party package, not an `upstream/` repo.
    - See Decision D1.
-4. **CESM is an empty shell in this checkout.** Every directory under `CESM/components/` (cam, clm, mom, mosart, ...) has 0 files, because it is a manage_externals/submodule layout. The audit's 5/5 climate ratings describe the real CESM model, not code present here. I treat CESM as a *reference by name only*. The code that is present in other checkouts: MOM6, CTSM, MARBL.
+4. **CESM is an empty shell in this checkout.** All 21 submodules in its `.gitmodules` (11 components such as cam, clm, mom and mosart, 5 libraries, cime, share and others) are empty, because it is a git-fleximod submodule layout; the 104 files present are build configuration, git-fleximod and five user-guide pages (re-checked in reconciliation group 3). The audit's 5/5 climate ratings describe the real CESM model, not code present here. I treat CESM as a *reference by name only*. The code that is present in other checkouts: MOM6, CTSM, MARBL (MOM6's GSW-Fortran and CVMix submodules and CTSM's FATES submodule are empty too).
 5. **QGIS audit said "no flow accumulation / no contouring / hydrology thin".** For native C++ that is true: only `qgsalgorithmupslopearea` and mesh contours. But `python/plugins/grassprovider` wraps GRASS `r.watershed`, `r.terraflow`, `r.fill.dir`, `r.contour`, `r.drain`, and so on. Those need a GRASS installation and are not extractable, so the practical conclusion stands.
 6. **Cosmetic**: several agents misreported their own file sizes (e.g. SLiM "1,280 lines", actual 173). All 28 files have the seven required sections and the capability table.
 7. **Not reviewed in depth by me**: per-subsystem line counts and individual 1-5 ratings in the audits other than those named above. Spot checks covered the repos that win a row below.
@@ -123,7 +123,7 @@ Added after the first pass: `tectonics.js` (see `audit/tectonics.js.md`, `docs/s
 | Rank | Repo | Rating | Extractability | License | Note |
 |---|---|---|---|---|---|
 | 1 | orogen | 3 | loose | GPL-3.0 | `ocean.js` (389 LOC): rule-based gyres, western boundary intensification, ACC. Not dynamical. |
-| 2 | MOM6 | 4 | tangled | Apache-2.0 | Production primitive-equation ocean model, Fortran/MPI. Algorithm reference only. |
+| 2 | MOM6 | 4 | tangled | Apache-2.0 | Production primitive-equation ocean model, Fortran/MPI, C-grid. Formulation reference; closed-form pieces port: the Roquet et al. (2015) polynomial EOS, tidal astronomy (`src/parameterizations/lateral/MOM_tidal_forcing.F90`) and analytic gyre winds. TEOS-10 (GSW) and CVMix are empty submodules here. |
 | 3 | Delft3D | 4 | tangled | mixed | Regional coastal flows only. |
 | - | Badlands | 2 | loose | GPL-3.0 | Wave-driven nearshore drift, not currents. |
 
@@ -157,7 +157,7 @@ Added after the first pass: `tectonics.js` (see `audit/tectonics.js.md`, `docs/s
 | 1 | orogen | 4 | standalone | GPL-3.0 | `koppen.js` (320 LOC, verified): Köppen-Geiger classification, ~30 classes. A climate classification, not an ecological biome model. Two-season (summer/winter) proxy for warmest/coldest month. Measured on Earth topography: 38–40% exact class, 72% major group (spike 1a). |
 | 2 | Azgaar | 3 | standalone | MIT | `biomes-generator.ts`: 13 biomes from a temperature x moisture matrix. |
 | 3 | LPJmL | 4 | tangled | AGPL-3.0 | Dynamic vegetation (PFTs), C. It consumes climate; does not generate it. Algorithm reference. |
-| 4 | CTSM | 4 | tangled | UCAR | DGVM/FATES, Fortran. Reference. |
+| 4 | CTSM | 4 | tangled | UCAR | CNDV, an LPJ-derived DGVM (`src/biogeochem/CNDV*Mod.F90`), Fortran. Reference. FATES is an empty submodule here. |
 
 **Pick: orogen `koppen.js`** (also needed for calibration) plus **Azgaar's biome matrix** for the playable biome layer.
 
@@ -166,7 +166,7 @@ Added after the first pass: `tectonics.js` (see `audit/tectonics.js.md`, `docs/s
 | Rank | Repo | Rating | Note |
 |---|---|---|---|
 | 1 | LPJmL | 4 | 3-layer soil pools, N cycle, thermal (`src/soil`); needs a soil-type input map. AGPL, C. |
-| 2 | CTSM | 4 | C/N cycling; soil properties are input. |
+| 2 | CTSM | 4 | C/N cycling; soil properties are input (sand, clay and organic matter, turned into hydraulic parameters by the Cosby et al. 1984 pedotransfer, `src/main/FuncPedotransferMod.F90`). |
 | 3 | ParFlow / WRF-Hydro | 3 | Hydraulic properties only. |
 | 4 | Badlands | 2 | Lithology tracking, no pedology. |
 
@@ -383,11 +383,11 @@ Q12 lifted licence restrictions and Q13 widened the scope to every domain in `do
 |---|---|---|---|
 | Stars, orbits, moons, tides | **VPLanet** DistOrb, DistRot, EqTide, Stellar (port) | — | 20 |
 | Mantle, heat flow, magnetic field | **VPLanet** ThermInt, RadHeat (port) | ASPECT (rheology parameters, `dynamic_core.cc` core evolution; dynamic topography only as a formula reference, since it needs the FEM stress field), tectonics.js (isostasy) | 21 |
-| Ice sheets, glaciers, sea level | **PISM** SIA/SSA formulations, exact solutions A–D (port as golden values) and `src/earth/` bed deformation, as references for a new SIA solver on the sphere (PISM's code is PETSc on a regular projected grid) | CTSM glacier mass balance, VPLanet POISE ice, orogen glacial erosion | 22 |
-| Ocean circulation | **MOM6** formulations (new solver on the sphere) | orogen `ocean.js` (parity), MARBL (biogeochemistry) | 23 |
+| Ice sheets, glaciers, sea level | **PISM** SIA/SSA formulations, exact solutions A–D (port as golden values) and `src/earth/` bed deformation, as references for a new SIA solver on the sphere (PISM's code is PETSc on a regular projected grid) | CTSM snow and glacier formulations (its `GlacierSurfaceMassBalanceMod.F90` only books melt and accumulation from the full energy balance), VPLanet POISE ice, orogen glacial erosion | 22 |
+| Ocean circulation | **MOM6** formulations (new solver on the sphere); its Roquet polynomial EOS, tidal astronomy and analytic gyre winds port as closed forms | orogen `ocean.js` (parity), MARBL (productivity rate laws for a per-cell proxy; the full model needs 3D prognostic tracers) | 23 |
 | Coasts, deltas, sediment | **Delft3D** sediment-transport formulas (van Rijn 1984/1993/2004, Bijker, Soulsby; `src/utils_gpl/morphology/packages/morphology_kernel/src/`). Its wave engine is a SWAN driver (reference only); landform rules are new | Badlands | 23 |
-| Groundwater | **ParFlow** formulations (van Genuchten/Haverkamp closed forms; the Richards solver as a reference) | CTSM hydrology | 12 (proposes surface water only; no groundwater design yet) |
-| Atmosphere dynamics, paleoclimate | New, from published models | VPLanet POISE (paleo EBM), CESM docs; candidates ModelE/ROCKE-3D | 24 |
+| Groundwater | **ParFlow** formulations (van Genuchten/Haverkamp closed forms; the Richards solver as a reference) | CTSM hydrology (water table and TOPMODEL-style baseflow, `src/biogeophys/SoilHydrologyMod.F90`) | 12 (proposes surface water only; no groundwater design yet) |
+| Atmosphere dynamics, paleoclimate | New, from published models | VPLanet POISE (paleo EBM), CAM formulations from the published literature (CESM's checkout holds no CAM code or science documentation); candidates ModelE/ROCKE-3D | 24 |
 | Vegetation, fire | **LPJmL** (port) | CTSM CNDV and fire | 25 |
 | Fauna, ranges | **RangeShiftR** (port) | SLiM spatial maps, GAMA, FLAMEGPU2 | 26 |
 | Evolution | New; **SLiM** concepts | RangeShiftR traits; candidate gen3sis | 27 |
@@ -400,7 +400,7 @@ Q12 lifted licence restrictions and Q13 widened the scope to every domain in `do
 | Town and city plans | Candidate: watabou TownGeneratorOS | UrbanSim, PostGIS geometry, Godot geometry | 34 |
 | Cartography and map art | **Azgaar** renderers; **QGIS** symbology and labelling design | CesiumJS, orogen colour maps; candidates mapgen4, mewo2/terrain | 18, 19 |
 | Editing, undo, plugins | New | Godot undo-redo and plugins, QGIS Processing, SLiM Eidos | 16, 37 |
-| Parameter registry | New, after **MARBL** settings registry | orogen config, Azgaar options | 17 |
+| Parameter registry | New, after **MARBL** settings registry (its metadata fields and ordered categories; MARBL has no ranges or generated documentation and declares each parameter twice) | orogen config, Azgaar options | 17 |
 | Earth test datasets | Downloaded at tuning time (Q8) | orogen tuning harness | 15 |
 
 ### Candidate upstreams to audit
@@ -434,13 +434,14 @@ These are not in `upstream-manifest.json` yet. Each needs an audit in `audit/` (
 | Eurace | custom EULA | **Do not extract** without legal review. Owner-controlled modification and redistribution (verified in `LICENSE.md`). |
 | WRF-Hydro | custom UCAR | **No sale/licensing for a fee of the Software or any work containing it** (verified in `LICENSE.txt` section 1, lines 6–7). Blocks any commercial use; recorded, not enforced, since Q12. `src/Rapid_routing/` is BSD-3-Clause. |
 | Delft3D | multi-license | Verified per component: `utils_gpl` (including the morphology formulas) GPL-3.0-only, D-Flow FM AGPL-3.0, `utils_lgpl` LGPL-2.1, SWAN GPL-2.0-or-later; Apache-2.0 only in third-party code. The manifest's "LGPL-2.1, Apache-2.0, others" entry is incomplete. |
-| CESM, CTSM, MARBL, WRF-Hydro | UCAR BSD-style / custom | Fine for reference. CESM has no code here. |
+| CESM, CTSM, MARBL | UCAR, custom | Verified (group 3): CESM's `LICENSE.txt` is a copyright notice, disclaimer and component table with no permission grant, and no CESM code is checked out; CTSM is an NCSA-style grant with three conditions; MARBL an MIT-style grant with two BSD conditions. |
+| MOM6 | Apache-2.0 | Verified (`LICENSE`, SPDX headers). Its GSW-Fortran and CVMix submodules are empty, so their licences are unchecked. |
 
 Combined work: the recommended core mixes GPL-3.0 (orogen, Badlands-derived), MIT, GPL-2.0 (GPlates-derived) and Apache-2.0. Per the brief this is ignored for now, but the combined output would effectively be GPL-3.0, and GPL-2.0-only code could not be included under the old rules; since Q12 this is recorded, not enforced.
 
 ## Repos with nothing to extract (reference or skip)
 
-ASPECT, CESM (empty checkout), CTSM, Delft3D, MARBL, MOM6, ParFlow, PISM, WRF-Hydro (HPC Fortran/C++, no browser path; physics references only, except small closed-form pieces: WRF-Hydro's channel-routing and level-pool kernels, PISM's exact solutions, Delft3D's transport formulas), MESSAGEix, Eurace, LIAM2, OpenSpiel, FLAMEGPU2, Godot, SLiM, GAMA, RangeShiftR, UrbanSim (domain mismatch or unportable; design references only). QGIS and PostGIS offer ideas and algorithm references (projection handling, terrain filters, geometry) but depend on PROJ/GDAL/GEOS, which are not present.
+ASPECT, CESM (empty checkout), CTSM, Delft3D, MARBL, MOM6, ParFlow, PISM, WRF-Hydro (HPC Fortran/C++, no browser path; physics references only, except small closed-form pieces: WRF-Hydro's channel-routing and level-pool kernels, PISM's exact solutions, Delft3D's transport formulas, MOM6's polynomial EOS and tidal astronomy, CTSM's pedotransfer and baseflow formulas, MARBL's productivity rate laws), MESSAGEix, Eurace, LIAM2, OpenSpiel, FLAMEGPU2, Godot, SLiM, GAMA, RangeShiftR, UrbanSim (domain mismatch or unportable; design references only). QGIS and PostGIS offer ideas and algorithm references (projection handling, terrain filters, geometry) but depend on PROJ/GDAL/GEOS, which are not present.
 
 ## Decisions for you
 

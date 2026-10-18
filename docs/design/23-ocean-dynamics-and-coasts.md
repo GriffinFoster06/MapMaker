@@ -16,7 +16,7 @@ orogen's `ocean.js` builds a heuristic current field (gyres, circumpolar flow) t
 **Inputs:** wind stress (from `wind.*`), surface heat and freshwater fluxes (temperature, precipitation, evaporation, river discharge, sea ice), bathymetry, tidal forcing, sediment supply from rivers.
 
 **Outputs**
-- `ocean.current.{surface,intermediate,deep}` (vector, m/s), `ocean.sst`, `ocean.salinity`, `ocean.upwelling`, `ocean.mixedLayerDepth`, `ocean.productivity` (with MARBL-style biogeochemistry, optional).
+- `ocean.current.{surface,intermediate,deep}` (vector, m/s), `ocean.sst`, `ocean.salinity`, `ocean.upwelling`, `ocean.mixedLayerDepth`, `ocean.productivity` (optional; from MARBL's productivity rate laws, §4).
 - `ocean.tide.range` and tidal-current strength, per coastal cell.
 - Coast classification and landforms: `coast.type` (cliff, beach, barrier, delta, estuary, mangrove, reef, fjord), and elevation changes for deltas and barrier islands.
 
@@ -41,8 +41,12 @@ Equilibrium tides from note 20, amplified by basin and shelf resonance: a linear
 
 ## 4. Upstream references (algorithm level)
 
-- **MOM6** `src/core/MOM_barotropic.F90`, `MOM_CoriolisAdv.F90`, `MOM_PressureForce*.F90`, `src/equation_of_state/` (TEOS-10), `src/parameterizations/vertical/MOM_tidal_forcing.F90`: formulations and constants.
-- **MARBL** `src/marbl_interior_tendency_mod.F90`, `marbl_pft_mod.F90`: optional ocean productivity for marine life and fisheries.
+- **MOM6** (Apache-2.0):
+  - `src/core/MOM_barotropic.F90` (an explicit subcycled barotropic step, `btstep` `:477`), `MOM_CoriolisAdv.F90` (Sadourny, Arakawa–Hsu and Arakawa–Lamb schemes, `:103–111`), `MOM_PressureForce_FV.F90` and `MOM_PressureForce_Montgomery.F90`: C-grid formulations, a reference for the new solver on the sphere.
+  - `src/equation_of_state/`: TEOS-10 itself is not in the checkout (`TEOS10/` holds symlinks into the empty GSW-Fortran submodule), but the Roquet et al. (2015) TEOS-10 polynomial (`MOM_EOS_Roquet_rho.F90:194`) is closed form and ports through `dmath`.
+  - `src/parameterizations/lateral/MOM_tidal_forcing.F90`: equilibrium-tide astronomy for 10 constituents (frequencies `:154–182`, amplitudes and Love numbers `:413–458`, astronomical longitudes `:91`, phases `:120`, nodal factors `:187`); closed form, a port candidate for §3.3.
+  - `config_src/drivers/solo_driver/MOM_surface_forcing.F90:471–540`: analytic gyre wind stress for the §5 idealised basins. MOM6 has no analytic Stommel or Munk comparison of its own.
+- **MARBL** `src/marbl_interior_tendency_mod.F90` (`compute_autotroph_photosynthesis` `:1306`: temperature function `:1222`, Monod nutrient limitation `:1526`, Geider et al. 1998 light limitation `:1364`) and `marbl_pft_mod.F90` (PFT parameter types and defaults): optional ocean productivity for marine life and fisheries. The full model needs prognostic 3D nutrient, biomass and chlorophyll tracers and works in cgs units (cm, nmol/cm³), so it is a reference; the rate laws port through `dmath` as a per-cell proxy, which is new code.
 - **Delft3D** `src/utils_gpl/morphology/packages/morphology_kernel/src/`: closed-form sediment transport (`tranb7.f90` van Rijn 1984, `tram1.f90` 1993, `tram2.f90` 2004, `tranb5.f90` Bijker with waves, `trab11.f90`/`trab19.f90` wave–current forms), with gravity and densities as parameters; GPL-3.0-only. The inputs are per-cell depth, depth-averaged velocity, wave height and period, and grain sizes. `src/engines_gpl/wave/` only drives SWAN (`src/third_party_open/swan/`, a spectral wave model; reference only) and has no wave formulas of its own.
 - **orogen** `js/ocean.js`: parity mode.
 - **Literature:** Stommel (1948); Munk (1950); Galloway (1975) delta classification; Davis & Hayes (1984) coastal classification by tidal range.

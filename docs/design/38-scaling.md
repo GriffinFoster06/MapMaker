@@ -50,7 +50,7 @@ Edits (note 16) re-run only invalidated stages; local stages re-run only on chan
 - **FLAMEGPU2**: agent data layouts for massive agent counts (concepts for struct-of-arrays and messaging).
 - **Godot** `platform/web/`: WASM threading and export constraints in browsers.
 - **CesiumJS**: level-of-detail and tiling for globe rendering.
-- **PISM**, **MOM6**: their verification and performance-test practice.
+- **PISM**, **MOM6**: their verification and performance-test practice (MOM6: `.testing/` invariance tests, timing tests in `config_src/drivers/timing_tests` and optional profiling; `.testing/README.rst:31–35`, `:77`, `:221–242`).
 
 ## 5. Validation
 
