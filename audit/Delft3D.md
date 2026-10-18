@@ -228,7 +228,7 @@ Estimated effort: 6+ months of expert porting work, or complete algorithmic reim
   - `src/plugins_lgpl/` directories: LGPL-2.1
   - `src/tools_gpl/` directories: GPL-3.0 and LGPL-2.1 (mixed)
 
-**Manifest match:** Incomplete. `upstream-manifest.json` lists "Multiple (LGPL-2.1, Apache-2.0, others per component)". The Deltares code is mostly GPL-3.0-only and AGPL-3.0; Apache-2.0 appears only in third-party code (e.g. METIS). The manifest was not edited in this pass (configuration, not an audited document); the formulas MapMaker uses are GPL-3.0-only.
+**Manifest match:** Incomplete. `upstream-manifest.json` lists "Multiple (LGPL-2.1, Apache-2.0, others per component)". The Deltares code is mostly GPL-3.0-only and AGPL-3.0; Apache-2.0 appears only in third-party code (e.g. METIS). The manifest entry was rewritten on 2026-10-18 (commit `001da0d`) to record the per-component licences above; the formulas MapMaker uses are GPL-3.0-only.
 
 **Copyleft strength:**
 - GPL-3.0 (engines): Strong reciprocal; any derivative must be released under GPL-3.0 or compatible.

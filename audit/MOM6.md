@@ -78,8 +78,8 @@ MOM6 (Modular Ocean Model, version 6) is a production-grade ocean circulation mo
 ### 3.6 Equation of state & thermodynamics
 - **Where:** `src/equation_of_state/` — `MOM_EOS.F90`, `src/equation_of_state/TEOS10/` (32 symlinks into the empty `pkg/GSW-Fortran` submodule)
 - **What it does:** Density calculation from temperature and salinity. Options (`MOM_EOS.F90:175–185`): linear, UNESCO, Jackett–McDougall, Wright (full and reduced), TEOS-10 (needs GSW), the Roquet et al. (2015) density and specific-volume polynomials, and Jackett (2006). The Roquet polynomial (`MOM_EOS_Roquet_rho.F90:194` `density_elem_Roquet_rho`) is a closed-form fit to TEOS-10 in conservative temperature, absolute salinity and pressure, and needs no GSW code. Thermodynamic derivatives for pressure gradient and mixing.
-- **Quality & realism: 5/5** — TEOS-10 is international standard. Implementations are validated.
-- **Extractability: standalone** — EOS is pure function (T,S → ρ, derivatives). 10,107 lines in the twelve `.F90` files of `src/equation_of_state/`; TEOS-10 itself is not in the checkout. Effort: **low** (fully extractable as a library).
+- **Quality & realism: 4/5** — the in-tree options (Roquet polynomial, Wright, Jackett–McDougall, UNESCO, linear) are standard and validated. TEOS-10, the international standard, is **not in the checkout** (the GSW submodule is empty), so it earns no credit here.
+- **Extractability: standalone** — EOS is pure function (T,S → ρ, derivatives). 10,107 lines in the twelve `.F90` files of `src/equation_of_state/`; TEOS-10 itself is not in the checkout. Effort: **low** for the in-tree polynomials (extractable as pure functions); TEOS-10 would need the external GSW library.
 - **Requirements capabilities it could serve:** Climate – temperature (EOS table lookups), hydrology (if salinity/density tracking used).
 
 ### 3.7 Initialization & I/O

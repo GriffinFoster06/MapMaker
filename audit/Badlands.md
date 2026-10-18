@@ -168,7 +168,7 @@
 
 **Practical implications**: LGPL-3.0 is copyleft (modifications to Badlands must remain open-source if distributed). Patent grant is included (defensive). **No linking restrictions** unlike GPL-3.0 (a C library can link to LGPL without requiring the caller to be open-source). Suitable for open-source projects; incompatible with proprietary/closed-source downstream use.
 
-**Matches manifest**: Manifest states "GPL-3.0" → actual license in `/LICENSE` is GPLv3. The two files with headers say LGPL-3.0-or-later. **Conflict recorded but not critical** (LGPL-3.0 is compatible with GPL-3.0; derivative works must be LGPL-3.0 or GPL-3.0+).
+**Matches manifest** (the manifest entry was updated on 2026-10-18 to record the LGPL headers; this sentence describes the original entry): Manifest stated "GPL-3.0" → actual license in `/LICENSE` is GPLv3. The two files with headers say LGPL-3.0-or-later. **Conflict recorded but not critical** (LGPL-3.0 is compatible with GPL-3.0; derivative works must be LGPL-3.0 or GPL-3.0+).
 
 **Git HEAD**: `975f595ae313dd08d674c0effde18b5e8155f597`
 

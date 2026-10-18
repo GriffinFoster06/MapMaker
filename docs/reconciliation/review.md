@@ -53,7 +53,11 @@ Findings are ranked by severity: **High** means a planning decision rests on it 
 
 A3 asks the user to re-size Phase 5c around a 10,857-line PAL port with a GEOS replacement. A smaller MIT TypeScript alternative was never weighed. It is seeded (Alea from the map seed), already deterministic in ordering (`ids.sort()`), and needs font metrics instead of DOM measurement. Group 6a's method note says "the Azgaar and QGIS reports had no errors in the facts re-checked", so this claim was not re-read in the source.
 
+> **Resolution (2026-10-18):** Re-read `upstream/Azgaars-Fantasy-Map-Generator/src/controllers/label-spread.ts`: the solver, seeding, tests and DOM measurement are as described. Corrected `group-6a.md` A6 and flag 2, `docs/design/18-cartographic-rendering.md`, `audit/CAPABILITY_MATRIX.md`, `audit/Azgaars-Fantasy-Map-Generator.md` (banner, §3.28 text and rating) and `audit/QGIS.md` ("only implementation"), and rewrote `pending-decisions.md` A3 as a choice between `label-spread.ts` and PAL. One correction to this review's wording: the point candidates are 12 directions at six step distances (`:92–93`), and `DIRECTION_SAMPLES = 16` is the path-direction sampling count. Phase text and note 18 §7's estimate were not edited.
+
 **H2. Every new Prerequisite line cites a file that does not exist.** `docs/ARCHITECTURE.md` Phases 5b, 5c, 7, 8b, 9b, 9d, 10b, 11b, 13 and 18 each say the work "is documentation-only and follows `docs/reconciliation/README.md`". The directory holds only `group-1.md`, `group-2.md`, `group-3.md`, `group-6a.md` and `pending-decisions.md`, and `git log --all -- docs/reconciliation/README.md` is empty. The procedure each Prerequisite depends on (method, verdict scale, feasibility scale, subagent cross-check) exists only in each group file's preamble. The group numbering (1, 2, 3, 6a) also implies a plan for groups 4, 5 and 6b that is not written down anywhere.
+
+> **Resolution (2026-10-18):** Created `docs/reconciliation/README.md` (why, method, status table matching the §7 Prerequisite lines, how to run a session, both reusable prompts). The numbering gap (groups 4, 5, 6b) is stated there: those groups were never defined, so deferred work is listed by Prerequisite phase.
 
 **H3. Some deferred reconciliations sit in a later phase than the first phase that depends on them.** The table maps each unreconciled upstream to the notes that cite it, and those notes to phases (§7.0 table).
 
@@ -68,22 +72,32 @@ A3 asks the user to re-size Phase 5c around a 10,857-line PAL port with a GEOS r
 
 SLiM and RangeShiftR at 9b come before their first users (9c, and Phase 10 for note 9:98), so they are fine. Pending D1 already notes this.
 
+> **Resolution (2026-10-18):** Verified the cited design-note lines (notes 12, 17, 9, 26, 29) still say what the table says. The Prerequisite placement is phase text, so it was **not edited**; each mismatch is shown in the `README.md` status table and recorded as pending decision D3 with a proposed fix.
+
 **H4. Four upstreams with unchecked claims have no Prerequisite at all.** The §7 reconciliation paragraph says "the upstreams not yet checked … are each a **Prerequisite** line in the phase that first depends on them". These are not:
 - **orogen**: cited by 21 design notes, including notes 12, 13, 16, 17, 21, 22 and 23 for Phases 5b–7c. It is vendored and parity-tested, which may justify the exemption, but the exemption is not stated. Two claims fail on a quick check: see M2 and M3.
 - **Azgaar outside Phases 5/5c**: group 6a's "Not re-checked" section defers it. It is still cited by note 16:84 and note 17:56 (Phase 5b, editors and options UI, "exact files located when Phase 5b starts"), note 12:7, :14, :90, :94 (Phase 7: `lakes.ts` `getLakeEvaporation`, the `closed` flag, `features-generator.ts`), note 5 (Phase 9), note 9 (Phase 10) and others.
 - **QGIS outside Phase 5c**: note 37:31 (Phase 17: the Processing framework).
 - **CesiumJS outside Phases 5/5c**: note 38:52 (Phase 14: LOD and tiling) and note 36 (Phase 16, K6 checked only the paths).
 
+> **Resolution (2026-10-18):** Recorded in the `README.md` status table (Azgaar, QGIS and CesiumJS as partly done; orogen as deferred with no Prerequisite) and in pending decision D3, which proposes either adding Prerequisite lines or stating an explicit orogen exemption. No phase text was edited.
+
 ### Medium
 
 **M1. Pending A4 and group 1 S2 both miss orogen's existing dynamic topography.** `upstream/orogen/js/elevation.js:2412` `applyDynamicTopography` (stage 10, also in the vendored copy) adds `r_mantleNorm × DYNAMIC_TOPO_UPLIFT/SUBSIDENCE` to elevation. `audit/orogen.md:45` lists it too. A4 offers only "drop `interior.dynamicTopography`, or add a §3 method". It omits the third option that note 21:81 implies, falling back to orogen's heuristic. A4 correctly finds that group 1 S2 ("note 21 has no dynamic-topography output") contradicts note 21:21, but `group-1.md` S2 and flag 4 still carry the false statement with no pointer to A4.
 
+> **Resolution (2026-10-18):** Read `upstream/orogen/js/elevation.js:2412` (`applyDynamicTopography`, stage 10; constant at `js/terrain-config.js:522`). Added the third option to `pending-decisions.md` A4, and added corrections to `group-1.md` S2 and flag 4.
+
 **M2. Note 17 cites an orogen file that does not exist.** `docs/design/17-parameter-registry.md:56` names "orogen `js/config.js` (slider definitions)". Neither `upstream/orogen/js/` nor `packages/gen-orogen/vendor/js/` has `config.js`. The config files are `climate-config.js` and `terrain-config.js` (note 10:89 cites them correctly), and the sliders are read from the DOM in `generate.js` (`readSliders`, used at `:719`). Phase 5b depends on note 17. Orogen was never reconciled (H4), so the error went unchecked.
+
+> **Resolution (2026-10-18):** Confirmed `js/config.js` does not exist in `upstream/orogen/js/`; the files are `climate-config.js` and `terrain-config.js`, and the sliders are DOM inputs read by `readSliders` (`js/generate.js:18`). Fixed `docs/design/17-parameter-registry.md:56`. The wider orogen reconciliation remains deferred (D3).
 
 **M3. The GPlates reconstruction-code port contradicts group 1.** Group 1 G3 says `Reconstruction*` depends on the feature model ("Ref, or a partial port … G1 is the part to port"), and flag 5 says reconstruction trees and plate circuits "are not needed". These records were not aligned:
 - `audit/CAPABILITY_MATRIX.md:374`: "**Port GPlates** `src/maths` and `src/app-logic/Reconstruction*` to TypeScript";
 - `audit/CAPABILITY_MATRIX.md:59`: rates `Reconstruction*` as "loose";
 - `docs/design/13-forward-plate-evolution.md:209`: since Q12 `Reconstruction*` is "the preferred source to port".
+
+> **Resolution (2026-10-18):** Aligned the matrix (rows at `:59` and `:374`) and note 13 §4 with group 1: port `src/maths` only; `src/app-logic/Reconstruction*` is a reference because it depends on the feature model and note 13 needs no plate circuit. A note was added to `group-1.md` G3. `audit/GPlates.md` was not changed.
 
 **M4. Manifest licences are now inconsistent with the audits and with each other.** The 001da0d manifest edit updated 5 repos, which leaves three problems:
 - **Stale audits.** `audit/Badlands.md`, `audit/Delft3D.md`, `audit/CESM.md:147` and `audit/MARBL.md` still say the manifest was not edited (pending C1 lists this and proposes a fix).
@@ -92,15 +106,24 @@ SLiM and RangeShiftR at 9b come before their first users (9c, and Phase 10 for n
 
 The group records' "Not changed: `upstream-manifest.json`" lines are superseded by `001da0d`. Pending C1 says they should stay as dated history; this review only notes it.
 
+> **Resolution (2026-10-18):** Updated the four stale audit sentences (`audit/Badlands.md`, `Delft3D.md`, `CESM.md`, `MARBL.md`) to say the manifest entry was rewritten on 2026-10-18. `upstream-manifest.json` is not Markdown, so the QGIS and GPlates entries were **not edited**; they are now pending decision C4. The group files' "Not changed" lines stay as dated history.
+
 ### Low
 
 - **L1. VPLanet V9 and Phase 6a omit `fndFluxExactBinary`.** It is at `binary.c:2394` and is what `fdInstellation` (`system.c:315`) uses for circumbinary planets. The conclusion (no latitude-resolved two-star insolation) holds.
+  > **Resolution (2026-10-18):** Added `fndFluxExactBinary` (`binary.c:2394`, used at `system.c:315`) and `fndFluxApproxBinary` (`:2365`) to `group-1.md` V9. `docs/ARCHITECTURE.md:999` (Phase 6a text) was not edited; its conclusion still holds.
 - **L2. QGIS Q1 line citations are off by one to ten lines** (spot-check 2). The facts hold.
+  > **Resolution (2026-10-18):** Line numbers corrected in `audit/QGIS.md`, `group-6a.md` Q1 and `pending-decisions.md` B4 (nodata `:433–441`, Horn `:443–445`, fast formula `:447–454`, multi-directional `:458–489`, zenith `:151`, azimuth `:152`, filter `:26–27`).
 - **L3. MARBL B1 omits three optional metadata fields** (spot-check 3). The conclusion holds.
+  > **Resolution (2026-10-18):** Added the optional `cannot change`, `must set` and `_append_to_config_keywords` fields to `group-3.md` B1.
 - **L4. ParFlow P5 gives the case range as `:168–602`**, but case 5 runs to `:653`.
+  > **Resolution (2026-10-18):** Case range corrected to `:168–653` in `group-2.md` P5 and `audit/ParFlow.md` (`/* End case 5 */` is at `:653`).
 - **L5. `audit/MOM6.md:81–82` still rates the EOS "5/5 — TEOS-10 is international standard" and "fully extractable as a library"**, beside the corrected text saying TEOS-10 is absent. Group 3's leftover grep did not cover this.
+  > **Resolution (2026-10-18):** `audit/MOM6.md` §3.6 rating changed to 4/5 and the effort line now separates the in-tree polynomials from TEOS-10. The 5/5 at `:210` rates the Roquet polynomial alone and was left.
 - **L6. CC0 symbol packs.** Note 18 open question 1 (ship CC0 hand-drawn symbol sets?) bears on Phase 5c's "symbols", but the CC0 audit Prerequisite is at 10b. Harmless if 5c ships no third-party symbols. The phase text does not say which.
+  > **Resolution (2026-10-18):** Recorded as pending observation D4; the phase text does not say whether 5c ships third-party symbols, and was not edited.
 - **L7. Pipeline row 4c still lists "PISM (SIA/SSA), orogen glacial erosion"**, while Phase 7b now says the glacial-erosion law has no source chosen. These are consistent if orogen's heuristic is the fast-path default (note 22:36, :50). Pending B5 covers only the PISM half of the row.
+  > **Resolution (2026-10-18):** Recorded as pending observation D4; no edit, since the rows are consistent if orogen's heuristic is the fast-path default.
 
 ## 4. Claims the reconciliation never checked that Phases 5–7 depend on
 

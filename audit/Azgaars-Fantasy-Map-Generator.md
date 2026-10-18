@@ -1,6 +1,6 @@
 # Audit: Azgaars-Fantasy-Map-Generator
 
-> **Reconciled 2026-10-18** for Phases 5 and 5c only, against the source at `3d94b80` (`docs/reconciliation/group-6a.md`). Corrected: sizes, the projection claims (there is no projection code; the map is a linear lat/lon box), the 3D view, the relief-icon RNG, the cartography picks (coastline, rivers, labels; no label collision avoidance), the emblem generator size, and the licence notes (no OGL content; bundled assets have no documented licence). Claims outside that scope were not re-checked.
+> **Reconciled 2026-10-18** for Phases 5 and 5c only, against the source at `3d94b80` (`docs/reconciliation/group-6a.md`). Corrected: sizes, the projection claims (there is no projection code; the map is a linear lat/lon box), the 3D view, the relief-icon RNG, the cartography picks (coastline, rivers, labels; the label-overlap solver `controllers/label-spread.ts`), the emblem generator size, and the licence notes (no OGL content; bundled assets have no documented licence). Claims outside that scope were not re-checked.
 
 ## 1. Overview
 
@@ -219,10 +219,10 @@ Build script is `tsc && vite build && node scripts/pwa-precache.mjs`. Dockerfile
 - **What it does:**
   - coastlines: `coastline-generator.ts` (`fractalize`, seeded per feature with Alea, `:73`), plus `coastal-waves.ts`, `draw-coastal-bands.ts` (SVG masks), `lake-ripples.ts` and `heightmap-hachures.ts`;
   - rivers: `river-generator.ts:487–576` (`addMeandering`, `getRiverPath`) with `meander` (`utils/pathUtils.ts:424`);
-  - labels: state labels are fitted along rays cast from the state's pole (`renderers/labels/fit-state-label.ts`, `label-raycast.ts`); burg labels follow a 3-point arc (`label-arc.ts`). Text width is estimated heuristically. **There is no label collision avoidance**; overlap is controlled only by per-group zoom bounds;
+  - labels: state labels are fitted along rays cast from the state's pole (`renderers/labels/fit-state-label.ts`, `label-raycast.ts`); burg labels follow a 3-point arc (`label-arc.ts`). Text width is estimated heuristically. The renderers have no collision handling and overlap is otherwise controlled by per-group zoom bounds, **but `src/controllers/label-spread.ts` (1,030 lines, MIT) is a seeded label-overlap solver**: collision model `:108–120`, `optimizeLabelPlacements` `:694`, `refine` `:778`, simulated annealing `anneal` `:802`, `Alea` seeded from the map seed `:713`; tests `label-spread-{burg,path,solver}.test.ts`; called from `labels-overview.ts:419`. It measures text through the SVG DOM (`getComputedTextLength`, `getExtentOfChar`, `getBoundingClientRect`, `:478–583`), so a worker port needs font metrics (`docs/reconciliation/review.md` H1);
   - styles: 14 JSON presets in `public/styles/` (schema `src/generators/styles-schema.ts`).
   - The only shading is the WebGL satellite texture (`draw-satellite-texture.ts:352`); there is no 2D hillshade.
-- **Quality & realism rating: 3/5.** A rich fantasy vocabulary, but no label collision handling and no hillshade.
+- **Quality & realism rating: 3/5.** A rich fantasy vocabulary, with a seeded label-overlap solver (DOM-bound), but no hillshade.
 - **Extractability: loosely coupled.** The geometry functions are pure apart from the `pack`/`options` globals and use a local Alea or no randomness. They port to TypeScript in a local tangent frame (pixels → metres). DOM-only drawers (`draw-*.ts`) are references.
 - **Requirements capabilities it could serve:** cartographic rendering (note 18).
 

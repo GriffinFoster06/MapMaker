@@ -144,7 +144,7 @@ CESM (Community Earth System Model) is a sophisticated, production-grade climate
 
 - **SPDX**: none. `LICENSE.txt` ("CESM2 Copyright and Terms of Use", 118 lines) is a UCAR copyright notice (lines 1–4), the BSD warranty disclaimer (lines 12–22) and a table of component copyrights (lines 24–112). It contains **no permission grant and no redistribution conditions**, so it is not BSD-3-Clause; "BSD-3-Clause-style" describes only the disclaimer.
 - **File**: `LICENSE.txt` (at repo root).
-- **Match to manifest**: partly. The manifest's "BSD-3-Clause-style (custom UCAR)" is the nearest label, but the file grants no rights explicitly (the manifest is configuration and was not edited).
+- **Match to manifest**: partly. The manifest's "BSD-3-Clause-style (custom UCAR)" is the nearest label, but the file grants no rights explicitly (the manifest entry was rewritten on 2026-10-18 to record this, commit `001da0d`).
 - **Details**: the component table names, each "under the terms indicated" by name only:
   - AER RRTMG (AER Inc.), CIME, ESMF (University of Illinois/NCSA Open Source License), FATES, MCT, the ISCCP simulator, POP2, CICE and SCRIP (Los Alamos), XML/Lite;
   - CISM: LGPL-3.0-or-later (lines 66–71);

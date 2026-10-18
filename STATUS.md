@@ -8,9 +8,52 @@ Updated at every checkpoint.
 | 2 (Phase 2 design notes) | Done |
 | 3 (Phase 3 shell) | Done |
 | 3b (Checkpoint 3 decisions: `dmath` fdlibm mode) | Reached and reviewed. |
-| 4a (Phase 4a orogen in the shell, globe) | **In progress** |
+| 4a (Phase 4a orogen in the shell, globe) | Done (open items resolved; `docs/checkpoints/LOCAL_BASELINE.md`) |
+| 4b (Phase 4b structured pipeline behind the Q7 A/B gate) | Done, accepted 2026-10-14 (`docs/checkpoints/CHECKPOINT_4B.md`) |
+| World settings panel (PR #5) | Merged (`121dc1e`) |
+| Reconciliation, groups 1, 2, 3 and 6a | Done 2026-10-18; independent review fixed (`docs/reconciliation/`). Other upstreams deferred |
+| 5 (Projection and distortion layer) | **Next. Not started; waits for the user** |
 
-## Current handoff — 2026-10-13, Claude Code (planning overhaul for the full vision)
+## Current handoff — 2026-10-18, Claude Code (cloud to local; catch-up and reconciliation)
+
+**Why now:** the user is moving from cloud sessions to local work, which is a change of environment. This section covers everything since the 2026-10-13 handoffs below. Branch `catchup/reconciliation` (base `main` at `121dc1e`, the merge of PR #5). Nothing here started Phase 5.
+
+**What changed since the last handoff**
+
+1. **Phase 4a is complete.** The three open items in the Codex handoff are resolved in the tree: the A/B river-mouth metric (fixed in `16796dc`: `greatCircleKm` uses `atan2(|cross|, dot)`), `tools/tuning/ab-baseline.json` (present), and the browser benchmark reports (`docs/benchmarks/PHASE4A.md`, `phase4a-*-linux.json`).
+2. **Phase 4b is complete and accepted (2026-10-14).** The structured pipeline (reference pass on the 20k mesh L0, detail pass at N, ports of 18 orogen modules) is the app's default; stock orogen stays as the `parity` variant. All seven original Q7 metrics meet target at the 200k tier; two targets are still missed (50k vs 2.56M coast p95; native-cell hypsometry KS) and are regression-only until invariant I3 moves into Phase 7. A CI `ab-gate` (1M final) and nightly `ab-gate-full` (2.56M) and realism gate (`tools/tuning/realism/gate.mjs`) exist. Details and the ten acceptance decisions: `docs/checkpoints/CHECKPOINT_4B.md`. Peak browser memory is to be measured at the start of the next phase, before new features (decision 8).
+3. **PR #5, World settings panel (`4ecb49a`, merged as `121dc1e`).** All 14 of orogen's generation sliders in the app (labels, ranges and defaults from upstream `index.html` @ `cc2662b`), Reset to defaults, and seed, tier, pipeline and changed settings kept in the page URL with Copy link. Only non-default values are sent, so default worlds stay bit-identical. Tests: `apps/web/src/settings.test.ts`, `packages/gen-orogen/src/structured/params.test.ts`, and an e2e settings test.
+4. **Local baseline (`docs/checkpoints/LOCAL_BASELINE.md`, commit `e1478ec`).** A read-only audit of this checkout against the old STATUS (see Checks below). It lists which parts of the earlier handoffs are stale; the sections below are kept as history.
+5. **Reconciliation of 16 upstreams (documentation only).** Groups 1 (GPlates, tectonics.js, ASPECT, VPLanet), 2 (Badlands, ParFlow, WRF-Hydro, PISM, Delft3D), 3 (CESM, CTSM, MOM6, MARBL) and 6a (Azgaar, QGIS, CesiumJS, for Phases 5 and 5c only) checked the 2026-10-13 planning claims against the pinned source. Method, status of every repo and the reusable prompts: `docs/reconciliation/README.md`. Corrections were applied to the audits, `audit/CAPABILITY_MATRIX.md`, design notes and the Prerequisite lines in `docs/ARCHITECTURE.md` §7; phase text was not otherwise edited. Findings that matter for the next phases:
+   - **Phase 5:** no `upstream/` repo has projection code (QGIS and CesiumJS only wrap PROJ or implement three simple projections). d3-geo is the only source and is not yet in `PROVENANCE.md`.
+   - **Phase 5c:** hillshade pick is QGIS's `qgshillshaderenderer.cpp`, not the filter. Label collision handling has two candidates, Azgaar's seeded `controllers/label-spread.ts` (DOM text measurement to replace) and QGIS PAL (GEOS to replace); this was first reported wrongly as PAL-only and corrected after the review (pending decision A3). Azgaar's charges and icons have no documented licence.
+   - **Phase 6a/6c:** two-star insolation is original code; ASPECT has no plume placement or usable dynamic topography; note 21 lists `interior.dynamicTopography` with no method (A4).
+   - **Phase 7:** Badlands incision is explicit with a CFL step, so the D4 benchmark carries a scheme tolerance; ParFlow's Richards solver is reference only (closed-form curves port) and groundwater needs a design before stage 7g; the FFT for Smith–Barstad rain is not budgeted (A1).
+   - **Phase 7b/7c:** PISM has no erosion; CTSM's glacier file only books mass balance; MOM6's TEOS-10 is not in the checkout (use the in-tree Roquet polynomial); Delft3D has no wave formulas and no landform rules.
+   - **Records:** CESM's `LICENSE.txt` grants no permissions; MARBL has no generated docs and no ranges. Five manifest `license` strings were rewritten in `001da0d`.
+6. **Independent review of the reconciliation (`docs/reconciliation/review.md`, commit `4b50a74`)** found one wrong claim (Azgaar label collision), a missing `README.md`, and Prerequisite placement gaps. Wrong or contradictory findings were fixed in Markdown only and each finding has a Resolution line.
+
+**Open items:** `docs/reconciliation/pending-decisions.md` is the list. They need the user: A1 (FFT budget), A2 (physical mass-balance option), A3 (which label solver), A4 (dynamic topography), A5 (Azgaar asset licences), the B clarifications, C2 to C4 (ASPECT World Builder licence version, Phase 13 table blank line, the QGIS and GPlates manifest entries) and D3 (Prerequisite placement: LPJmL, MESSAGEix, UrbanSim, GAMA, FLAMEGPU2 and SongsOfFOSS are reconciled later than a phase that cites them; orogen, and Azgaar, QGIS and CesiumJS outside Phases 5/5c, have no Prerequisite line).
+
+**Deferred reconciliations** (each is a **Prerequisite** line in `docs/ARCHITECTURE.md` §7; full table in `docs/reconciliation/README.md`): Godot (5b); LPJmL, SLiM, RangeShiftR (9b); PostGIS (11b); Eurace, UrbanSim, LIAM2, MESSAGEix, GAMA, FLAMEGPU2, OpenSpiel, SongsOfFOSS (13). Candidate audits: mapgen4 and mewo2/terrain (5c), FastScape (7), GISS ModelE/ROCKE-3D/ExoCAM (8b), gen3sis (9d), CC0 asset packs (10b), TownGeneratorOS (11b), Glottolog/Seshat/HYDE datasets (18).
+
+**Checks actually run**
+
+| Check | Result | When / scope |
+|---|---|---|
+| `npm run lint`, `typecheck`, `test`, `build`, `provenance:check`, `e2e` | All passed: tests 258 passed, 0 failed, 1 skipped (259); e2e 18 passed (Chromium, Firefox, WebKit); provenance 24 vendored files, 41 headers, 18 direct / 246 total packages | **Historical**: `docs/checkpoints/LOCAL_BASELINE.md`, local run at `121dc1e` on 2026-10-18. Not re-run since |
+| `upstream/` against `upstream-manifest.json` | 30 of 30 present at their pinned commits, trees clean | Local baseline and `review.md`, 2026-10-18 |
+| `npm run provenance:check` | Passed (24 vendored, 41 headers, 18 direct / 246 total) | Re-run this session after the review fixes; the manifest was not edited |
+| Relative Markdown link check (script over `git ls-files '*.md'` outside `upstream/`) | **Passed**: 97 files, 46 relative links, 0 broken. Backticked doc paths also resolve, except planned outputs (`docs/PARAMETERS.md`, `docs/earth-tests/REPORT.md`) and an Azgaar-internal path | This session, after `docs/reconciliation/README.md` was created |
+| `ab-gate`, `ab-gate-full`, realism gate, `REQUIRE_UPSTREAM=1` strict test, remote CI | **Not run, no claim** | Depend on data or remote runs not exercised here |
+
+Since `121dc1e` only Markdown files and five `license.spdx` strings in `upstream-manifest.json` changed. No code, `upstream/` or `packages/gen-orogen/vendor/` file changed, so the code checks above are expected to be unaffected, but that is an inference, not a re-run.
+
+**Local setup:** `scripts/node24.sh npm ci`, then the commands in `AGENTS.md`. `upstream/` is present locally; the nightly-style strict path (`REQUIRE_UPSTREAM=1`) has not been run.
+
+**Next concrete step: Phase 5 (projection and distortion layer).** Stop and wait for the user first (§7). Before starting: decide the Phase 5 projection source (d3-geo, with its `PROVENANCE.md` entry, since no upstream has projection code); measure peak browser memory per 4b decision 8; and read the Phase 5 text in `docs/ARCHITECTURE.md` §7 and the Prerequisite lines of 5b and 5c (Godot reconciliation; mapgen4 and mewo2/terrain audits).
+
+## Previous handoff — 2026-10-13, Claude Code (planning overhaul for the full vision) *(superseded for status, test counts and Next by the section above)*
 
 **Task:** the user asked to overhaul and expand every plan to meet the full vision, however ambitious: all domains ("any and everything": life and ecology, astronomy and deep Earth, a fantasy layer, deep civilization), interleaved delivery (usable editor and maps early), and a full design note for every new system. Documentation only; no code, tests, `upstream/` or vendor files changed, and no phase was started. Phase 4a remains in progress with its open work unchanged (below).
 

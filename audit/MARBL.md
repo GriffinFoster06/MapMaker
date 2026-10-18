@@ -96,7 +96,7 @@ MARBL (Marine Biogeochemistry Library) is a Fortran library for ocean biogeochem
 
 ## 5. License
 
-**SPDX**: no exact match. `LICENSE.txt` is an MIT-style permission grant ("to deal with the Software without restriction ... sell", lines 8–13) with two BSD conditions (retain the notice in source and binary, lines 15–20) and the warranty disclaimer (lines 22–31). It has no non-endorsement clause, so it is not BSD-3-Clause. The manifest says "BSD-3-Clause-style (custom UCAR)" (not edited: configuration).
+**SPDX**: no exact match. `LICENSE.txt` is an MIT-style permission grant ("to deal with the Software without restriction ... sell", lines 8–13) with two BSD conditions (retain the notice in source and binary, lines 15–20) and the warranty disclaimer (lines 22–31). It has no non-endorsement clause, so it is not BSD-3-Clause. The manifest originally said "BSD-3-Clause-style (custom UCAR)"; the entry was rewritten on 2026-10-18 (commit `001da0d`) to describe the grant above.
 
 **License file**: /Users/griffinfoster/Projects/MapMaker/upstream/MARBL/LICENSE.txt
 
