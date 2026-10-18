@@ -110,16 +110,22 @@ const detailStage: Stage = {
     const L1 = world.meshes.get('global')!.mesh;
     const ref = referenceState(world);
     ctx.progress(0, 'Detail: elevation at full resolution');
-    const d = runElevationDetail(L1, ref, p);
+    // The elevation result is written at once and only what climate and drainage read is kept, so the tectonics at N
+    // and the Float64 elevation are released before them (Phase 5 M0). Layer values do not depend on write order.
+    const { ml, omesh, r_xyz, elevRaw } = (() => {
+      const d = runElevationDetail(L1, ref, p, { keepIntermediates: false });
+      put(ctx, 'elevation', d.elevation_m);
+      put(ctx, 'detail.elevRaw', d.elevRaw);
+      put(ctx, 'plate', d.tect.r_plate);
+      put(ctx, 'stress', d.stress);
+      return d;
+    })();
+    const d = { ml, omesh, r_xyz, elevRaw };
     ctx.progress(0.6, 'Detail: climate');
     const c = runClimateDetail(ref, d);
     ctx.progress(0.9, 'Detail: drainage');
     const dr = runDrainageDetail(ref, d, L1);
 
-    put(ctx, 'elevation', d.elevation_m);
-    put(ctx, 'detail.elevRaw', d.elevRaw);
-    put(ctx, 'plate', d.tect.r_plate);
-    put(ctx, 'stress', d.stress);
     for (const season of ['summer', 'winter'] as const) {
       const sc = c[season];
       put(ctx, `wind.${season}`, sc.windEast, 0); put(ctx, `wind.${season}`, sc.windNorth, 1);
