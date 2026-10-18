@@ -64,7 +64,7 @@ Build inferred from documentation and CI config (no build attempted in scratchpa
 ### 3.4 Postprocessing and output
 - **Where**: `source/postprocess/` (55 modules, ~2–10k LOC each); key outputs: `visualization/vtk.cc`, `depth_average.cc`, `dynamic_topography.cc`, `geoid.cc`, `composition_statistics.cc`, etc.
 - **What it does**: Computes derived fields (stress, strain rate, viscosity, dynamic topography, geoid, composition) at user-specified intervals; outputs to VTK (ParaView), ASCII tables, HDF5, custom formats. Supports particle/tracer output, boundary data export, statistics gathering.
-- **Dynamic topography**: Verified at `source/postprocess/dynamic_topography.cc` (~390 LOC). Computes uplift/subsidence via Consistent Boundary Flux (CBF) method from pressure solution: requires boundary-stress interpolation and integration, calls material-model density evaluation, depends on gravity model and mesh geometry. **Requires full FEM solution; not extractable as standalone function.**
+- **Dynamic topography**: Verified at `source/postprocess/dynamic_topography.cc` (584 lines). Computes uplift/subsidence via Consistent Boundary Flux (CBF) method from pressure solution: requires boundary-stress interpolation and integration, calls material-model density evaluation, depends on gravity model and mesh geometry. **Requires full FEM solution; not extractable as standalone function.**
 - **Quality & realism rating: 3/5** — Comprehensive scientific output; VTK/HDF5 formats are standard. Dynamic topography calculation is validated and commonly cited in literature. However, no native export to PNG/SVG/STL (would need external post-processing); no heightmap-specific projection; outputs are 3D unstructured data, not 2D grids.
 - **Extractability: standalone** — Postprocessing modules are loosely coupled to simulator; each can be disabled independently via parameter file. Output reading/visualization could be ported to JS. Effort to extract: low for output reading; impossible for dynamic-topography computation without full FEM solver.
 - **Requirements capabilities it could serve**: Export (partial — outputs VTK, HDF5, ASCII; would need external tools for PNG/SVG/STL); heightmap generation (dynamic topography is a proxy but not a heightmap generator).
@@ -135,7 +135,7 @@ Build inferred from documentation and CI config (no build attempted in scratchpa
 - Contrib/optional components:
   - `contrib/fastscape/`: Fortran code, GPL-2.0-or-later (FastScape), developed separately.
   - `contrib/landlab/`: Python/Cython, unclear; not bundled, external dependency.
-  - `contrib/world_builder/`: Separate license (verify separately; appears to be BSD or similar based on GitHub).
+  - `contrib/world_builder/`: Separate licence, LGPL-2.1 (verified in `contrib/world_builder/LICENSE`).
 - No vendored third-party code in core; deal.II and Trilinos are external dependencies with their own licenses (LGPL/BSD). `contrib/world_builder/` is vendored and LGPL-2.1 (`contrib/world_builder/LICENSE`); it bundles vtu11 with its own `LICENSE`.
 
 **Does it match the manifest?** Yes. Manifest lists: "Mantle convection / geodynamics FEM solver — tectonics reference; license GPL-2.0-or-later." Verified.
