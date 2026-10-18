@@ -16,6 +16,11 @@ export type Variant = 'structured' | 'parity';
 export interface GlobeHook {
   /** Resolves when the first generation finished and the globe shows a layer. */
   generate(opts: GenerateOpts): Promise<{ stages: Record<string, number>; totalMs: number; stats: WorldStats }>;
+  /**
+   * Benchmark hook: the same generation in a fresh engine worker, with no globe and no transfers back, so the worker's
+   * memory can be told apart from the page's (Phase 5 M0). The worker is terminated afterwards.
+   */
+  generateInWorker(opts: GenerateOpts): Promise<{ totalMs: number; stats: WorldStats }>;
   setLayer(id: string): Promise<void>;
   layerHash(id: string): Promise<string>;
   litFraction(): number;
@@ -166,8 +171,21 @@ export function startApp(): void {
   });
   sel.addEventListener('change', () => { void paint(sel.value); });
 
+  async function generateInWorker(opts: GenerateOpts): Promise<{ totalMs: number; stats: WorldStats }> {
+    const w = new Worker(new URL('./engine-worker.ts', import.meta.url), { type: 'module' });
+    try {
+      const c = new EngineClient(w as unknown as PortLike);
+      const t0 = performance.now();
+      await c.create({ ...(opts.params ?? {}), N: opts.N, seed: opts.seed });
+      await c.run({ variant: opts.variant ?? 'structured', strict: false });
+      const stats = await c.stats();
+      return { totalMs: performance.now() - t0, stats };
+    } finally { w.terminate(); }
+  }
+
   window.__globe = {
     generate,
+    generateInWorker,
     setLayer: async (id) => { sel.value = id; await paint(id); },
     layerHash: async (id) => {
       const layer = layers.find((l) => l.id === id)!;

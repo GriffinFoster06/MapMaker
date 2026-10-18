@@ -79,6 +79,8 @@ Full performance tiers and Q7 baseline generation are phase work, not prerequisi
 ```sh
 # Browser timing/memory; restrict tiers for a short run.
 BENCH_TIERS=50k,200k scripts/node24.sh npm run bench -- --project=chromium
+# Engine worker alone (no globe, no transfers), with per-process peaks; writes phase4b-worker-*.json.
+BENCH_MODE=worker BENCH_TIERS=2.56M scripts/node24.sh npm run bench -- --project=webkit
 # Report from existing measured JSON files (does not run benchmarks).
 scripts/node24.sh node scripts/bench-report.mjs
 # Earth evaluation (requires downloaded Kottek ground truth).
