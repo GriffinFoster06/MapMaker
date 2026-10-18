@@ -26,7 +26,7 @@ The planet's sky drives everything below it: insolation by latitude and season, 
 
 ### 3.1 Star
 
-Stellar luminosity and radius from mass and age with the Baraffe et al. (2015) tracks VPLanet's `stellar.c` uses, or main-sequence scaling relations as a fast path. Binary stars: circumbinary (P-type) orbits get a time-varying insolation from both stars; S-type orbits treat the companion as a perturbation. (VPLanet's `binary.c` gives circumbinary orbits and only an orbit-averaged scalar flux, `fndApproxInsol` :2482, and POISE takes one star, `body[0].dLuminosity`, `poise.c:5538`; latitude-resolved two-star insolation is new code.)
+Stellar luminosity and radius from mass and age with the Baraffe et al. (2015) tracks VPLanet's `stellar.c` uses, or main-sequence scaling relations as a fast path. Binary stars: circumbinary (P-type) orbits get a time-varying insolation from both stars; S-type orbits treat the companion as a perturbation. (VPLanet's `binary.c` gives circumbinary orbits and only an orbit-averaged scalar flux, `fndApproxInsol` :2482, and POISE takes one star, `body[0].dLuminosity`, `poise.c:5538`; latitude-resolved two-star insolation is original code, written from the published formulas and logged in `PROVENANCE.md` as such, ARCHITECTURE.md Phase 6a.)
 
 ### 3.2 Orbit and rotation
 
@@ -66,7 +66,8 @@ An impact-rate parameter (Earth-like flux by default) produces impact events on 
 
 | Part | LOC |
 |---|---|
-| Stellar and binary insolation | ~800 |
+| Stellar and binary insolation (the latitude-resolved two-star insolation is original code, §3.1) | ~800 |
+| ODE integrator: port of VPLanet `src/evolve.c` (RK4 step `:403`, adaptive time step `:138`; the C file is 754 lines with its driver), built in Phase 6a and reused by note 21 | ~600 |
 | DistOrb/DistRot port (secular) | ~2,500 |
 | Tides and rotation evolution | ~1,000 |
 | Calendar, sky, impacts | ~800 |

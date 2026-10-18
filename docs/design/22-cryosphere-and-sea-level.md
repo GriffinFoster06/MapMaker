@@ -25,7 +25,7 @@ orogen has glacial erosion and an `iceCover` classification, but no ice that flo
 
 ### 3.1 Surface mass balance
 
-Positive-degree-day melt from the seasonal temperature harmonics (note 11) and accumulation from snowfall (precipitation below a temperature threshold), with an elevation feedback. A physically based option needs a surface energy balance. CTSM computes melt from its full energy balance and soil/snow phase change and only books the result in `GlacierSurfaceMassBalanceMod.F90` (`:209`, `:214`), so the reference is the CLM5 technical note (`doc/source/tech_note/Glacier/`, `Soil_Snow_Temperatures/`), not a standalone scheme.
+Positive-degree-day melt from the seasonal temperature harmonics (note 11) and accumulation from snowfall (precipitation below a temperature threshold), with an elevation feedback. A physically based option needs a surface energy balance. CTSM computes melt from its full energy balance and soil/snow phase change and only books the result in `GlacierSurfaceMassBalanceMod.F90` (`:209`, `:214`), so the reference is the CLM5 technical note (`doc/source/tech_note/Glacier/`, `Soil_Snow_Temperatures/`), not a standalone scheme. A physically based option would therefore be new code; the positive-degree-day scheme stays the default (ARCHITECTURE.md Phase 7b).
 
 ### 3.2 Ice flow
 
@@ -33,7 +33,7 @@ The shallow-ice approximation (SIA) on the sphere for ice sheets and valley glac
 
 ### 3.3 Coupling
 
-Ice changes albedo and elevation (climate re-run within the stage-6 coupling loop), loads the lithosphere (flexure, note 21), erodes the bed (glacial erosion law, replacing orogen's heuristic when on), and releases meltwater to hydrology.
+Ice changes albedo and elevation (climate re-run within the stage-6 coupling loop), loads the lithosphere (flexure, note 21), erodes the bed (glacial erosion law, replacing orogen's heuristic when on), and releases meltwater to hydrology. The glacial-erosion law still needs a source: PISM has none (§4), and none is chosen yet (open question 2).
 
 ### 3.4 Sea level
 
@@ -59,12 +59,13 @@ Sea-ice fraction from SST and air temperature (note 23); permafrost from mean an
 ## 6. Open questions
 
 1. Is SSA (ice shelves, marine ice-sheet instability) worth its cost in the first version?
+2. Which glacial-erosion law (§3.3)? PISM supplies none; the candidates named by the reconciliation are orogen's heuristic or a law from the literature (`docs/reconciliation/group-2.md` S6).
 
 ## 7. Size estimate
 
 | Part | LOC |
 |---|---|
-| Mass balance | ~600 |
+| Mass balance (the positive-degree-day default; a physically based option is new code and is not sized here) | ~600 |
 | SIA solver on the sphere | ~1,500 |
 | SSA (optional) | ~1,500 |
 | Sea level and GIA coupling | ~800 |

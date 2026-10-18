@@ -386,7 +386,7 @@ Q12 lifted licence restrictions and Q13 widened the scope to every domain in `do
 | Ice sheets, glaciers, sea level | **PISM** SIA/SSA formulations, exact solutions A–D (port as golden values) and `src/earth/` bed deformation, as references for a new SIA solver on the sphere (PISM's code is PETSc on a regular projected grid) | CTSM snow and glacier formulations (its `GlacierSurfaceMassBalanceMod.F90` only books melt and accumulation from the full energy balance), VPLanet POISE ice, orogen glacial erosion | 22 |
 | Ocean circulation | **MOM6** formulations (new solver on the sphere); its Roquet polynomial EOS, tidal astronomy and analytic gyre winds port as closed forms | orogen `ocean.js` (parity), MARBL (productivity rate laws for a per-cell proxy; the full model needs 3D prognostic tracers) | 23 |
 | Coasts, deltas, sediment | **Delft3D** sediment-transport formulas (van Rijn 1984/1993/2004, Bijker, Soulsby; `src/utils_gpl/morphology/packages/morphology_kernel/src/`). Its wave engine is a SWAN driver (reference only); landform rules are new | Badlands | 23 |
-| Groundwater | **ParFlow** formulations (van Genuchten/Haverkamp closed forms; the Richards solver as a reference) | CTSM hydrology (water table and TOPMODEL-style baseflow, `src/biogeophys/SoilHydrologyMod.F90`) | 12 (proposes surface water only; no groundwater design yet) |
+| Groundwater | **ParFlow** formulations (van Genuchten/Haverkamp closed forms; the Richards solver as a reference) | CTSM hydrology (water table and TOPMODEL-style baseflow, `src/biogeophys/SoilHydrologyMod.F90`) | 12 (no groundwater design yet; an extension of note 12 from these two sources is written before stage 7g, ARCHITECTURE.md Phase 7) |
 | Atmosphere dynamics, paleoclimate | New, from published models | VPLanet POISE (paleo EBM), CAM formulations from the published literature (CESM's checkout holds no CAM code or science documentation); candidates ModelE/ROCKE-3D | 24 |
 | Vegetation, fire | **LPJmL** (port) | CTSM CNDV and fire | 25 |
 | Fauna, ranges | **RangeShiftR** (port) | SLiM spatial maps, GAMA, FLAMEGPU2 | 26 |
@@ -405,18 +405,18 @@ Q12 lifted licence restrictions and Q13 widened the scope to every domain in `do
 
 ### Candidate upstreams to audit
 
-These are not in `upstream-manifest.json` yet. Each needs an audit in `audit/` (same template as the others) before it is used.
+These are not in `upstream-manifest.json` yet. Each needs an audit in `audit/` (same template as the others) before it is used. Each audit is now a Prerequisite line of the phase in the last column (ARCHITECTURE.md §7); for the datasets the prerequisite is to record their access route and licence.
 
-| Candidate | Why | Note |
-|---|---|---|
-| watabou TownGeneratorOS (Medieval Fantasy City Generator) | Town layouts: wards, walls, streets | 34 |
-| redblobgames mapgen4 | Painterly terrain rendering, fast interactive maps | 18 |
-| mewo2/terrain (Martin O'Leary) | Fantasy map style and label placement | 18 |
-| gen3sis | Eco-evolutionary simulation on paleo-landscapes | 27 |
-| GISS ModelE / ROCKE-3D, ExoCAM | Exoplanet and paleoclimate GCMs | 24 |
-| FastScape | Fast landscape evolution (couples with ASPECT) | erosion, 21 |
-| CC0 map-asset packs (symbols, textures, fonts) | Asset library | 19 |
-| Glottolog, Seshat, HYDE (datasets) | T4 Earth tests | 15 |
+| Candidate | Why | Note | Audit before |
+|---|---|---|---|
+| watabou TownGeneratorOS (Medieval Fantasy City Generator) | Town layouts: wards, walls, streets | 34 | Phase 11b |
+| redblobgames mapgen4 | Painterly terrain rendering, fast interactive maps | 18 | Phase 5c |
+| mewo2/terrain (Martin O'Leary) | Fantasy map style and label placement | 18 | Phase 5c |
+| gen3sis | Eco-evolutionary simulation on paleo-landscapes | 27 | Phase 9d |
+| GISS ModelE / ROCKE-3D, ExoCAM | Exoplanet and paleoclimate GCMs | 24 | Phase 8b |
+| FastScape | Fast landscape evolution (couples with ASPECT) | erosion, 21 | Phase 7 |
+| CC0 map-asset packs (symbols, textures, fonts) | Asset library | 19 | Phase 10b |
+| Glottolog, Seshat, HYDE (datasets) | T4 Earth tests | 15 | Phase 18 |
 
 ## License and risk notes
 
@@ -427,15 +427,15 @@ These are not in `upstream-manifest.json` yet. Each needs an audit in `audit/` (
 | orogen | GPL-3.0 | Core of the plan. |
 | Azgaar | MIT | Code only. The bundled heraldry charges (`public/charges/`, 338 SVGs), relief symbols and icons have **no documented licence** (group 6a); verify before bundling. No OGL content. |
 | VPLanet | MIT | Verified (`LICENSE`). |
-| Badlands | GPL-3.0 | Root `LICENSE` and `pyproject.toml` say GPL-3.0; `COPYING.LESSER` and the two files with headers (`model.py`, `__init__.py`) say LGPL-3.0-or-later; the rest point to a missing `LICENSE.md`. Recorded as GPL-3.0. |
+| Badlands | GPL-3.0 | Root `LICENSE` and `pyproject.toml` say GPL-3.0; `COPYING.LESSER` and the two files with headers (`model.py`, `__init__.py`) say LGPL-3.0-or-later; the rest point to a missing `LICENSE.md`. Recorded as GPL-3.0; the manifest entry now notes the LGPL headers (2026-10-18). |
 | GPlates | GPL-2.0-only | Verified: `COPYING` preamble says "version 2 ... not any later version". Incompatible with GPL-3.0; was math reference only, may be ported since Q12. |
 | QGIS | GPL-2.0-or-later | Verified (group 6a): `COPYING` is the GPL-2 text, but source headers say "version 2 … or (at your option) any later version". The PAL label engine (`src/core/pal/`) is **GPL-3.0-or-later** (libpal, HEIG-VD). Both may be included in GPL-3.0-only MapMaker. |
 | CesiumJS | Apache-2.0 | Includes the §3 patent grant. `LICENSE.md` appends 44 third-party entries (NVIDIA FXAA custom terms, OFL font, CC-BY example icons) and lists Cesium patents. |
 | LPJmL, FLAMEGPU2 | AGPL-3.0 | Network-copyleft. |
 | Eurace | custom EULA | **Do not extract** without legal review. Owner-controlled modification and redistribution (verified in `LICENSE.md`). |
 | WRF-Hydro | custom UCAR | **No sale/licensing for a fee of the Software or any work containing it** (verified in `LICENSE.txt` section 1, lines 6–7). Blocks any commercial use; recorded, not enforced, since Q12. `src/Rapid_routing/` is BSD-3-Clause. |
-| Delft3D | multi-license | Verified per component: `utils_gpl` (including the morphology formulas) GPL-3.0-only, D-Flow FM AGPL-3.0, `utils_lgpl` LGPL-2.1, SWAN GPL-2.0-or-later; Apache-2.0 only in third-party code. The manifest's "LGPL-2.1, Apache-2.0, others" entry is incomplete. |
-| CESM, CTSM, MARBL | UCAR, custom | Verified (group 3): CESM's `LICENSE.txt` is a copyright notice, disclaimer and component table with no permission grant, and no CESM code is checked out; CTSM is an NCSA-style grant with three conditions; MARBL an MIT-style grant with two BSD conditions. |
+| Delft3D | multi-license | Verified per component: `utils_gpl` (including the morphology formulas) GPL-3.0-only, D-Flow FM AGPL-3.0, `utils_lgpl` LGPL-2.1, SWAN GPL-2.0-or-later; Apache-2.0 only in third-party code. The manifest entry, formerly an incomplete "LGPL-2.1, Apache-2.0, others", now records this breakdown (2026-10-18). |
+| CESM, CTSM, MARBL | UCAR, custom | Verified (group 3): CESM's `LICENSE.txt` is a copyright notice, disclaimer and component table with no permission grant, and no CESM code is checked out; CTSM is an NCSA-style grant with three conditions; MARBL an MIT-style grant with two BSD conditions. The CESM and MARBL manifest entries, formerly "BSD-3-Clause-style", now say this (2026-10-18). |
 | MOM6 | Apache-2.0 | Verified (`LICENSE`, SPDX headers). Its GSW-Fortran and CVMix submodules are empty, so their licences are unchecked. |
 
 Combined work: the recommended core mixes GPL-3.0 (orogen, Badlands-derived), MIT, GPL-2.0 (GPlates-derived) and Apache-2.0. Per the brief this is ignored for now, but the combined output would effectively be GPL-3.0, and GPL-2.0-only code could not be included under the old rules; since Q12 this is recorded, not enforced.

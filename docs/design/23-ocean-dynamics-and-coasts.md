@@ -24,7 +24,7 @@ orogen's `ocean.js` builds a heuristic current field (gyres, circumpolar flow) t
 
 ### 3.1 Circulation
 
-A layered model on the reference mesh: a barotropic (depth-averaged) wind-driven solve for gyres and boundary currents (Stommel–Munk dynamics, which places western boundary currents correctly for any basin shape), plus a two-layer baroclinic correction and a thermohaline proxy driven by surface density from temperature and salinity (a box-model overturning per basin, connected through gateways). MOM6's formulations (Coriolis, pressure gradients, the equation of state) are the source; the full primitive-equation model is not ported.
+A layered model on the reference mesh: a barotropic (depth-averaged) wind-driven solve for gyres and boundary currents (Stommel–Munk dynamics, which places western boundary currents correctly for any basin shape), plus a two-layer baroclinic correction and a thermohaline proxy driven by surface density from temperature and salinity (a box-model overturning per basin, connected through gateways). MOM6's formulations (Coriolis, pressure gradients, the equation of state) are the source; the full primitive-equation model is not ported. TEOS-10 is unavailable in the checkout, so the equation of state is the Roquet et al. (2015) polynomial (§4).
 
 ### 3.2 Coupling with climate
 
@@ -67,7 +67,7 @@ Equilibrium tides from note 20, amplified by basin and shelf resonance: a linear
 | Barotropic and baroclinic solve on the sphere | ~2,500 |
 | Thermohaline proxy and coupling | ~1,000 |
 | Tides | ~800 |
-| Coast classification and landforms | ~1,500 |
+| Coast classification and landforms (new code; Delft3D supplies only transport formulas) | ~1,500 |
 | Biogeochemistry (optional) | ~1,500 |
 | Tests | ~1,500 |
 

@@ -5,7 +5,7 @@
 | Status | Draft for Checkpoint 2 |
 | Built in | Phase 7 |
 | Depends on | Flow routing (stage 4, Braun–Willett receivers and stack), climate (stage 5, note 11), note 14 (major basins at L0), Azgaar `lakes.ts` and `features-generator.ts` via the facade |
-| Used by | Rivers (stage 7), note 4 (Histosols), note 5 (evaporites), note 9 (water access), note 6 (lakes in patches) |
+| Used by | Rivers (stage 7), note 4 (Histosols), note 5 (evaporites), note 9 (water access), note 6 (lakes in patches), note 25 (groundwater, once its extension is written; §6 question 1) |
 
 ## 1. Problem
 
@@ -112,7 +112,7 @@ Azgaar's `lakes.ts` and `features-generator.ts` run through the facade on *our* 
 
 ## 6. Open questions
 
-1. **Groundwater:** should it be represented at all (a baseflow term), or is surface water enough for map purposes? I propose surface water only, with a documented limitation.
+1. **Groundwater:** should it be represented at all (a baseflow term), or is surface water enough for map purposes? I propose surface water only, with a documented limitation. **Superseded (2026-10-18):** stage 7g (groundwater) is in the plan and note 25 depends on it, so a groundwater design is written as an extension of this note before stage 7g (ARCHITECTURE.md Phase 7, Prerequisites). Its sources: ParFlow's closed-form retention and relative-permeability curves (van Genuchten `pfsimulator/parflow_lib/problem_saturation.c:221`, `:283–285`; Haverkamp `:419`; `problem_phase_rel_perm.c:567`, `:1363`), and CTSM's water-table depth and TOPMODEL-style baseflow (`src/biogeophys/SoilHydrologyMod.F90:615` `WaterTable`, `:1218` `rsub_top = imped·rsub_top_max·exp(−f·zwt)`). ParFlow's Richards solver and CTSM's are references only (`docs/reconciliation/group-2.md` P1–P2, `group-3.md` L9).
 2. **Glacial lakes and ice-dammed lakes:** out of scope for now?
 
 ## 7. Size estimate
