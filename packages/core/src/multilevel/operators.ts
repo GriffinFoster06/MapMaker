@@ -141,11 +141,13 @@ export class MultiLevel {
     return out;
   }
 
-  /** Vector prolongation: P per Cartesian component (xyz interleaved), then projection onto each L1 tangent plane. */
-  prolongVector(coarse: ArrayLike<number>): Float64Array {
-    const out = new Float64Array(3 * this.n1);
+  /**
+   * Vector prolongation: P per Cartesian component (xyz interleaved), then projection onto each L1 tangent plane.
+   * With `from`/`to`, only L1 cells [from, to) are computed, into out[3·(i − from) …] (chunked use, same arithmetic).
+   */
+  prolongVector(coarse: ArrayLike<number>, from = 0, to = this.n1, out = new Float64Array(3 * (to - from))): Float64Array {
     const C = this.interpCells, W = this.interpWeights, p = this.fine.points;
-    for (let i = 0, k = 0; i < this.n1; i++, k += 3) {
+    for (let i = from, k = 3 * from; i < to; i++, k += 3) {
       let vx = 0, vy = 0, vz = 0;
       for (let j = 0; j < 3; j++) {
         const c = 3 * C[k + j]!, w = W[k + j]!;
@@ -153,9 +155,10 @@ export class MultiLevel {
       }
       const x = p[3 * i]!, y = p[3 * i + 1]!, z = p[3 * i + 2]!;
       const radial = vx * x + vy * y + vz * z;
-      out[3 * i] = vx - radial * x;
-      out[3 * i + 1] = vy - radial * y;
-      out[3 * i + 2] = vz - radial * z;
+      const o = 3 * (i - from);
+      out[o] = vx - radial * x;
+      out[o + 1] = vy - radial * y;
+      out[o + 2] = vz - radial * z;
     }
     return out;
   }

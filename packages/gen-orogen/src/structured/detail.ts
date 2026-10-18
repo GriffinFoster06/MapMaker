@@ -234,6 +234,9 @@ function basis(x: number, y: number, z: number): [number, number, number, number
   return [ex, 0, ez, nx, ny, nz];
 }
 
+/** L1 cells per chunk of prolongEastNorth. */
+const VECTOR_CHUNK = 1 << 16;
+
 /**
  * Tangent vector field given by east/north components on L0 → east/north components on L1: rebuilt in 3D, prolonged
  * in the canonical frame (F1: X = z_o, Y = x_o, Z = y_o), re-projected onto each L1 tangent plane.
@@ -246,10 +249,13 @@ export function prolongEastNorth(ml: MultiLevel, ref_xyz: ArrayLike<number>, fin
     const vx = east[c]! * ex + north[c]! * nx, vy = east[c]! * ey + north[c]! * ny, vz = east[c]! * ez + north[c]! * nz;
     v0[3 * c] = vz; v0[3 * c + 1] = vx; v0[3 * c + 2] = vy;
   }
-  const v1 = ml.prolongVector(v0);
   const outE = new Float32Array(n1), outN = new Float32Array(n1);
+  // Prolonged in chunks through one small buffer instead of a 3·N Float64 array (Phase 5 M0); same values.
+  const v1 = new Float64Array(3 * VECTOR_CHUNK);
   for (let i = 0; i < n1; i++) {
-    const vx = v1[3 * i + 1]!, vy = v1[3 * i + 2]!, vz = v1[3 * i]!;
+    const j = i % VECTOR_CHUNK;
+    if (j === 0) ml.prolongVector(v0, i, Math.min(n1, i + VECTOR_CHUNK), v1);
+    const vx = v1[3 * j + 1]!, vy = v1[3 * j + 2]!, vz = v1[3 * j]!;
     const [ex, ey, ez, nx, ny, nz] = basis(fine_xyz[3 * i]!, fine_xyz[3 * i + 1]!, fine_xyz[3 * i + 2]!);
     outE[i] = vx * ex + vy * ey + vz * ez;
     outN[i] = vx * nx + vy * ny + vz * nz;
@@ -285,18 +291,20 @@ export interface ClimateDetail {
 export function runClimateDetail(ref: ReferenceState, d: ElevationDetail): ClimateDetail {
   const { ml } = d;
   const { wind, ocean, precip, temp } = ref.climate;
+  // One Float64 buffer for the scalar prolongations that are immediately rounded or copied (Phase 5 M0).
+  const buf = new Float64Array(ml.n1);
   const season = (name: 'summer' | 'winter'): SeasonClimate => {
     const [windEast, windNorth] = prolongEastNorth(ml, ref.r_xyz, d.r_xyz, wind[`r_wind_east_${name}`], wind[`r_wind_north_${name}`]);
     const [currentEast, currentNorth] = prolongEastNorth(ml, ref.r_xyz, d.r_xyz, ocean[`r_ocean_current_east_${name}`], ocean[`r_ocean_current_north_${name}`]);
-    const pressure = Float32Array.from(ml.prolong(wind[`r_pressure_${name}`]));
+    const pressure = Float32Array.from(ml.prolongInto(wind[`r_pressure_${name}`], buf));
     const pRef = precip[`r_precip_${name}`];
-    const precipN = Float32Array.from(ml.anchorMultiplicative(ml.prolong(pRef), pRef));
+    const precipN = Float32Array.from(ml.anchorMultiplicative(ml.prolongInto(pRef, buf), pRef));
     const tRef = temp[`r_temperature_${name}`];
     const tempN = Float32Array.from(ml.anchorAdditiveInPlace(ml.prolong(tRef), tRef));
     return { windEast, windNorth, currentEast, currentNorth, pressure, temp: tempN, precip: precipN };
   };
   const summer = season('summer'), winter = season('winter');
-  const westness = Float32Array.from(ml.prolong(precip.r_westness));
+  const westness = Float32Array.from(ml.prolongInto(precip.r_westness, buf));
   const koppen = port.classifyKoppen(d.omesh, d.elevRaw,
     { r_temperature_summer: summer.temp, r_temperature_winter: winter.temp },
     { r_precip_summer: summer.precip, r_precip_winter: winter.precip, r_westness: westness }) as Uint8Array;
