@@ -41,7 +41,7 @@ Any change to the climate model re-records the Q7 baseline and must not lower th
 ## 4. Upstream references (algorithm level)
 
 - **VPLanet** `src/poise.c` (EBM, ice sheets, seasonal mode), for paleoclimate.
-- **CESM** (CAM physics, documentation only; the checkout is empty per the matrix): formulations for moist physics.
+- **CAM** (CESM's atmosphere) moist-physics formulations, from the published CAM technical notes: literature only. CESM's checkout has no CAM code or science documentation (all 21 submodules are empty; `doc/source/` holds five user-guide pages).
 - **orogen** `wind.js`, `temperature.js`, `precipitation.js`: the heuristic default.
 - **Candidate to audit:** GISS ModelE / ROCKE-3D (exoplanet climate GCM with published code), ExoCAM.
 - **Literature:** Held & Suarez (1994); Frierson et al. (2006) gray-radiation moist GCM; Walker, Hays & Kasting (1981) carbon-silicate cycle; Berger (1978).

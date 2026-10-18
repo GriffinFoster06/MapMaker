@@ -16,7 +16,7 @@ orogen's `ocean.js` builds a heuristic current field (gyres, circumpolar flow) t
 **Inputs:** wind stress (from `wind.*`), surface heat and freshwater fluxes (temperature, precipitation, evaporation, river discharge, sea ice), bathymetry, tidal forcing, sediment supply from rivers.
 
 **Outputs**
-- `ocean.current.{surface,intermediate,deep}` (vector, m/s), `ocean.sst`, `ocean.salinity`, `ocean.upwelling`, `ocean.mixedLayerDepth`, `ocean.productivity` (with MARBL-style biogeochemistry, optional).
+- `ocean.current.{surface,intermediate,deep}` (vector, m/s), `ocean.sst`, `ocean.salinity`, `ocean.upwelling`, `ocean.mixedLayerDepth`, `ocean.productivity` (optional; from MARBL's productivity rate laws, §4).
 - `ocean.tide.range` and tidal-current strength, per coastal cell.
 - Coast classification and landforms: `coast.type` (cliff, beach, barrier, delta, estuary, mangrove, reef, fjord), and elevation changes for deltas and barrier islands.
 
@@ -24,7 +24,7 @@ orogen's `ocean.js` builds a heuristic current field (gyres, circumpolar flow) t
 
 ### 3.1 Circulation
 
-A layered model on the reference mesh: a barotropic (depth-averaged) wind-driven solve for gyres and boundary currents (Stommel–Munk dynamics, which places western boundary currents correctly for any basin shape), plus a two-layer baroclinic correction and a thermohaline proxy driven by surface density from temperature and salinity (a box-model overturning per basin, connected through gateways). MOM6's formulations (Coriolis, pressure gradients, the equation of state) are the source; the full primitive-equation model is not ported.
+A layered model on the reference mesh: a barotropic (depth-averaged) wind-driven solve for gyres and boundary currents (Stommel–Munk dynamics, which places western boundary currents correctly for any basin shape), plus a two-layer baroclinic correction and a thermohaline proxy driven by surface density from temperature and salinity (a box-model overturning per basin, connected through gateways). MOM6's formulations (Coriolis, pressure gradients, the equation of state) are the source; the full primitive-equation model is not ported. TEOS-10 is unavailable in the checkout, so the equation of state is the Roquet et al. (2015) polynomial (§4).
 
 ### 3.2 Coupling with climate
 
@@ -37,13 +37,17 @@ Equilibrium tides from note 20, amplified by basin and shelf resonance: a linear
 ### 3.4 Coasts
 
 - Classification from tidal range, wave energy (from wind fetch), sediment supply (river discharge and erosion), slope and climate (mangroves and reefs need warm water).
-- Landform growth: deltas where sediment supply beats wave and tidal reworking (the Galloway delta classification), barrier islands on low-slope, wave-dominated coasts, reefs in warm, clear, shallow water. Delft3D's sediment-transport and morphology formulas (van Rijn) inform the rates.
+- Landform growth: deltas where sediment supply beats wave and tidal reworking (the Galloway delta classification), barrier islands on low-slope, wave-dominated coasts, reefs in warm, clear, shallow water. Delft3D's sediment-transport formulas (van Rijn) inform the rates; Delft3D has no landform rules, so the classification and growth rules are new.
 
 ## 4. Upstream references (algorithm level)
 
-- **MOM6** `src/core/MOM_barotropic.F90`, `MOM_CoriolisAdv.F90`, `MOM_PressureForce*.F90`, `src/equation_of_state/` (TEOS-10), `src/parameterizations/vertical/MOM_tidal_forcing.F90`: formulations and constants.
-- **MARBL** `src/marbl_interior_tendency_mod.F90`, `marbl_pft_mod.F90`: optional ocean productivity for marine life and fisheries.
-- **Delft3D** `src/utils_gpl/morphology/packages/`, `src/engines_gpl/wave/`: sediment transport and wave formulas for coastal landforms.
+- **MOM6** (Apache-2.0):
+  - `src/core/MOM_barotropic.F90` (an explicit subcycled barotropic step, `btstep` `:477`), `MOM_CoriolisAdv.F90` (Sadourny, Arakawa–Hsu and Arakawa–Lamb schemes, `:103–111`), `MOM_PressureForce_FV.F90` and `MOM_PressureForce_Montgomery.F90`: C-grid formulations, a reference for the new solver on the sphere.
+  - `src/equation_of_state/`: TEOS-10 itself is not in the checkout (`TEOS10/` holds symlinks into the empty GSW-Fortran submodule), but the Roquet et al. (2015) TEOS-10 polynomial (`MOM_EOS_Roquet_rho.F90:194`) is closed form and ports through `dmath`.
+  - `src/parameterizations/lateral/MOM_tidal_forcing.F90`: equilibrium-tide astronomy for 10 constituents (frequencies `:154–182`, amplitudes and Love numbers `:413–458`, astronomical longitudes `:91`, phases `:120`, nodal factors `:187`); closed form, a port candidate for §3.3.
+  - `config_src/drivers/solo_driver/MOM_surface_forcing.F90:471–540`: analytic gyre wind stress for the §5 idealised basins. MOM6 has no analytic Stommel or Munk comparison of its own.
+- **MARBL** `src/marbl_interior_tendency_mod.F90` (`compute_autotroph_photosynthesis` `:1306`: temperature function `:1222`, Monod nutrient limitation `:1526`, Geider et al. 1998 light limitation `:1364`) and `marbl_pft_mod.F90` (PFT parameter types and defaults): optional ocean productivity for marine life and fisheries. The full model needs prognostic 3D nutrient, biomass and chlorophyll tracers and works in cgs units (cm, nmol/cm³), so it is a reference; the rate laws port through `dmath` as a per-cell proxy, which is new code.
+- **Delft3D** `src/utils_gpl/morphology/packages/morphology_kernel/src/`: closed-form sediment transport (`tranb7.f90` van Rijn 1984, `tram1.f90` 1993, `tram2.f90` 2004, `tranb5.f90` Bijker with waves, `trab11.f90`/`trab19.f90` wave–current forms), with gravity and densities as parameters; GPL-3.0-only. The inputs are per-cell depth, depth-averaged velocity, wave height and period, and grain sizes. `src/engines_gpl/wave/` only drives SWAN (`src/third_party_open/swan/`, a spectral wave model; reference only) and has no wave formulas of its own.
 - **orogen** `js/ocean.js`: parity mode.
 - **Literature:** Stommel (1948); Munk (1950); Galloway (1975) delta classification; Davis & Hayes (1984) coastal classification by tidal range.
 
@@ -63,7 +67,7 @@ Equilibrium tides from note 20, amplified by basin and shelf resonance: a linear
 | Barotropic and baroclinic solve on the sphere | ~2,500 |
 | Thermohaline proxy and coupling | ~1,000 |
 | Tides | ~800 |
-| Coast classification and landforms | ~1,500 |
+| Coast classification and landforms (new code; Delft3D supplies only transport formulas) | ~1,500 |
 | Biogeochemistry (optional) | ~1,500 |
 | Tests | ~1,500 |
 

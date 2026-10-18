@@ -1,12 +1,14 @@
 # Audit: Badlands
 
+> **Reconciled 2026-10-18** against the source at `975f595` (`docs/reconciliation/group-2.md`). Corrected: five incision laws (not six), applied explicitly with a CFL-limited step (not implicitly); Planchon–Darboux depression filling; the orographic model (Smith & Barstad 2004, by FFT); gFlex is a Python package solved by finite differences; Fortran/C size; licence headers.
+
 ## 1. Overview
 
-**Badlands** (Basin and Landscape Dynamics) is a long-term, large-scale landscape evolution and sediment transport model designed to simulate Earth surface development from upstream erosional regions to marine depositional environments over geological timescales (thousands to millions of years). Active development by researchers at the University of Sydney, with a mature codebase (published on PyPI, extensive documentation, multiple peer-reviewed papers). ~12,200 lines of Python across 29 source files, plus ~2,000 lines of Fortran for performance-critical flow algorithms. Used in academic research (DOI published, Docker containers, Jupyter examples).
+**Badlands** (Basin and Landscape Dynamics) is a long-term, large-scale landscape evolution and sediment transport model designed to simulate Earth surface development from upstream erosional regions to marine depositional environments over geological timescales (thousands to millions of years). Active development by researchers at the University of Sydney, with a mature codebase (published on PyPI, extensive documentation, multiple peer-reviewed papers). 12,004 lines of Python across 29 source files, plus 5,315 lines of Fortran and 350 lines of C (`utils/`) for the performance-critical kernels. Used in academic research (DOI published, Docker containers, Jupyter examples).
 
 ## 2. Language, runtime, dependencies, build
 
-**Primary languages**: Python (~85% of codebase); Fortran (~15%, in `utils/` for flow network and mesh algorithms).
+**Primary languages**: Python (about two thirds of the lines); Fortran and C (about a third: `utils/*.f90` and `utils/sfd.c`, for flow directions, the stack, incision, diffusion, pit filling, waves and orographic rain).
 
 **Runtime**: Command-line Python application with optional parallelization (MPI-capable). Requires Conda/Micromamba environment with Fortran compiler (gfortran). No native browser runtime; designed for HPC or local workstations.
 
@@ -24,7 +26,7 @@
 
 **Build process**: Uses Meson build system with `mesonpy` backend. `meson.build` compiles Fortran modules (classfv, classoro, classpd) via f2py, then builds Python extension modules. CI (PyPI/Conda deploy workflows) uses `micromamba` to set up environment, then `python -m build`. **Build verified by inspection**: Requires native toolchain (Fortran compiler); no pre-built binaries for browser.
 
-**Browser runtime feasibility**: **Very high effort to low feasibility**. Core algorithms are in Python and Fortran, tightly coupled. Would require: (1) Rewriting Fortran flow algorithms (flowalgo, classfv) to JavaScript (~2,000 LOC critical, non-trivial numerical algorithms); (2) Porting 12+ core Python modules (flow routing, diffusion, mesh refinement) to JS/TS; (3) Replacing Fortran-Python f2py bindings with WASM or pure JS; (4) Replacing HDF5/numpy I/O stack. **Estimated rewrite scope**: 10,000+ LOC, 8–12 weeks for a skilled developer. WASM porting of Fortran possible but would still require substantial Python module rewrite.
+**Browser runtime feasibility**: **Very high effort to low feasibility**. Core algorithms are in Python and Fortran, tightly coupled. Would require: (1) Rewriting Fortran flow algorithms (flowalgo, classfv) to JavaScript (~2,600 lines in `flowalgo.f90` and `classfv.f90` alone, non-trivial numerical algorithms); (2) Porting 12+ core Python modules (flow routing, diffusion, mesh refinement) to JS/TS; (3) Replacing Fortran-Python f2py bindings with WASM or pure JS; (4) Replacing HDF5/numpy I/O stack. **Estimated rewrite scope**: 10,000+ LOC, 8–12 weeks for a skilled developer. WASM porting of Fortran possible but would still require substantial Python module rewrite.
 
 ## 3. Subsystem inventory
 
@@ -42,7 +44,7 @@
 ### 3.2 Flow network & stream routing
 **Where**: `src/badlands/flow/flowNetwork.py`, `utils/flowalgo.f90`, `utils/classpd.f90`, `utils/classoro.f90`.
 
-**What it does**: Implements single-flow-direction (SFD) stream routing using the O(n)-efficient stack-ordering algorithm from Braun & Willett (2013). Computes drainage direction, flow accumulation (unit catchment area, UA), stream power law incision via stack-based traversal. Handles orographic precipitation (Smith & Barstad linear model). Fortran subroutines (`buildfa`, `overlap`, `flowoverland`) handle performance-critical node partitioning and stack operations.
+**What it does**: Implements single-flow-direction (SFD) stream routing using the O(n)-efficient stack-ordering algorithm from Braun & Willett (2013). Computes drainage direction, flow accumulation (unit catchment area, UA), stream power law incision via stack-based traversal. Receivers come from `SFD_receivers` (`flowNetwork.py:385`, which calls C `directions` in `utils/sfd.c:55`); donors and the stack from Fortran `buildfa` (`utils/flowalgo.f90:39`); incision from `streampower` (`flowalgo.f90:797`). Depressions are filled first (Planchon & Darboux, §4). Orographic precipitation is a separate forcing module (§3.7), not part of the flow network.
 
 **Quality & realism rating: 4/5**. SFD routing is a well-validated standard in landscape modeling, though Multiple-Flow-Direction (MFD) alternatives exist (not implemented here). Stream power law is empirically grounded (m=0.5, n=1 defaults matched Earth geomorphology). Orographic precipitation coupling is physically motivated but simplified. Appropriate for 100m–10km resolution regional simulations; may underestimate lateral sediment redistribution.
 
@@ -51,24 +53,24 @@
 **Serves**: Hydrology (rivers/watersheds), Erosion (channel incision), Heightmap generation.
 
 ### 3.3 Hillslope diffusion & soil creep
-**Where**: `src/badlands/hillslope/diffLinear.py`.
+**Where**: `src/badlands/hillslope/diffLinear.py` (parameters, CFL limits); kernels in C, `utils/sfd.c:155` `diffusion` (linear) and `:237` `diffusionnl` (nonlinear, critical slope Sc).
 
 **What it does**: Simulates hillslope processes (soil creep, mass wasting) using linear and nonlinear diffusion equations: `dh/dt = ∇²(κ∇h)` or modified form with critical slope (`Sc`). Linear diffusion produces convex-upward slopes; nonlinear captures threshold behavior (e.g., landslide angles). Applied uniformly across aerial, marine, and river domains with domain-specific diffusivity coefficients (CDaerial, CDmarine, CDriver).
 
 **Quality & realism rating: 3/5**. Linear diffusion is a simplified but computationally efficient proxy for actual hillslope processes; nonlinear extension is physically more defensible but tuning is empirical. Treats hillslope as 2D PDE without explicit mechanics (no friction angle, cohesion, pore pressure). Works well as a phenomenological component when tuned (typically κ=0.01–0.1); less suitable for steep alpine terrain or landslide-prone regions. Good for fantasy world generation at 1–10 km resolution.
 
-**Extractability: Loosely coupled**. ~400 LOC Python; relies on `numpy` for PDE solving (explicit finite-difference update), `scipy.spatial` for neighbor queries. No Fortran dependency (unlike flow routing). To port: translate PDE update loop and slope calculations to JS using typed arrays. **Effort: Low-to-Medium** (~1–2 weeks; standard numerical recipe, no complex data structures).
+**Extractability: Loosely coupled**. 244 lines of Python plus the C kernels above; explicit update on the TIN neighbour lists (up to 20 neighbours, `sfd.c:14`). To port: translate PDE update loop and slope calculations to JS using typed arrays. **Effort: Low-to-Medium** (~1–2 weeks; standard numerical recipe, no complex data structures).
 
 **Serves**: Erosion, Heightmap generation.
 
 ### 3.4 Fluvial incision & sediment transport
-**Where**: `src/badlands/forcing/forceSim.py`, `src/badlands/simulation/buildFlux.py`, `src/badlands/underland/eroMesh.py`.
+**Where**: `src/badlands/flow/flowNetwork.py:687` `compute_sedflux` (deposition, pits, marine distribution); Fortran `utils/flowalgo.f90:797` `streampower` (the incision laws); orchestration in `simulation/buildFlux.py`; erodibility layers in `underland/eroMesh.py`.
 
-**What it does**: Implements six variants of stream power law incision: detachment-limited, transport-limited with tool/cover effects (parabolic, linear decline, dynamic cover), and threshold models. Updates channel elevations via: `dh/dt = κ_d * (PA)^m * S^n - deposition` (or similar). Sediment flux (`Q_s`) is routed downstream, with deposition when `Q_s > Q_t` (transport capacity). Capacity is `Q_t = κ_t * (PA)^m_t * S^n_t`. Includes sea-level and base-level effects (deepbasin, denscrit thresholds).
+**What it does**: Implements five incision laws, selected by `incisiontype` (`flowalgo.f90:946–1103`): 0 detachment-limited; 1 generalised undercapacity (linear in Q_s/Q_t); 2 almost parabolic; 3 a Gaussian tools-and-cover form; 4 saltation–abrasion, with channel width k_w·Q^b. Optional bedload-fraction slope functions (`bedslptype` 1–3, `:909–925`). The rate is E = K·f(Q_s/Q_t)·Q^m·S^n with capacity Q_t = k_t·Q^m_t·S^n_t (Q is discharge, rain × area). It is applied **explicitly**, E·dt, clipped to the local drop, with dt limited by `flowcfl` (`:396`) and by deposition limits in `compute_sedflux`; it is not the implicit Braun–Willett solve. Sediment flux (`Q_s`) is routed downstream and deposited on alluvial plains, in filled pits and in the sea. Includes sea-level and base-level effects (deepbasin, denscrit thresholds).
 
-**Quality & realism rating: 4/5**. Stream power law is a well-tested, computationally efficient model matching thousands of real river profiles. Six variants allow tuning for different regimes (bedrock vs. alluvial). Tool/cover effects (parabolic) are grounded in sediment transport physics. Weak point: no explicit sediment-size sorting, simple transport capacity. At 100m–10km resolution over Myr, predictions match GPS-corrected uplift rates well (per literature).
+**Quality & realism rating: 4/5**. Stream power law is a well-tested, computationally efficient model matching thousands of real river profiles. Five laws allow tuning for different regimes (bedrock vs. alluvial). Tool/cover effects (parabolic) are grounded in sediment transport physics. Weak point: no explicit sediment-size sorting, simple transport capacity. At 100m–10km resolution over Myr, predictions match GPS-corrected uplift rates well (per literature).
 
-**Extractability: Loosely coupled**. Incision logic is pure Python (~600 LOC), interleaved with flow network. Depends on flow-routing outputs (UA, slope, stack order). No Fortran or external numerical libraries beyond numpy. To port: extract incision update loop, adapt it to use flow-network outputs from ported flow module. **Effort: Medium** (~2 weeks; requires clean separation from flow-network module, which is not trivial in current codebase).
+**Extractability: Loosely coupled**. Incision is Fortran (`streampower`, about 500 lines), called from Python and interleaved with the flow network. Depends on flow-routing outputs (UA, slope, stack order). Pure arithmetic plus `**`; no external numerical library. To port: extract incision update loop, adapt it to use flow-network outputs from ported flow module. **Effort: Medium** (~2 weeks; requires clean separation from flow-network module, which is not trivial in current codebase).
 
 **Serves**: Erosion, Hydrology, Heightmap generation.
 
@@ -86,22 +88,22 @@
 ### 3.6 Tectonics & flexural isostasy
 **Where**: `src/badlands/forcing/isoFlex.py`, `src/badlands/forcing/forceSim.py` (tectonic field parsing).
 
-**What it does**: Applies user-defined 3D tectonic displacement fields (maps of cumulative vertical uplift/subsidence and horizontal shear) at each time step. Node positions are advected (`x_new = x + u_dt`), then rebalanced to maintain uniform density. Flexural isostasy (deflection of lithosphere under load) computed via gFlex library (Green's functions method; ~O(n²) complexity). Elastic thickness, mantle density, and sediment density are tunable parameters.
+**What it does**: Applies user-defined 3D tectonic displacement fields (maps of cumulative vertical uplift/subsidence and horizontal shear) at each time step. Node positions are advected (`x_new = x + u_dt`), then rebalanced to maintain uniform density. Flexural isostasy (deflection of lithosphere under load) is computed by the gFlex Python package (not vendored; `isoFlex.py:29`), as a 2D finite-difference plate solved with a direct solver (`gflex.F2D`, `Method = "FD"`, `isoFlex.py:109–127`), on a regular grid. Elastic thickness, mantle density, and sediment density are tunable parameters.
 
-**Quality & realism rating: 3/5**. Tectonic advection is simple (Eulerian, no strain tracking). Flexural isostasy via Green's functions is accurate but computationally expensive (~minutes for large domains per step). Appropriate for plate-boundary-scale features (rifts, forelands) and passive margins; less suitable for distributed crustal deformation. Coupling with uplift-driven precipitation/erosion is present but decoupled (no feedback on overburden).
+**Quality & realism rating: 3/5**. Tectonic advection is simple (Eulerian, no strain tracking). Flexure through gFlex's 2D finite-difference plate with a direct solve is accurate but expensive on large domains. Appropriate for plate-boundary-scale features (rifts, forelands) and passive margins; less suitable for distributed crustal deformation. Coupling with uplift-driven precipitation/erosion is present but decoupled (no feedback on overburden).
 
-**Extractability: Loosely coupled**. Tectonic loading is ~200 LOC Python (field parsing, advection); flexural computation is delegated to gFlex (external C++ library). To port: tectonic advection to JS is trivial; flexural isostasy would require porting gFlex or replacing with simpler model (e.g., local isostatic adjustment, Airy compensation). **Effort: Medium** (tectonic advection: 1 week; flexure: 2–3 weeks if full gFlex port attempted, or 1 week if replaced with Airy model).
+**Extractability: Loosely coupled**. Tectonic loading is ~200 LOC Python (field parsing, advection); flexural computation is delegated to gFlex (external Python package). To port: tectonic advection to JS is trivial; flexural isostasy would require porting gFlex or replacing with simpler model (e.g., local isostatic adjustment, Airy compensation). **Effort: Medium** (tectonic advection: 1 week; flexure: 2–3 weeks if full gFlex port attempted, or 1 week if replaced with Airy model).
 
 **Serves**: Tectonics, Heightmap generation, Climate (orographic coupling).
 
 ### 3.7 Climate forcing (rainfall, sea-level, orography)
 **Where**: `src/badlands/forcing/forceSim.py` (XML parsing and grid interpolation), `src/badlands/forcing/xmlParser.py` (parameter definitions).
 
-**What it does**: Loads time-varying rainfall grids or applies constant precipitation. Orographic precipitation model (Smith & Barstad, 2006): precipitation `P = P_0 * exp(−z/H_scale)` modified for wind direction and Coriolis (parameterized). Sea-level curves (eustatic or user-defined) interpolated from time series. Rainfall and sea-level are applied uniformly or spatially varying (gridded). No seasonal variation, no temperature model, no wind-driven currents (beyond wave-induced nearshore drift).
+**What it does**: Loads time-varying rainfall grids or applies constant precipitation. Orographic precipitation is the linear upslope model of Smith & Barstad (2004), solved by FFT on a regular grid and interpolated to the TIN (`forceSim.py:419–459`; Fortran `utils/ormodel.f90:11`, `utils/classoro.f90`, which carries its own mixed-radix FFT, `fftmx` at `:278`). Inputs: wind vector, buoyancy frequency `nm`, `cw`, moist-layer depth `hw`, conversion and fallout times `tauc`/`tauf`, rain bounds. Sea-level curves (eustatic or user-defined) interpolated from time series. Rainfall and sea-level are applied uniformly or spatially varying (gridded). No seasonal variation, no temperature model, no wind-driven currents (beyond wave-induced nearshore drift).
 
 **Quality & realism rating: 2/5**. Rainfall is either uniform (unrealistic) or read from external grids (not generative). Orographic model is simplified (no convective triggering, limited by 1D vertical). Sea-level is prescribed (no dynamic oceanography). **Missing entirely**: temperature, wind patterns, ocean currents, seasons, humidity, evapotranspiration. This subsystem is a framework for *applying* climate forcings, not a climate model. Suitable for parameterized sensitivity studies; unsuitable for generating realistic climate fields from first principles.
 
-**Extractability: Standalone**. Climate forcing is ~500 LOC Python, purely I/O and interpolation. Depends on `numpy`, `scipy.interpolate`, `h5py` (file I/O). No Fortran, no complex numerics. To port: read forcing grids (HDF5), interpolate in space/time with JS, apply to flow/erosion modules. **Effort: Low** (~1 week; mostly data plumbing).
+**Extractability: Standalone**. Climate forcing is Python I/O and interpolation, plus the orographic model in Fortran (`ormodel.f90`, `classoro.f90`, 1,349 lines with the FFT). Depends on `numpy`, `scipy.interpolate`, `h5py` (file I/O). To port: read forcing grids (HDF5), interpolate in space/time with JS, apply to flow/erosion modules. **Effort: Low** (~1 week; mostly data plumbing).
 
 **Serves**: Climate – precipitation (partial: orographic model only), Heightmap generation.
 
@@ -140,7 +142,7 @@
 
 ## 4. Internal data representation
 
-**Grid type**: Triangular Irregular Network (TIN) with Delaunay triangulation. Regular raster grids are converted to TIN on startup (raster2TIN.py).
+**Grid type**: Triangular Irregular Network (TIN) with Delaunay triangulation and Voronoi cell areas (`Acell`, m²). Regular raster grids are converted to TIN on startup (raster2TIN.py). Depressions are filled each step by Planchon & Darboux (`pdalgo.f90:191` `pitfilling` → `classpd.f90:227` `fillPD`; a Barnes priority-flood `fillBarnes` at `:171` is present but commented out at `pdalgo.f90:207–209`). The filled surface `fillH` ("lake elevations") and pit volumes drive deposition; there is no lake water balance.
 
 **Resolution**: User-specified as `resfactor` (input DEM resolution / resfactor). Typically 100m–5km spacing for continental-scale runs; adaptively refined under strong tectonic gradients. Nodes in millions (2–10 M nodes for 2000×2000 km domain).
 
@@ -148,7 +150,7 @@
 
 **Coordinate conventions**: Cartesian (x, y, z) on a plane (not lat/lon or spherical). Origin is arbitrary; positive z is upward. Periodic/reflective boundaries configurable per edge. **No wraparound or pole handling** (regional model assumption, not global). CRS not explicitly tracked (user responsibility).
 
-**Time stepping**: Explicit forward Euler. Time step is limited by CFL condition (Courant number) set per process (diffusion, incision, wave). Adaptive stepping not implemented (user must supply dt). Time state is in years, tracking both simulation time (`tNow`) and output intervals.
+**Time stepping**: Explicit forward Euler. The step is recomputed each iteration from CFL limits (incision `flowcfl`, `flowalgo.f90:396`; diffusion `dt_stability`, `diffLinear.py:52`) and reduced further where deposition would overfill pits (`compute_sedflux`), with a user minimum `mindt`. Time state is in years, tracking both simulation time (`tNow`) and output intervals.
 
 **State serialization**: Full model state saved to HDF5 (checkpoints). Each output writes: TIN geometry (node coords, connectivity), elevation, velocity/displacement, sediment flux, stratal layers, wave/climate state. HDF5 format allows parallel I/O (HDF5 MPI backend optional). **Seed/RNG**: No explicit RNG in core (deterministic given initial conditions); random initial roughness can be added at setup.
 
@@ -156,17 +158,17 @@
 
 ## 5. License
 
-**SPDX**: GPL-3.0 (files: `/LICENSE`, `/COPYING`)
+**SPDX**: GPL-3.0 as recorded (`/LICENSE`, `/COPYING`); see the LGPL-3.0 note below.
 
-**Verification**: Read `/LICENSE` (GPLv3 full text), `/COPYING` (GPLv3 again), `/COPYING.LESSER` (LGPL, present but not primary). Source files (e.g., `model.py`, `flowNetwork.py`) declare "GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or any later version" (LGPL phrasing).
+**Verification (2026-10-18)**: `/LICENSE` and `/COPYING` are the GPLv3 text (they differ only in placeholder brackets); `/COPYING.LESSER` is the LGPLv3 text. `pyproject.toml:29` points to `LICENSE`. Only `src/badlands/model.py` and `src/badlands/__init__.py` carry a licence header, and it says "GNU Lesser General Public License ... version 3 of the License, or any later version" (`model.py:3–5`). The other 27 Python files and every Fortran/C file in `utils/` say only "refer to the LICENSE.md file located at the project root", and no `LICENSE.md` exists.
 
-**Observation**: License files conflict slightly in nomenclature: `/LICENSE` and `/COPYING` are GPLv3, but source code headers say LGPL. Likely the project intends LGPL (more permissive than GPL) but included full GPL text for reference. `pyproject.toml` references `{file = "LICENSE"}` (GPLv3 text).
+**Observation**: COPYING plus COPYING.LESSER is the FSF's standard layout for LGPL-3.0, so the project most likely intends LGPL-3.0-or-later; the root `LICENSE` and the packaging metadata say GPL-3.0. Recording it as GPL-3.0 is the stricter reading.
 
-**Per-directory differences**: No per-file or per-directory license overrides found. Vendored code in `/utils/orderpack.f90` (sorting) appears unlicensed but is a utility module. All Python/Fortran core is uniformly LGPL-3.0 or GPL-3.0.
+**Per-directory differences**: none. The sorting module `orderpack` is inlined in `utils/classfv.f90:411–472` (there is no separate `orderpack.f90`) and has no licence header of its own.
 
 **Practical implications**: LGPL-3.0 is copyleft (modifications to Badlands must remain open-source if distributed). Patent grant is included (defensive). **No linking restrictions** unlike GPL-3.0 (a C library can link to LGPL without requiring the caller to be open-source). Suitable for open-source projects; incompatible with proprietary/closed-source downstream use.
 
-**Matches manifest**: Manifest states "GPL-3.0" → actual license in `/LICENSE` is GPLv3. Source headers say LGPL-3.0. **Conflict recorded but not critical** (LGPL-3.0 is compatible with GPL-3.0; derivative works must be LGPL-3.0 or GPL-3.0+).
+**Matches manifest** (the manifest entry was updated on 2026-10-18 to record the LGPL headers; this sentence describes the original entry): Manifest stated "GPL-3.0" → actual license in `/LICENSE` is GPLv3. The two files with headers say LGPL-3.0-or-later. **Conflict recorded but not critical** (LGPL-3.0 is compatible with GPL-3.0; derivative works must be LGPL-3.0 or GPL-3.0+).
 
 **Git HEAD**: `975f595ae313dd08d674c0effde18b5e8155f597`
 
@@ -176,8 +178,8 @@
 |---|---|---|---|---|---|
 | Tectonics | yes | 3/5 | loose | `forcing/isoFlex.py`, `forcing/forceSim.py` | User-prescribed 3D displacement fields + flexural isostasy. |
 | Heightmap generation | yes | 4/5 | loose | `flow/flowNetwork.py`, `hillslope/diffLinear.py`, `simulation/buildFlux.py` | Stream power + diffusion on TIN; needs tuning. |
-| Erosion | yes | 4/5 | loose | `simulation/buildFlux.py`, `flow/flowNetwork.py` | Stream power law (6 variants) + hillslope diffusion. |
-| Hydrology (rivers/lakes/watersheds) | partial | 3/5 | loose | `flow/flowNetwork.py`, `simulation/waveSed.py` | SFD routing, drainage accumulation, no explicit lakes. |
+| Erosion | yes | 4/5 | loose | `utils/flowalgo.f90` (`streampower`), `flow/flowNetwork.py`, `utils/sfd.c` | Five incision laws (explicit, CFL-limited) + linear/nonlinear hillslope diffusion. |
+| Hydrology (rivers/lakes/watersheds) | partial | 3/5 | loose | `flow/flowNetwork.py`, `utils/pdalgo.f90`, `utils/classpd.f90` | SFD routing, drainage accumulation; Planchon–Darboux pit filling with pit volumes and sediment infill; no lake water balance. |
 | Climate – temperature | no | — | — | — | Required as input, not generated. |
 | Climate – wind | no | — | — | — | Not modeled; wave boundary conditions only. |
 | Climate – ocean currents | partial | 2/5 | loose | `simulation/waveSed.py` | Wave-driven nearshore drift only; no thermohaline. |
@@ -209,7 +211,7 @@
 
 - **Skip or defer**: (1) **Climate subsystem**: Minimal value (mostly I/O, no generation). Skip or replace with simpler procedural model. (2) **Carbonate growth**: Highly specialized (coral only), limited generalizability. (3) **Tectonic flexural isostasy**: Complex (gFlex dependency), valuable but high effort; extract tectonic advection only, replace flexure with simpler Airy model if needed. (4) **Stratification**: Useful for internal state tracking but not essential for MVP; extract later. (5) **Biomes, population, cities, history, politics, trade**: Entirely absent; not applicable.
 
-- **Biggest risks**: (1) **Language & coupling**: Fortran-Python bindings (f2py) are entangled with core algorithms (flow, mesh). Must carefully separate or rewrite in pure JS. (2) **Dependency chain**: gFlex (C++), triangle (C), scipy.spatial (C), h5py (C) are non-trivial to replace or port. For browser runtime, WASM wrappers or pure-JS alternatives are needed. (3) **Performance**: Badlands is optimized for offline batch runs (HPC, MPI). Browser JS will be much slower; interactive real-time generation at continental scale may be infeasible without aggressive optimization or LOD strategies.
+- **Biggest risks**: (1) **Language & coupling**: Fortran-Python bindings (f2py) are entangled with core algorithms (flow, mesh). Must carefully separate or rewrite in pure JS. (2) **Dependency chain**: gFlex (Python), triangle (C), scipy.spatial (C), h5py (C) are non-trivial to replace or port. For browser runtime, WASM wrappers or pure-JS alternatives are needed. (3) **Performance**: Badlands is optimized for offline batch runs (HPC, MPI). Browser JS will be much slower; interactive real-time generation at continental scale may be infeasible without aggressive optimization or LOD strategies.
 
 - **Unverified points**: (1) Scaling behavior on very large domains (>100M nodes) not tested. (2) Interaction between orographic precipitation and topography-driven erosion feedback loops not analyzed in the audit. (3) Exact numerical stability under extreme parameter ranges (e.g., very high rainfall, fast uplift) not verified; likely user-dependent.
 

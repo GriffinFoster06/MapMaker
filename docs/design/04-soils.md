@@ -75,7 +75,7 @@ Each rule is a smooth score with thresholds as parameters, and the highest-prior
 
 - **Fertility** = base fertility of the order × depth factor × pH proxy (the leaching index P/PET pushes soils acidic) × organic-matter proxy (from NPP, as in note 9) × waterlogging penalty.
 - **Texture** comes from a parent-material lookup, modified by weathering (clay increases with time and warmth).
-- **AWC** comes from texture through standard pedotransfer tables (Saxton & Rawls 2006). CTSM and LPJmL use the same texture → hydraulic-property idea.
+- **AWC** comes from texture through standard pedotransfer tables (Saxton & Rawls 2006). CTSM and LPJmL use the same texture → hydraulic-property idea (CTSM with Cosby et al. 1984; §4).
 
 ### 3.5 Resolution
 
@@ -84,7 +84,7 @@ Soils are per L1 cell, computed from layers that are already anchored (note 14).
 ## 4. Upstream references (algorithm level)
 
 - **LPJmL** `src/soil/` (soil water, texture classes, hydraulic parameters): an algorithm reference when written (AGPL-3.0); since ARCHITECTURE.md Q12 it may be ported, and note 25 ports LPJmL's soil-water routines with the vegetation model.
-- **CTSM** soil hydrology and texture → hydraulic parameters (Clapp & Hornberger 1978 style): reference only.
+- **CTSM** `src/main/FuncPedotransferMod.F90`: sand and clay percentages → porosity, saturated suction (mm) and saturated conductivity (mm/s) by Cosby et al. (1984) Table 5 (`:83–103`, the default at `:28`; Table 4 and Noilhan & Lacarrère 1995 are options), with the Clapp & Hornberger (1978) exponent `b = 2.91 + 0.159·clay` (`src/biogeophys/SoilStateInitTimeConstMod.F90:554–555`) and retention curve (`SoilWaterRetentionCurveClappHornberg1978Mod.F90:75`, `:115`). Closed form and portable through `dmath`; an alternative to Saxton & Rawls for AWC.
 - **Literature:**
   - Jenny, *Factors of Soil Formation* (1941);
   - Heimsath et al. (1997), *Nature* 388;

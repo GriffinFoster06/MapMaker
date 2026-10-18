@@ -1,13 +1,15 @@
 # Audit: CESM
 
+> **Reconciled 2026-10-18** against the source at `ad73796` (`docs/reconciliation/group-3.md`). The checkout holds 104 files and no model code: all 21 submodules in `.gitmodules` are empty. Corrected: the code size, the submodule list, the licence (a copyright notice, a warranty disclaimer and a component table, with no permission grant), the ocean grid, and a `components/fates` path that does not exist. §3, §4 and §6 describe the external components from documentation; none of it can be checked against this checkout.
+
 ## 1. Overview
 
-CESM (Community Earth System Model) is a sophisticated, production-grade climate and weather simulation system developed by UCAR/NCAR and collaborating institutions. The repository at the checkout (HEAD: ad73796b9cce6982230a36e66a2d32e6ce95910d, branch cesm3.0-alphabranch) is a **metarepository** that primarily manages coupled-model components via git submodules; the actual component implementations (CAM, CLM, CICE, MOM, etc.) are in external repos. In this checkout, all component submodules and libraries are uninitialized (empty directories), so only ~800 LOC of infrastructure Python and XML configuration files are present in the top-level repo. The model is designed for large-scale computing (MPI, HPC clusters, Fortran+C runtime) and cannot run in a browser without radical porting. CESM is mature (CESM2.1.5 is production; 2.2.2 and 3.0 are in active development) and extensively documented.
+CESM (Community Earth System Model) is a sophisticated, production-grade climate and weather simulation system developed by UCAR/NCAR and collaborating institutions. The repository at the checkout (HEAD: ad73796b9cce6982230a36e66a2d32e6ce95910d, branch cesm3.0-alphabranch) is a **metarepository** that primarily manages coupled-model components via git submodules; the actual component implementations (CAM, CLM, CICE, MOM, etc.) are in external repos. In this checkout, all component submodules and libraries are uninitialized (empty directories), so only 104 files are present: about 3,600 lines of Python and shell (2,658 of them the vendored `git-fleximod` tool in `.lib/`), 971 lines of XML in `cime_config/`, and five Sphinx user-guide pages in `doc/source/` (downloading, configurations, quickstart; no science documentation). The model is designed for large-scale computing (MPI, HPC clusters, Fortran+C runtime) and cannot run in a browser without radical porting. CESM is mature (CESM2.1.5 is production; 2.2.2 and 3.0 are in active development) and extensively documented.
 
 ## 2. Language, runtime, dependencies, build
 
 - **Primary language**: Fortran 2003+ and C (component implementations are in their respective submodules; top-level repo is mostly Python 3, XML, shell scripts).
-- **Approximate LOC in top-level repo**: ~800 lines (Python/shell scripts only; actual models are elsewhere).
+- **Approximate LOC in top-level repo**: about 3,600 lines of Python and shell (2,658 in the vendored `.lib/git-fleximod`) and 971 lines of XML; the models are elsewhere.
 - **Runtime/platform**: Unix/Linux/macOS only. Requires MPI (Message Passing Interface) for parallel computing, or single-core via mpi-serial library. Designed for supercomputing clusters; cannot run in a browser.
 - **Key dependencies** (from .gitmodules and README):
   - Fortran compiler (Fortran 2003 features; tested versions: gfortran, Intel ifort, PGI; see Compiler Test Spreadsheet in docs).
@@ -20,7 +22,7 @@ CESM (Community Earth System Model) is a sophisticated, production-grade climate
   - PnetCDF (optional but recommended).
   - MPI environment (OpenMPI, MPICH, Intel MPI, or mpi-serial for single-core).
   - Git 1.8+ and git-fleximod extension.
-- **Does it build?** Not attempted in this audit. Per HARD RULES, building CESM is not attempted; the repo is read-only. Assessment inferred from: (1) README explicitly lists compiler and tool requirements; (2) .gitmodules references 12 external components (CAM, CLM, CICE, MOM, CISM, RTM, MOSART, WW3, mizuRoute, CDEPS, CMEPS, FMS/FTorch); (3) `./bin/git-fleximod update` is required to populate submodules before build; (4) `cime_config/` contains test/compile configurations; (5) no submodules are populated in this checkout (all component dirs are empty), so build would fail immediately without running git-fleximod. **Build is feasible on HPC/Linux but requires external infrastructure (compilers, MPI, NetCDF) unavailable on standard systems without setup; porting to browser is not viable without complete rewrite.**
+- **Does it build?** Not attempted in this audit. Per HARD RULES, building CESM is not attempted; the repo is read-only. Assessment inferred from: (1) README explicitly lists compiler and tool requirements; (2) .gitmodules lists 21 submodules: 11 components (CAM, CLM, CICE, MOM, CISM, CDEPS, CMEPS, RTM, WW3, mizuRoute, MOSART), 5 libraries (FMS, ParallelIO, mpi-serial, tuv-x, FTorch), and `ccs_config`, `cime`, `share`, `tools/CUPiD` and `tools/statistical_ensemble_test/pyCECT`; (3) `./bin/git-fleximod update` is required to populate submodules before build; (4) `cime_config/` contains test/compile configurations; (5) no submodules are populated in this checkout (all component dirs are empty), so build would fail immediately without running git-fleximod. **Build is feasible on HPC/Linux but requires external infrastructure (compilers, MPI, NetCDF) unavailable on standard systems without setup; porting to browser is not viable without complete rewrite.**
 - **Browser/JavaScript feasibility**: **Not feasible as-is.** CESM is a Fortran+C system designed for MPI-parallel compute. Porting would require: (1) transpiling or rewriting hundreds of thousands of LOC from Fortran to JavaScript/WASM; (2) replacing MPI with single-threaded or web-worker-based parallelism; (3) adapting I/O (NetCDF, file-based) to in-memory data structures; (4) replicating climate solver algorithms (atmospheric dynamics, radiative transfer, etc.) in JavaScript, with high risk of numerical instability. Estimated effort: **very high** (months-to-years for a team). Not recommended for extraction.
 
 ## 3. Subsystem inventory
@@ -125,7 +127,7 @@ CESM (Community Earth System Model) is a sophisticated, production-grade climate
 
 ## 4. Internal data representation
 
-- **Grid type**: Regular lat-lon (Gaussian or regular) for atmosphere, staggered B-grid for ocean, land uses same lat-lon as atmosphere.
+- **Grid type**: Regular lat-lon (Gaussian or regular) for atmosphere, an Arakawa C-grid for the ocean (MOM6; verified in `audit/MOM6.md`), land uses same lat-lon as atmosphere.
 - **Resolution(s)**: Configurable; common resolutions are 1° (f09, e.g., 96×144 points), 0.25° (f05), ~2° (T31 spectral truncation). Regional high-resolution runs (0.1°) are possible but computationally expensive.
 - **Units**: SI units throughout (meters, Kelvin, Pascal, kg/m³, W/m²). Elevation in meters above sea level (absolute).
 - **Coordinate conventions**: 
@@ -140,23 +142,20 @@ CESM (Community Earth System Model) is a sophisticated, production-grade climate
 
 ## 5. License
 
-- **SPDX**: BSD-3-Clause-style (custom UCAR license, not standard SPDX).
+- **SPDX**: none. `LICENSE.txt` ("CESM2 Copyright and Terms of Use", 118 lines) is a UCAR copyright notice (lines 1–4), the BSD warranty disclaimer (lines 12–22) and a table of component copyrights (lines 24–112). It contains **no permission grant and no redistribution conditions**, so it is not BSD-3-Clause; "BSD-3-Clause-style" describes only the disclaimer.
 - **File**: `LICENSE.txt` (at repo root).
-- **Match to manifest**: Yes; manifest lists "BSD-3-Clause-style (custom UCAR)", which matches the file.
-- **Details**: 
-  - Top-level CESM framework: BSD-3-Clause-style terms (UCAR disclaimer, no liability).
-  - Components have mixed licenses:
-    - **CAM, CLM, CICE, MOM, CISM, CMEPS, CDEPS, FMS**: Copyrighted by UCAR/NCAR/Los Alamos/other US institutions; BSD-3-Clause or similar permissive terms.
-    - **CISM**: Also listed as GNU LGPLv3 in LICENSE.txt.
-    - **AER RRTMG**: Copyrighted by AER Inc.; proprietary radiative-transfer code (terms are permissive for research use but unclear for commercial redistribution).
-    - **ESMF**: University of Illinois/NCSA Open Source License.
-    - **tuv-x**: Part of NOAA/EPA. License not fully specified in top-level LICENSE.txt (refer to submodule).
-  - **Vendored/third-party**: Various radiative-transfer, cloud-physics, and chemistry modules are vendored from AER, NCAR, EPA, NOAA. Each may have different copyright.
+- **Match to manifest**: partly. The manifest's "BSD-3-Clause-style (custom UCAR)" is the nearest label, but the file grants no rights explicitly (the manifest entry was rewritten on 2026-10-18 to record this, commit `001da0d`).
+- **Details**: the component table names, each "under the terms indicated" by name only:
+  - AER RRTMG (AER Inc.), CIME, ESMF (University of Illinois/NCSA Open Source License), FATES, MCT, the ISCCP simulator, POP2, CICE and SCRIP (Los Alamos), XML/Lite;
+  - CISM: LGPL-3.0-or-later (lines 66–71);
+  - the Lahey `Inf_NaN_Detection` module: copies "may not be sold without permission" (lines 73–80).
+  - MOM6 and tuv-x are not in the table. MOM6 is Apache-2.0 (`audit/MOM6.md`).
+  - None of these components' code is in the checkout.
 - **Practical notes**:
   - CESM is open-source and free for research/academic use.
   - Copyleft (LGPL) component (CISM) does not infect the whole system (LGPL is library-specific; as long as derivative works link to CISM as a library, copyleft applies only to CISM modifications).
   - Extracting individual components and relicensing downstream (e.g., under GPL or proprietary) may require review of sub-component licenses.
-  - No patent clauses or EULA restrictions; suitable for open-source projects like MapMaker.
+  - The Lahey module's no-sale clause is the only use restriction in the table. Since Q12, licences are recorded, not enforced, and no CESM code is present to extract.
   - License complexity suggests checking with legal if integrating into commercial products.
 
 ## 6. Capability coverage summary
@@ -172,7 +171,7 @@ CESM (Community Earth System Model) is a sophisticated, production-grade climate
 | Climate – ocean currents | yes | 5/5 | tangled | components/mom | MOM6 simulates realistic ocean circulation. |
 | Climate – precipitation | yes | 5/5 | tangled | components/cam, components/clm | CAM cloud/precip physics; CLM infiltration. Realistic. |
 | Climate – seasons | yes | 5/5 | tangled | components/cam | Orbital forcing (eccentricity, obliquity, precession) drives seasonal cycles. Realistic. |
-| Biomes | yes | 4/5 | tangled | components/clm (CTSM), components/fates | CLM/FATES simulate vegetation type, PFT (plant functional type), phenology. Tuned for Earth; requires calibration for fantasy. |
+| Biomes | yes | 4/5 | tangled | components/clm (CTSM; FATES is a CTSM submodule at `src/fates`, empty in `upstream/CTSM`) | CLM/FATES simulate vegetation type, PFT (plant functional type), phenology. Tuned for Earth; requires calibration for fantasy. |
 | Soils | yes | 4/5 | tangled | components/clm (CTSM) | Soil moisture, temperature, infiltration, runoff; soil texture parameterized. Good for realism. |
 | Resources | partial | 2/5 | tangled | components/clm | Albedo, vegetation type (as proxy); no explicit ore/mineral/biotic resource model. |
 | Population & settlement | no | — | — | — | No demographic or settlement model. |
@@ -213,7 +212,7 @@ CESM (Community Earth System Model) is a sophisticated, production-grade climate
   - **No zoom/patch consistency**: CESM does not generate high-res regional details consistent with a coarse global state. MapMaker's requirement for "consistent detail across zoom levels" is not natively supported.
 
 - **Unverified points**:
-  - Actual source-code complexity and coupling of CAM/CLM/MOM (submodules are uninitialized; review based on documentation only).
+  - Actual source-code complexity and coupling of CAM/CLM/MOM (submodules are uninitialized; review based on documentation only). CTSM and MOM6 are checked out separately: see `audit/CTSM.md` and `audit/MOM6.md`.
   - CESM's support for custom planets (non-Earth orbital parameters, different stellar forcing). Unclear how easily these can be configured without source modifications.
   - Performance profiling: no data on CPU/memory usage for a minimal run or scaling behavior.
 

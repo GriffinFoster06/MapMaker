@@ -1,13 +1,15 @@
 # Audit: MARBL
 
+> **Reconciled 2026-10-18** against the source at `6b2a5e4` (`docs/reconciliation/group-3.md`). Corrected: file counts and sizes (several were bytes, not lines), the default plankton set (three autotrophs; coccolithophores only in the `+cocco` settings), units (cgs internally: cm, g, s; concentrations in nmol/cm³, numerically mmol/m³), time stepping (MARBL returns tendencies), the settings registry (no numeric ranges and no generated documentation; each parameter is declared in both Fortran and YAML), and the licence (an MIT-style grant with two BSD conditions and no non-endorsement clause, so not BSD-3-Clause). Productivity rate laws located for note 23.
+
 ## 1. Overview
 
-MARBL (Marine Biogeochemistry Library) is a Fortran library for ocean biogeochemical simulation, developed by NCAR/UCAR with support from NSF and DOE. It is designed to be integrated into ocean GCMs and simulates ecosystem dynamics, nutrient cycling, and carbon/oxygen biogeochemistry in seawater. Maturity: production-ready, stable release (2018+), actively maintained. Size: 40 Fortran files (~23.4k LOC), plus ~2.85k LOC Python tools for configuration. Last committed version pinned to stable branch commit 6b2a5e41dc5b0faaf9b600c96432e2487515e878 (matches manifest).
+MARBL (Marine Biogeochemistry Library) is a Fortran library for ocean biogeochemical simulation, developed by NCAR/UCAR with support from NSF and DOE. It is designed to be integrated into ocean GCMs and simulates ecosystem dynamics, nutrient cycling, and carbon/oxygen biogeochemistry in seawater. Maturity: production-ready, stable release (2018+), actively maintained. Size: 31 Fortran files in `src/` (23,437 lines; 40 in the repo with `tests/`), plus 2,023 lines of Python in `MARBL_tools/`. Last committed version pinned to stable branch commit 6b2a5e41dc5b0faaf9b600c96432e2487515e878 (matches manifest).
 
 ## 2. Language, runtime, dependencies, build
 
 - **Primary language**: Fortran 90+ (100% of core library); Python 3 helpers for configuration only.
-- **LOC breakdown**: ~23.4k Fortran (src/), ~2.85k Python (MARBL_tools/).
+- **LOC breakdown**: 23,437 Fortran (`src/`, 31 files), 2,023 Python (`MARBL_tools/`).
 - **Runtime**: Fortran-compiled library (libmarbl.a) designed to link into ocean GCMs; not standalone executable, not browser-native.
 - **Platform**: Linux/Unix (standard HPC). No native Windows or macOS GUI. Supports MPI parallelization.
 - **Key dependencies**: 
@@ -26,9 +28,9 @@ MARBL (Marine Biogeochemistry Library) is a Fortran library for ocean biogeochem
 
 ### 3.1 Phytoplankton ecosystem (autotrophs & zooplankton)
 - **Where**: src/marbl_pft_mod.F90 (plant functional type settings); src/marbl_init_mod.F90 (initialization); src/marbl_interior_tendency_mod.F90 (growth/mortality computation).
-- **What it does**: Simulates 4 phytoplankton types (diatoms, diazotrophs, small phytoplankton, coccolithophores) with temperature-dependent growth, nutrient uptake kinetics (Monod), photoadaptation (variable Chl:N), and mortality. One zooplankton grazer. Handles nutrient limitation (N, P, Fe, Si), stoichiometric constraints (C:N:P:Fe:Si:Chl), and sinking particle routing. Growth rate parameterization via empirical Q10 or Arrhenius temperature response. Photosynthesis-irradiance curve (GD98 model).
+- **What it does**: Simulates 3 autotroph types in the default `CESM2` set (small phytoplankton, diatoms, diazotrophs; `defaults/settings_latest.yaml:205–211`; the `+cocco` settings add coccolithophores and a second zooplankton) with temperature-dependent growth, nutrient uptake kinetics (Monod), photoadaptation (variable Chl:N), and mortality. One zooplankton grazer. Handles nutrient limitation (N, P, Fe, Si), stoichiometric constraints (C:N:P:Fe:Si:Chl), and sinking particle routing. Growth rate parameterization via empirical Q10 or Arrhenius temperature response. Photosynthesis-irradiance curve (GD98 model). The rate law is `compute_autotroph_photosynthesis` (`src/marbl_interior_tendency_mod.F90:1306`): PCmax = PCref × f_nut × Tfunc (`:1353`), with f_nut the minimum of the Monod nitrogen and iron terms (`:1526`) and Tfunc from `compute_temperature_functional_form` (`:1222`: Q10, Arrhenius or a power law); light limitation 1 − exp(−α·θC·PAR/PCmax) (`:1364`); and photoC = PCphoto × C (`:1379`), which needs the prognostic biomass C and Chl.
 - **Quality & realism rating: 3.5/5**. Model structure is scientifically sound and well-validated against observations (JGOFS, SeaWiFS, full 3D runs in CESM); ecosystem response to nutrients and temperature is realistic for mid-to-low-latitude open ocean. However: (1) single zooplankton type is a simplification (real oceans have size-structured grazers); (2) grazing and nutrient cycling parameterizations are tuned for Earth at present climate — unclear how well they generalize to very different worlds; (3) model does not include microbial loop or heterotrophic bacteria explicitly; (4) designed for global ocean → may not be suitable for shallow/coastal fantasy scenarios without recalibration.
-- **Extractability: tangled**. Deep coupling to GCM interface via marbl_interface.F90 and marbl_interface_private_types.F90 (92k LOC of type definitions). Depends on external forcing (temperature, light, physical mixing rates from GCM). No standalone data generation (initialization requires state arrays passed in). Approximate extractable core (pft dynamics + growth): ~8–10k LOC. Effort to lift to browser: **high** — would require reimplementing GCM interface layer, parameterization tuning, and numerical solvers (implicit differentiation for some tracer updates).
+- **Extractability: tangled**. Deep coupling to GCM interface via marbl_interface.F90 and marbl_interface_private_types.F90 (2,078 lines of type definitions). Depends on external forcing (temperature, light, physical mixing rates from GCM). No standalone data generation (initialization requires state arrays passed in). Approximate extractable core (pft dynamics + growth): ~8–10k LOC. Effort to lift to browser: **high** — would require reimplementing GCM interface layer, parameterization tuning, and the time stepping that the host ocean model normally does (MARBL only returns tendencies).
 - **Requirements capabilities it could serve**: Climate – ocean currents (provides biological response to currents/mixing); Biomes (ocean biota composition); possibly Resources if iron/nutrient upwelling zones matter for fantasy lore.
 
 ### 3.2 Nutrient cycling & stoichiometry
@@ -42,7 +44,7 @@ MARBL (Marine Biogeochemistry Library) is a Fortran library for ocean biogeochem
 - **Where**: src/marbl_co2calc_mod.F90 (OCMIP carbonate solver); src/marbl_surface_flux_mod.F90 (gas exchange); src/marbl_ciso_surface_flux_mod.F90 (isotopic fractionation).
 - **What it does**: Solves the carbonate system (equilibrium between CO2, HCO3-, CO32-) to compute ocean pCO2 and surface air-sea CO2 flux using wind-speed-dependent gas transfer velocity (Wanninkhof parameterization or variants). Handles temperature/salinity dependence of solubility and equilibrium constants. Optional O2 flux and NH3 emissions.
 - **Quality & realism rating: 4/5**. OCMIP carbonate solver is standard in climate modeling and validated extensively. Wind-speed-flux relationship is empirical but well-calibrated. Limitation: depends on surface temperature and salinity input (not generated in MARBL), and assumes modern ocean pCO2. For very different worlds (e.g., CO2-rich atmospheres), non-linear responses (Revelle factor) become important and may not be captured accurately.
-- **Extractability: loosely coupled**. Carbonate solver is self-contained (~4–5k LOC). Requires: surface temperature, salinity, total alkalinity, DIC, and wind speed (all external inputs). No GCM-specific dependencies beyond type definitions. Effort: **low-to-medium** — straightforward chemical equilibrium; solver is well-documented in OCMIP literature.
+- **Extractability: loosely coupled**. Carbonate solver is self-contained (1,211 lines). Requires: surface temperature, salinity, total alkalinity, DIC, and wind speed (all external inputs). No GCM-specific dependencies beyond type definitions. Effort: **low-to-medium** — straightforward chemical equilibrium; solver is well-documented in OCMIP literature.
 - **Requirements capabilities it could serve**: Climate – ocean currents (modulates CO2 flux, could inform atmospheric CO2 feedback in a full simulation).
 
 ### 3.4 Iron sourcing & scavenging
@@ -53,16 +55,17 @@ MARBL (Marine Biogeochemistry Library) is a Fortran library for ocean biogeochem
 - **Requirements capabilities it could serve**: Resources (if iron availability matters for world-building); Biomes (iron limitation drives productivity patterns).
 
 ### 3.5 Diagnostics & output
-- **Where**: src/marbl_diagnostics_mod.F90 (192k LOC; very large file defining all output variables).
+- **Where**: src/marbl_diagnostics_mod.F90 (4,367 lines; defines all output variables).
 - **What it does**: Computes and exposes ~200+ diagnostic fields: phytoplankton biomass/productivity, nutrient concentrations, oxygen, carbon fluxes, remineralization, sinking fluxes, etc. Modular: GCM can select which diagnostics to compute (performance optimization).
 - **Quality & realism rating: N/A** (infrastructure, not a model component). Well-organized but highly specialized for ocean model output. No fantasy-world applicability on its own.
 - **Extractability: standalone**. Diagnostics computation is self-contained. Requires: tracer state, flux arrays (computed elsewhere). No external dependencies. Effort: **low** — pure computation, easy to reuse or adapt.
 - **Requirements capabilities it could serve**: Export (if embedding ocean biogeochemistry in world export).
 
 ### 3.6 Configuration & settings
-- **Where**: src/marbl_settings_mod.F90 (140k LOC; parameter registry); MARBL_tools/MARBL_generate_settings_file.py (configuration generator); defaults/*.yaml (preset configs).
+- **Where**: src/marbl_settings_mod.F90 (2,914 lines; parameter registry); MARBL_tools/MARBL_generate_settings_file.py (configuration generator); defaults/*.yaml (preset configs).
 - **What it does**: Centralizes all tunable model parameters (nutrient half-saturation constants, mortality rates, temperature response functions, iron scavenging coefficients, etc.). Provides pre-tuned configurations for CESM 2.0, 2.1, +coccolithophore variant. Python tools allow GCMs to generate valid parameter files.
 - **Quality & realism rating: 4/5**. Parameter registry is comprehensive and well-documented. Pre-tuned CESM configs are validated against observations. Limitation: all parameters are empirical and tuned for specific physical ocean models (MOM5, MOM6); changing physical drivers significantly (e.g., entirely different ocean circulation) requires re-tuning.
+- **How the registry works:** each parameter is declared twice (`docs/src/dev-guide/add-settings-parameter.rst:7–9` lists five manual steps). In Fortran: a module variable, an `add_var` call (`src/marbl_settings_mod.F90:2045`) with short name, long name, units and datatype in one of four category routines (`marbl_settings_define_general_parms` `:540`, `_PFT_counts` `:1138`, `_PFT_derived_types` `:1217`, `_tracer_dependent` `:1766`), and a default in the matching `marbl_settings_set_defaults_*` routine (`:369`–`:522`). In YAML (`defaults/settings_*.yaml`): `longname`, `subcategory`, `units`, `datatype`, `default_value` (optionally per configuration), and optional `valid_values` (an enumeration), `cannot change` and `must set` (`settings_latest.yaml:18–39`). `MARBL_tools/yaml_to_json.py` converts the YAML to JSON and `MARBL_generate_settings_file.py` writes a run-time settings file. There are no numeric ranges and no generated documentation.
 - **Extractability: loosely coupled**. Settings module is self-contained. Python tools are standalone (no external deps). Effort: **low** — straightforward parameter table.
 - **Requirements capabilities it could serve**: Calibration (settings/tuning system could be reused for fantasy biome generation).
 
@@ -79,11 +82,11 @@ MARBL (Marine Biogeochemistry Library) is a Fortran library for ocean biogeochem
 
 **Resolution**: Vertical resolution is determined by GCM (typically 50–60 ocean layers in CESM). Horizontal: global 0.1° or 1° typical, but MARBL is agnostic.
 
-**Units**: Tracer concentrations in mmol/m³ (millimoles per cubic meter). Rates in /second (converted from /day parameterizations). Time step: typically 3600 s (1 hour) for CESM coupling.
+**Units**: cgs internally. Concentrations in nmol/cm³ (numerically equal to mmol/m³, the unit the YAML tracer list uses); fluxes in nmol/cm²/s and wind as cm²/s² (`docs/src/usr-guide/GCM-interface/GCM_requirements/forcing_fields.rst:23–30`); seawater density in g/cm³ (`src/marbl_constants_mod.F90:59`); lengths in cm (e.g. `settings_latest.yaml:429`). Rates in /second (converted from /day parameterizations). Time step: typically 3600 s (1 hour) for CESM coupling.
 
-**Coordinates**: Depth in meters (0 = surface, positive downward). Temperature/salinity/light provided by GCM as 1D profiles per column.
+**Coordinates**: Depth in cm (0 = surface, positive downward); a port converts to metres. Temperature/salinity/light provided by GCM as 1D profiles per column.
 
-**Time representation**: Eulerian time stepping (current MARBL uses explicit time integration, some tracers implicit). No adaptive time stepping.
+**Time representation**: MARBL does not step time. `marbl_interior_tendency_compute` (`src/marbl_interior_tendency_mod.F90:92`) returns source/sink tendencies (`interior_tendencies`, `:159`) and the host ocean model integrates them.
 
 **Serialization**: Tracer arrays marshaled as 1D floating-point arrays per column + metadata (tracer names, units, diagnostic fields). No versioning of state format (would need to be added for long-term save/resume).
 
@@ -93,17 +96,17 @@ MARBL (Marine Biogeochemistry Library) is a Fortran library for ocean biogeochem
 
 ## 5. License
 
-**SPDX**: BSD-3-Clause-style (custom UCAR) — matches manifest.
+**SPDX**: no exact match. `LICENSE.txt` is an MIT-style permission grant ("to deal with the Software without restriction ... sell", lines 8–13) with two BSD conditions (retain the notice in source and binary, lines 15–20) and the warranty disclaimer (lines 22–31). It has no non-endorsement clause, so it is not BSD-3-Clause. The manifest originally said "BSD-3-Clause-style (custom UCAR)"; the entry was rewritten on 2026-10-18 (commit `001da0d`) to describe the grant above.
 
 **License file**: /Users/griffinfoster/Projects/MapMaker/upstream/MARBL/LICENSE.txt
 
-**Text**: BSD-3-Clause-like terms (attribution, no liability) with UCAR as copyright holder. No patent clauses, no EULA restrictions. Permissive, compatible with most open-source licenses including GPL and MIT.
+**Text**: as above; Copyright (c) 2018 UCAR. No patent clauses, no EULA restrictions. Permissive, compatible with most open-source licenses including GPL and MIT.
 
 **Vendored/mixed licenses**: None detected. All code is UCAR copyright.
 
 **Verification**: LICENSE.txt read and confirmed. No per-file license headers observed (standard for Fortran projects of this era).
 
-**Practical notes**: Permissive copyleft-weak license. Code can be extracted and used freely (with attribution); no obligation to publish modifications. No resale restrictions. Safe for MapMaker.
+**Practical notes**: Permissive licence. Code can be extracted and used freely (with attribution); no obligation to publish modifications. No resale restrictions. Safe for MapMaker.
 
 ## 6. Capability coverage summary
 
@@ -140,15 +143,17 @@ MARBL (Marine Biogeochemistry Library) is a Fortran library for ocean biogeochem
 
 ## 7. Verdict
 
-- **What to skip**: Almost all of MARBL. The library is specialized for Earth ocean biogeochemistry coupled to a modern GCM. For MapMaker's fantasy world simulator, it offers: (1) little-to-no value for most subsystems (tectonics, heightmap, erosion, climate physics, population, history); (2) significant baggage (40 Fortran files tightly coupled to GCM assumptions); (3) zero browser applicability.
+- **What to skip**: Almost all of MARBL. The library is specialized for Earth ocean biogeochemistry coupled to a modern GCM. For MapMaker's fantasy world simulator, it offers: (1) little-to-no value for most subsystems (tectonics, heightmap, erosion, climate physics, population, history); (2) significant baggage (31 Fortran source files tightly coupled to GCM assumptions); (3) zero browser applicability.
 
-- **Narrow extractable value**: *If* MapMaker eventually includes ocean biogeochemistry (e.g., to determine ocean biomes or nutrient-rich regions for lore), the carbonate solver (src/marbl_co2calc_mod.F90, ~5k LOC) and remineralization logic (~5k LOC) are cleanest components and could be adapted. However: (1) these are coupled to Earth parameters; (2) rewriting to JS/TS is easier than porting Fortran; (3) a simpler ocean model (e.g., a fantasy-world-specific nutrient budget) would be more maintainable.
+- **Narrow extractable value**: *If* MapMaker eventually includes ocean biogeochemistry (e.g., to determine ocean biomes or nutrient-rich regions for lore), the carbonate solver (src/marbl_co2calc_mod.F90, 1,211 lines) and remineralization logic (~5k LOC) are cleanest components and could be adapted. However: (1) these are coupled to Earth parameters; (2) rewriting to JS/TS is easier than porting Fortran; (3) a simpler ocean model (e.g., a fantasy-world-specific nutrient budget) would be more maintainable.
+
+- **For note 23 (optional `ocean.productivity`):** the full model needs prognostic 3D nutrient, biomass and chlorophyll tracers and the host's transport, so it is a reference only. Its functional forms port through `dmath` as a per-cell proxy: the temperature function, Monod nutrient limitation and Geider et al. (1998) light limitation (§3.1), with default parameter values from the YAML. The proxy itself is new code.
 
 - **Risks**:
   - **Language**: Pure Fortran. Browser porting is prohibitively expensive (23.4k LOC rewrite).
   - **Coupling**: Every subsystem depends on GCM state (temperature, salinity, mixing, light from above). Extracting pieces requires re-architecting input flow.
   - **Specificity**: Parameters (half-sat constants, mortality rates, Fe sources) are tuned for Earth at present-day. Applying to fantasy worlds requires validation/re-tuning, which demands oceanography expertise.
-  - **License**: Not a risk (BSD-3-Clause permissive). No conflicts.
+  - **License**: Not a risk (permissive: MIT-style grant with two BSD conditions). No conflicts.
 
 - **Open questions**:
   - Would MapMaker include ocean biogeochemistry in scope, or is ocean biology treated as a narrative backdrop? (Affects decision to extract.)
@@ -160,4 +165,4 @@ MARBL (Marine Biogeochemistry Library) is a Fortran library for ocean biogeochem
 
 **Audit completed**: 2026-10-02  
 **Manifest commit**: 6b2a5e41dc5b0faaf9b600c96432e2487515e878 (stable branch, current)  
-**License verified**: LICENSE.txt (BSD-3-Clause-style UCAR)
+**License verified**: LICENSE.txt (MIT-style grant with two BSD conditions; UCAR)

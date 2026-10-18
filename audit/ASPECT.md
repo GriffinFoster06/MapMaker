@@ -1,8 +1,10 @@
 # Audit: ASPECT
 
+Reconciled 2026-10-18 against d39913144.
+
 ## 1. Overview
 
-ASPECT (Advanced Solver for Planetary Evolution, Convection, and Tectonics) is a mature, actively maintained finite-element code for simulating mantle convection, tectonic processes, and related geodynamics on Earth and planetary bodies. Developed by a large community supported by CIG (Computational Infrastructure for Geodynamics), it has evolved from a pure mantle convection solver into a tool for diverse applications including lithospheric deformation, two-phase flow, and inner-core dynamics. The codebase comprises ~368k lines of C++17 (~984 .cc files, ~631 .h files) plus ~65 Python scripts for post-processing. Current HEAD: d39913144ac28a2e6a91cd721098a7c3be21c3c4 (Oct 2025).
+ASPECT (Advanced Solver for Planetary Evolution, Convection, and Tectonics) is a mature, actively maintained finite-element code for simulating mantle convection, tectonic processes, and related geodynamics on Earth and planetary bodies. Developed by a large community supported by CIG (Computational Infrastructure for Geodynamics), it has evolved from a pure mantle convection solver into a tool for diverse applications including lithospheric deformation, two-phase flow, and inner-core dynamics. The codebase comprises ~368k lines of C++17 (~984 .cc files, ~631 .h files) plus ~65 Python scripts for post-processing. Current HEAD: d39913144ac28a2e6a91cd721098a7c3be21c3c4.
 
 ## 2. Language, runtime, dependencies, build
 
@@ -47,7 +49,7 @@ Build inferred from documentation and CI config (no build attempted in scratchpa
 
 ### 3.2 Material models and rheology
 - **Where**: `source/material_model/` (37 files/dirs); subdirs: `equation_of_state/`, `reaction_model/`, `rheology/`, `thermal_conductivity/`, `additional_outputs/`
-- **What it does**: Encodes density, viscosity, thermal/compositional properties as functions of pressure, temperature, composition, strain rate, grain size, etc. Supports: isotropic/anisotropic elasticity, plastic/ductile flow laws (Dislocation, Diffusion, visco-plastic), melt buoyancy, phase transitions (latent heat, Clapeyron slopes), depth-dependent averaging. Includes simplified models (Steinberger, simple) and lookup tables (PerpleX).
+- **What it does**: Encodes density, viscosity, thermal/compositional properties as functions of pressure, temperature, composition, strain rate, grain size, etc. Supports: isotropic/anisotropic elasticity, plastic/ductile flow laws (Dislocation, Diffusion, visco-plastic), melt buoyancy, phase transitions (latent heat, Clapeyron slopes), depth-dependent averaging. Includes simple models (`simple.cc`, `simpler.cc`, `multicomponent.cc`), specialised models (`grain_size.cc`, `visco_plastic.cc`, `simple_compressible.cc`, `steinberger.cc`) and lookup tables (`perplex_lookup.cc`). Flow laws are separate files under `rheology/` (`diffusion_creep.cc`, `dislocation_creep.cc`, `peierls_creep.cc`, `frank_kamenetskii.cc`, `drucker_prager.cc`, `composite_visco_plastic.cc`, ...). Data: `data/material-model/steinberger/` (radial viscosity profiles, mineral-physics tables).
 - **Quality & realism rating: 4/5** — Well-tested and scientifically grounded (published rheology laws from lab experiments and theory). Covers major Earth processes (plate bending, subduction zone stresses, mantle plumes). Limitations: no weathering rheology, no sediment compaction models, calibrated to deep Earth (>10 km), not suitable for shallow crust or fantasy landscapes.
 - **Extractability: loosely coupled** — Rheology models are plugin-based interfaces; each is ~1–5k LOC and could be extracted as a lookup table (e.g., viscosity = f(T, P)). However, material-model selection and parameter system are config-file-driven and tightly coupled to ASPECT's parameter subsystem. Effort to extract: low–medium (would port a simplified viscosity/density law to JS; high if full thermodynamic lookup tables required).
 - **Requirements capabilities it could serve**: Resources (density/composition as proxy for ore/material type, unverified); tectonics (material strength as constraint on plate dynamics).
@@ -62,8 +64,9 @@ Build inferred from documentation and CI config (no build attempted in scratchpa
 ### 3.4 Postprocessing and output
 - **Where**: `source/postprocess/` (55 modules, ~2–10k LOC each); key outputs: `visualization/vtk.cc`, `depth_average.cc`, `dynamic_topography.cc`, `geoid.cc`, `composition_statistics.cc`, etc.
 - **What it does**: Computes derived fields (stress, strain rate, viscosity, dynamic topography, geoid, composition) at user-specified intervals; outputs to VTK (ParaView), ASCII tables, HDF5, custom formats. Supports particle/tracer output, boundary data export, statistics gathering.
-- **Quality & realism rating: 3/5** — Comprehensive scientific output; VTK/HDF5 formats are standard. Dynamic topography calculation is validated. However, no native export to PNG/SVG/STL (would need external post-processing); no heightmap-specific projection; outputs are 3D unstructured data, not 2D grids.
-- **Extractability: standalone** — Postprocessing modules are loosely coupled to simulator; each can be disabled independently via parameter file. A single output module (e.g., dynamic topography) is ~1–3k LOC and could be ported to JS to read/visualize precomputed ASPECT results. Effort to extract: low–medium (low to read/visualize output; high if computing on-the-fly requires porting FEM math).
+- **Dynamic topography**: Verified at `source/postprocess/dynamic_topography.cc` (584 lines). Computes uplift/subsidence via Consistent Boundary Flux (CBF) method from pressure solution: requires boundary-stress interpolation and integration, calls material-model density evaluation, depends on gravity model and mesh geometry. **Requires full FEM solution; not extractable as standalone function.**
+- **Quality & realism rating: 3/5** — Comprehensive scientific output; VTK/HDF5 formats are standard. Dynamic topography calculation is validated and commonly cited in literature. However, no native export to PNG/SVG/STL (would need external post-processing); no heightmap-specific projection; outputs are 3D unstructured data, not 2D grids.
+- **Extractability: standalone** — Postprocessing modules are loosely coupled to simulator; each can be disabled independently via parameter file. Output reading/visualization could be ported to JS. Effort to extract: low for output reading; impossible for dynamic-topography computation without full FEM solver.
 - **Requirements capabilities it could serve**: Export (partial — outputs VTK, HDF5, ASCII; would need external tools for PNG/SVG/STL); heightmap generation (dynamic topography is a proxy but not a heightmap generator).
 
 ### 3.5 Time stepping and solver control
@@ -75,9 +78,10 @@ Build inferred from documentation and CI config (no build attempted in scratchpa
 
 ### 3.6 Initial conditions and boundary conditions
 - **Where**: `source/initial_temperature/` (20 files), `source/initial_composition/` (11), `source/boundary_temperature/` (11), `source/boundary_velocity/` (7), `source/boundary_traction/` (7), `source/boundary_composition/` (10)
-- **What it does**: Plugin system for prescribing initial fields (temperature, composition, velocity) and boundary forcing (Dirichlet/Neumann temperature, velocity, traction, compositional flux). Includes adiabatic profiles, mantle plumes, lithospheric models, imposed plate velocities, prescribed trench motion.
-- **Quality & realism rating: 4/5** — Wide variety of geodynamically realistic models. Adiabatic profiles and plate-motion boundary conditions are validated against field observations. Limitation: no climate-driven boundary forcing, no surface-process feedbacks.
-- **Extractability: loosely coupled** — Each boundary/initial model is ~1–3k LOC and plugin-based. Could extract individual models (e.g., "adiabatic temperature profile") as standalone functions. Effort to extract: low–medium.
+- **What it does**: Plugin system for prescribing initial fields (temperature, composition, velocity) and boundary forcing (Dirichlet/Neumann temperature, velocity, traction, compositional flux). Includes adiabatic profiles, lithospheric models, imposed plate velocities, prescribed trench motion, and integration with the Geodynamic World Builder (GWB) for complex layered structures (plumes, slabs, continental blocks). Verified files: `adiabatic.cc`, `world_builder.cc` (wraps GWB for plume/interior setup), `continental_geotherm.cc`, `S40RTS_perturbation.cc`.
+- **Plume support**: No native plume initial-temperature model. `initial_temperature/world_builder.cc` wraps the Geodynamic World Builder, which is **vendored in-tree** at `contrib/world_builder/` under **LGPL-2.1** (`contrib/world_builder/LICENSE`). Its plume feature (`contrib/world_builder/source/world_builder/features/plume.cc`, 458 lines) describes a *user-placed* plume by depth range and elliptic cross-sections (lines 85–93); it does not decide how many plumes there are, where or when. `cookbooks/plume_2D_chunk/plume2D.prm` follows Kellogg & King (1997). **Core evolution:** `boundary_temperature/dynamic_core.cc` (1,240 lines; header `include/aspect/boundary_temperature/dynamic_core.h:51–99`) is a parameterised core energy budget with inner-core radius, CMB heat flux, radiogenic and latent heat, a reference for note 21 alongside VPLanet ThermInt.
+- **Quality & realism rating: 4/5** — Wide variety of geodynamically realistic models. Adiabatic profiles and plate-motion boundary conditions are validated against field observations. GWB integration is recent (unverified for procedural generation use cases). Limitation: no climate-driven boundary forcing, no surface-process feedbacks.
+- **Extractability: loosely coupled** — Each boundary/initial model is ~1–3k LOC and plugin-based. Adiabatic profiles, lithosphere/continental-geotherm models could be extracted as closed-form functions. GWB is in-tree C++ (LGPL-2.1). Effort to extract: low–medium (adiabatic, continental profiles); medium (GWB plume geometry, which is user-specified, not generated).
 - **Requirements capabilities it could serve**: Heightmap generation (unverified — adiabatic/plume models could seed terrain, but not designed for this); climate (no climate-forcing BCs).
 
 ### 3.7 Particles and tracers
@@ -131,8 +135,9 @@ Build inferred from documentation and CI config (no build attempted in scratchpa
 - Contrib/optional components:
   - `contrib/fastscape/`: Fortran code, GPL-2.0-or-later (FastScape), developed separately.
   - `contrib/landlab/`: Python/Cython, unclear; not bundled, external dependency.
-  - `contrib/world_builder/`: Separate license (verify separately; appears to be BSD or similar based on GitHub).
-- No vendored third-party code in core; deal.II and Trilinos are external dependencies with their own licenses (LGPL/BSD).
+  - `contrib/world_builder/`: Separate licence, LGPL-2.1 (verified in `contrib/world_builder/LICENSE`).
+- No vendored third-party code in core; deal.II and Trilinos are external dependencies with their own licenses (LGPL/BSD). `contrib/world_builder/` is vendored and LGPL-2.1 (`contrib/world_builder/LICENSE`); it bundles vtu11 with its own `LICENSE`.
+- **World Builder licence version (2026-10-18).** `contrib/world_builder/LICENSE` is the LGPL-2.1 text, but the source headers grant "the GNU Lesser General Public License … either version 2 of the License, or (at your option) any later version" (`contrib/world_builder/source/world_builder/features/plume.cc:6–9`), that is LGPL-2.0-or-later. It also bundles vtu11 under BSD-3-Clause (`include/vtu11/LICENSE:1`) and RapidJSON (`include/rapidjson/license.txt`). The manifest records ASPECT's own licence; this record keeps "LGPL-2.1" for the World Builder, matching `docs/reconciliation/group-1.md` (ruling C2). Either version can be used in MapMaker (GPL-3.0-only).
 
 **Does it match the manifest?** Yes. Manifest lists: "Mantle convection / geodynamics FEM solver — tectonics reference; license GPL-2.0-or-later." Verified.
 
@@ -179,26 +184,31 @@ Build inferred from documentation and CI config (no build attempted in scratchpa
 
 **Primary finding**: ASPECT is a mature, reference-grade geodynamics solver but fundamentally misaligned with MapMaker's goals.
 
-- **What's worth extracting**: 
-  - Material property models (viscosity, density as functions of T, P, composition) could inform fantasy planet physics, but would require stripping MPI/FEM overhead and converting to lookup tables. ~low utility for procedural generation; moderate utility for calibration.
-  - Adiabatic temperature profiles and lithosphere models could seed initial conditions for regional heightmap generation; extractable as closed-form functions (~1k LOC) with low effort. Moderate utility.
-  - Spherical geometry utilities for handling wraparound and projections could be ported; moderate effort, low–moderate utility.
+**Verified claims from design note 21 and capability matrix:**
+- Material models at `source/material_model/` exist: visco_plastic, steinberger, grain_size, multicomponent, simple_compressible all confirmed as separate files. ✓
+- `dynamic_topography.cc` exists at `source/postprocess/dynamic_topography.cc`. ✓ But: **requires full FEM pressure solution; not extractable as standalone function.**
+- Plume *geometry* exists via the vendored Geodynamic World Builder (`contrib/world_builder/.../features/plume.cc`, LGPL-2.1); plume *placement* (count, position, timing) does not exist anywhere in ASPECT. Sample cookbook at `cookbooks/plume_2D_chunk/`. ✓
+- Heat flow and lithosphere models (adiabatic, continental-geotherm) exist. ✓
+- License GPL-2.0-or-later: confirmed in LICENSE file. ✓
 
-- **What to skip**:
-  - Entire Stokes solver and FEM assembly (~150k LOC) — overfitted to large-scale geophysics, incompatible with browser, no direct procedural terrain output.
-  - Mantle convection physics is planet-scale (100s–1000s km wavelength); does not yield fantasy-realistic small-scale features (mountains, valleys, coastlines).
-  - Particle system — designed for mass transport, not population/settlement/economic simulation.
-  - Postprocessing/VTK output — no direct heightmap/terrain generation; external tools required.
+- **What's worth extracting**: 
+  - Material property functions: viscosity/density laws (Arrhenius, visco-plastic stress exponents, grain-size rheology) as lookup tables or closed-form functions. Low effort; moderate utility for phase 6c calibration.
+  - Adiabatic temperature profiles and continental-geotherm models: extractable as closed-form functions (~500–1k LOC per model). Low effort; moderate utility.
+  - Steinberger model parameter tables (depth-viscosity lookup). Extractable as data; low effort.
+  - Rheology exponent and Clapeyron-slope parameters from the code (reference material). Low effort, moderate utility for testing.
+
+- **What cannot be extracted**:
+  - Dynamic topography computation — requires FEM solution, boundary pressure, material-model evaluation on mesh, and geometry integration. **Not portable to browser without full solver rewrite.**
+  - Entire Stokes solver and FEM assembly (~150k LOC) — MPI/deal.II dependencies, no browser path.
+  - Mantle convection physics is planet-scale (100s–1000s km); does not generate small-scale fantasy features.
 
 - **Biggest risks**:
-  - **Language/runtime**: GPL-2.0+ license is compatible with browser/open-source but requires all derived work to be GPL-compatible. C++/Fortran with MPI/BLAS/LAPACK requires full WASM rewrite or HPC backend (defeats browser-native goal). Estimated 6–12+ person-months for minimalist browser port.
-  - **Design misalignment**: ASPECT solves inverse problem (PDEs over geological timescales); MapMaker needs forward procedural generation over human/fantasy timescales. Extraction yields minor utilities, not core solvers.
-  - **Unverified features**: FastScape coupling for erosion is recent; no confirmation it works for heightmap-driven applications or that it scales to fantasy worlds.
-  - **Data representation**: Unstructured FEM mesh is inefficient for 2D heightmap grids; transitioning to regular grids (for export/import) would require custom meshing logic.
+  - **Language/runtime**: C++17/MPI/deal.II requires 12+ person-months for minimalist WASM port; defeats browser-native goal.
+  - **Design misalignment**: ASPECT solves PDEs over Myr timescales; note 21 needs reference parameters and one-way extraction, not coupled solver.
+  - **Dynamic topography scope**: Cannot be used procedurally; design note 21 should clarify that dynamic topography is a validation reference, not a generation source.
+  - **Unverified**: FastScape coupling (recent addition); no confirmation for procedural fantasy terrain use.
 
-- **Open questions / unverified points**:
-  - Does FastScape coupling enable procedural erosion workflows? (Requires reading FastScape integration docs/code separately.)
-  - Can adiabatic profiles be inverted to derive planet parameters from a desired heightmap? (Requires research/novel approach.)
-  - What is the performance/memory footprint if ASPECT is compiled to WASM? (Unverified; likely prohibitive.)
-  - Is there a native way to export ASPECT solutions to PNG/heightmap grids, or must it go through external post-processing? (External tools required based on current codebase.)
+- **Open questions**:
+  - Should design note 21 cite dynamic topography as a validation benchmark (compare computed topography vs. orogen/Badlands output) rather than a generation source? Current phrasing could mislead readers into thinking it's extractable.
+  - Can material-model parameter extraction be automated, or must each be hand-transcribed from C++ to TS?
 

@@ -1,7 +1,9 @@
 # Audit: CesiumJS
 
+> **Reconciled 2026-10-18** for Phases 5 and 5c only, against the source at `e1d443e` (`docs/reconciliation/group-6a.md`). Corrected: paths (core classes are in `packages/core/Source/`), the projection classes (314 lines; WebMercator is spherical), globe shading (Lambert, no hillshade; slope/aspect/contour materials added), labels (no declutter), geometry size, the RNG, ellipsoid radii and axis convention, LOD (no cross-fade), and the licence (patent grant, third-party appendix). Claims outside that scope were not re-checked.
+
 ## 1. Overview
-CesiumJS is a mature, actively maintained JavaScript/WebGL library for creating interactive 3D globes and 2D maps in web browsers. Developed and maintained by Cesium GS, Inc., it is widely used in geospatial visualization (GIS, satellite imagery, 3D Tiles streaming, navigation). Version 1.146.0 at HEAD e1d443e8fdaae0535407b96f7560426583483424. Monorepo with ~2,339 JS/TS files across 4 main packages (core, engine, widgets, sandcastle/examples). ~814k LOC JavaScript, ~8k LOC TypeScript, 319 GLSL shaders.
+CesiumJS is a mature, actively maintained JavaScript/WebGL library for creating interactive 3D globes and 2D maps in web browsers. Developed and maintained by Cesium GS, Inc., it is widely used in geospatial visualization (GIS, satellite imagery, 3D Tiles streaming, navigation). Version 1.146.0 at HEAD e1d443e8fdaae0535407b96f7560426583483424. Monorepo with ~2,339 JS/TS files across 4 main packages (core, engine, widgets, sandcastle/examples). ~814k LOC JavaScript (349,714 of them in Specs), ~8k LOC TypeScript, 319 GLSL shaders.
 
 ## 2. Language, runtime, dependencies, build
 
@@ -36,17 +38,18 @@ CesiumJS is a mature, actively maintained JavaScript/WebGL library for creating 
 ## 3. Subsystem inventory
 
 ### 3.1 Globe view and rendering
-- **Where**: packages/engine/Source/Scene/Globe.js, GlobeSurfaceTileProvider.js, GlobeSurfaceShaderSet.js; packages/core/Source/Ellipsoid.js, Cartographic.js, Cartesian3.js
+- **Where**: packages/engine/Source/Scene/Globe.js, GlobeSurfaceTileProvider.js, GlobeSurfaceShaderSet.js; shaders `packages/engine/Source/Shaders/GlobeVS.glsl`, `GlobeFS.glsl`; packages/core/Source/Ellipsoid.js, Cartographic.js, Cartesian3.js
+- **Shading (checked 2026-10-18):** Lambert lighting from vertex normals only (`czm_getLambertDiffuse`; `GlobeFS.glsl:431`, `:435`); **no hillshade**. Per-vertex slope `acos(|n·up|)` and aspect measured from east (`GlobeVS.glsl:241–251`) drive the SlopeRamp, AspectRamp, ElevationContour, ElevationRamp and ElevationBand materials (`Shaders/Materials/`). Imagery colour adjustments: brightness, contrast, hue (YIQ rotation), saturation and gamma (`GlobeFS.glsl:233–263`; properties in `ImageryLayer.js`). All are small closed forms, usable as references for Phase 5c.
 - **What it does**: Renders a 3D WGS84 ellipsoid globe with configurable terrain (via TerrainProvider abstraction) and imagery layers; handles camera, lighting, atmosphere, shadows, LOD tile management with Quadtree culling. Ellipsoid class implements geodetic coordinate transformations and WGS84 models.
 - **Quality & realism rating: 4/5** — Production-grade rendering engine tuned for real geospatial data visualization. Accurate coordinate transforms and ellipsoid models. Supports high-fidelity real-world elevation and imagery. Not a procedural generator; assumes terrain/imagery fed in via providers. Proven in commercial and scientific use.
 - **Extractability: loosely coupled** — Core rendering depends on @cesium/core (math, geometry) and WebGL/Renderer modules. No UI or DOM dependencies in Scene core. Terrain rendering decoupled via TerrainProvider abstraction. Approximate extractable core: ~50k LOC (Scene/ + Core/). Effort to port to standalone browser JS: low—already browser-native. Minor refactor to remove Viewer/widgets wrapper if needed.
 - **Requirements capabilities it could serve**: Globe view; Planet-scale + regional patches (via tile LOD); Import of heightmaps/layers (via TerrainProvider); Calibration against Earth data (uses WGS84).
 
 ### 3.2 Projections and coordinate systems
-- **Where**: packages/core/Source/WebMercatorProjection.js, GeographicProjection.js, MapProjection.js (interface); packages/core/Source/Cartographic.js, Cartesian*.js
-- **What it does**: Implements Web Mercator (EPSG:3857) and Geographic (lat/lon plate-carrée) projections; converts between geodetic (lat/lon/height), Cartesian (xyz), and projected (xy) coordinate systems. Static utility functions for Mercator angle↔latitude transforms. Ellipsoid handles spheroid math (WGS84 by default).
-- **Quality & realism rating: 4/5** — Mathematically correct implementations of standard projections. Well-tested and widely used. Suitable for both fantasy (arbitrary ellipsoids supported) and Earth-anchored calibration. Mercator clamped to valid latitude bounds.
-- **Extractability: standalone** — No external dependencies beyond @cesium/core (Cartesian3, Ellipsoid, Math). ~500 LOC total. Effort: low—can be dropped into any JS codebase with minimal changes. No WebGL or scene dependencies.
+- **Where**: packages/core/Source/WebMercatorProjection.js (151 lines), GeographicProjection.js (105), MapProjection.js (58, interface); packages/core/Source/Cartographic.js, Cartesian*.js. `packages/engine/Source/Core/Deprecated/` holds re-export shims.
+- **What it does**: Implements Web Mercator (EPSG:3857, **spherical** on `ellipsoid.maximumRadius`, `WebMercatorProjection.js:27`; latitude clamped at ≈85.0511°, `:60–65`) and Geographic (plate carrée, x = λa, y = φa, `GeographicProjection.js:53–58`) projections; there are no other projections; converts between geodetic (lat/lon/height), Cartesian (xyz), and projected (xy) coordinate systems. Static utility functions for Mercator angle↔latitude transforms. Ellipsoid handles spheroid math (WGS84 by default).
+- **Quality & realism rating: 4/5** for what exists (2/5 as flat-projection coverage, §6) — Mathematically correct implementations of standard projections. Well-tested and widely used. Arbitrary ellipsoids are accepted, but only the maximum radius is used. Mercator is clamped to valid latitude bounds. For MapMaker these are golden-value references for d3 `geoMercator` and `geoEquirectangular`, not code to adopt.
+- **Extractability: standalone** — Imports Cartesian3, Cartographic, defined, DeveloperError, Ellipsoid and Math from @cesium/core. 314 lines total. Effort: low—can be dropped into any JS codebase with minimal changes. No WebGL or scene dependencies.
 - **Requirements capabilities it could serve**: Flat projections; Globe view; Calibration against Earth data.
 
 ### 3.3 Terrain data import and TerrainProvider abstraction
@@ -67,8 +70,8 @@ CesiumJS is a mature, actively maintained JavaScript/WebGL library for creating 
 - **Where**: packages/core/Source/{Box, Circle, Corridor, Cylinder, Ellipse, Polygon, Polyline, Rectangle, Wedge, ...}Geometry.js; packages/engine/Source/Scene/{Billboard, Path, Model, Primitive, ...}.js
 - **What it does**: Procedurally generates tessellated meshes for common geometric shapes (boxes, spheres, circles, corridors, polygons, polylines) on a WGS84 ellipsoid. Used for drawing entities (points, lines, areas) on the globe. Includes outline variants and custom appearance/materials.
 - **Quality & realism rating: 3/5** — Correct geometric algorithms for ellipsoidal surfaces; suitable for small features (cities, roads, borders). Not designed for high-resolution terrain or terrain distortion; too fine-grained for planet-scale feature placement.
-- **Extractability: loosely coupled** — Geometry classes are self-contained in @cesium/core, with utility functions for ellipsoid math. ~200k LOC total. Effort to extract: low—grab desired Geometry*.js files, keep ellipsoid utilities, discard Viewer/Scene wrapping.
-- **Requirements capabilities it could serve**: Political borders (Polygon geometry); Cities & towns (Billboard/Point visualization); Languages & names (labels via canvas/text); Resources (point/marker visualization).
+- **Extractability: loosely coupled** — Geometry classes are self-contained in @cesium/core, with utility functions for ellipsoid math. 96 `*Geometry.js` files, 20,289 lines. Effort to extract: low—grab desired Geometry*.js files, keep ellipsoid utilities, discard Viewer/Scene wrapping.
+- **Requirements capabilities it could serve**: Political borders (Polygon geometry); Cities & towns (Billboard/Point visualization); Languages & names (labels via canvas/text: `Scene/Label.js`, `LabelCollection.js`, SDF glyphs via `bitmap-sdf`; **no declutter or collision avoidance**, only `disableDepthTestDistance`); Resources (point/marker visualization).
 
 ### 3.6 3D Tiles support
 - **Where**: packages/engine/Source/Core/Cesium3DTileset.js, Cesium3DTilesContent.js, Cesium3DTilesFeatures.js; packages/engine/Source/Scene/Cesium3DTileset*.js
@@ -86,7 +89,7 @@ CesiumJS is a mature, actively maintained JavaScript/WebGL library for creating 
 
 ### 3.8 Math and utilities
 - **Where**: packages/core/Source/Math.js, Matrix*.js, Plane.js, Ray.js, Quaternion.js, Spline.js, easing functions, etc.
-- **What it does**: Comprehensive linear algebra (vectors, matrices, quaternions), plane/ray geometry, cubic splines, numerical utilities, random-number support via mersenne-twister. No game physics engine, but solid computational geometry.
+- **What it does**: Comprehensive linear algebra (vectors, matrices, quaternions), plane/ray geometry, cubic splines, numerical utilities, random-number support via the npm `mersenne-twister` package (seedable: `CesiumMath.setRandomNumberSeed`, `packages/core/Source/Math.js:983`). No game physics engine, but solid computational geometry.
 - **Quality & realism rating: 4/5** — Standard, well-tested implementations. Suitable for game/sim math.
 - **Extractability: standalone** — ~50k LOC core math, self-contained in @cesium/core. Easy to grab subsets (e.g., Matrix3, Quaternion, Ray).
 - **Requirements capabilities it could serve**: Underlying math for all subsystems.
@@ -111,20 +114,20 @@ CesiumJS is a mature, actively maintained JavaScript/WebGL library for creating 
 
 **Resolution**: Configurable per TerrainProvider; typically terrain tiles are 32×32 or 64×64 samples per tile, with LOD selecting tile level (0 = planet, 1..30 = zoom). Imagery same LOD scheme.
 
-**Units**: Height in meters (SI, WGS84 reference ellipsoid). Positions in radians (latitude/longitude) or meters (Cartesian ECEF). Ellipsoid radii: ~6.371M m (Earth).
+**Units**: Height in meters (SI, WGS84 reference ellipsoid). Positions in radians (latitude/longitude) or meters (Cartesian ECEF). Ellipsoid radii: WGS84 (6378137, 6378137, 6356752.3142451793) (`Ellipsoid.js:763`); `Ellipsoid.UNIT_SPHERE` (`:772`).
 
 **Coordinate conventions**: 
 - Geodetic: latitude [-π/2, π/2] rad, longitude [-π, π] rad, height m (above ellipsoid)
-- Cartesian ECEF: x, y, z meters in earth-centered-fixed frame, Z up (toward north pole)
+- Cartesian ECEF: x, y, z meters in earth-centered-fixed frame; the surface normal is (cosφ cosλ, cosφ sinλ, sinφ) (`Ellipsoid.js:326–335`): +Z north, +X at (0°, 0°), +Y at (0°, 90°E), identical to MapMaker's canonical frame
 - Projected (Web Mercator): x, y in meters (pseudo-Mercator), Z = height m
 
 **Time representation**: JulianDate (proleptic Gregorian calendar, TAI seconds since noon Jan 1, 4713 BC). Precision: ~15 decimal digits (sub-millisecond for dates near J2000).
 
 **Serialization**: No native save/resume format. Viewer state (camera, entity positions) can be serialized to CZML or custom JSON; terrain/imagery must be re-streamed from providers on load.
 
-**RNG / seed handling**: Includes mersenne-twister for random numbers; no seed-based preview mechanism. Not suitable for deterministic same-seed regeneration without external wrapper.
+**RNG / seed handling**: Includes mersenne-twister for random numbers (seedable through `setRandomNumberSeed`); no seed-based preview mechanism. Not suitable for deterministic same-seed regeneration without external wrapper.
 
-**Multi-resolution consistency**: Quadtree tile LOD naturally provides consistent detail across zoom. Vertex skirts prevent seams at tile boundaries. Height quantization uniform across all tiles (matches terrain provider precision).
+**Multi-resolution consistency**: Quadtree tile LOD by screen-space error (`QuadtreePrimitive.js`, `maximumScreenSpaceError` 2, `:113`) provides consistent detail across zoom; there is no imagery cross-fade. Vertex skirts prevent seams at tile boundaries. Height quantization uniform across all tiles (matches terrain provider precision).
 
 ## 5. License
 
@@ -132,7 +135,7 @@ CesiumJS is a mature, actively maintained JavaScript/WebGL library for creating 
 
 **File path**: /LICENSE.md (root), also in packages/engine/LICENSE.md
 
-**Mixed/vendored licenses**: None noted in top-level LICENSE.md. ThirdParty/ directory (packages/engine/Source/ThirdParty/) contains vendored dependencies; spot-check:
+**Mixed/vendored licenses**: `LICENSE.md` (890 lines) appends a "Third-Party Code" section from line 209 with 44 entries: 30 code entries (among them NVIDIA FXAA under custom terms, Source Sans Pro under OFL 1.1, and bitmap-sdf, mersenne-twister, earcut, topojson-client, Draco) and 14 example data and asset entries (including CC-BY 3.0 icons). It also lists Cesium patents (`:205–207`). No NOTICE file; `ThirdParty.json` exists. `packages/engine/Source/ThirdParty/` holds only the basis transcoder and the Google Earth dbroot parser. Earlier spot-check:
 - topojson-client: BSD-3-Clause (compatible)
 - earcut: ISC (compatible)
 - Draco: Apache-2.0 (compatible)
@@ -140,7 +143,7 @@ CesiumJS is a mature, actively maintained JavaScript/WebGL library for creating 
 
 **Matches manifest**: Yes. Manifest lists "Apache-2.0"; verified as accurate.
 
-**Practical notes**: Apache-2.0 is permissive, allows commercial use, requires attribution. No patent clause, no copyleft. Safe to extract and modify for MapMaker.
+**Practical notes**: Apache-2.0 is permissive, allows commercial use, requires attribution and includes a patent grant (§3, `LICENSE.md:75`). No copyleft. Safe to extract and modify for MapMaker.
 
 ## 6. Capability coverage summary
 
@@ -166,7 +169,7 @@ CesiumJS is a mature, actively maintained JavaScript/WebGL library for creating 
 | Long-run history/war/economics/politics sim | no | — | — | — | No civilization simulation |
 | Planet-scale + regional patches (multi-res/zoom) | yes | 4/5 | loose | Globe.js, QuadtreePrimitive.js, TerrainProvider.js | Quadtree LOD ensures consistent detail across zoom; tile-based streaming |
 | Globe view | yes | 4/5 | loose | Globe.js, Scene/Core rendering, WebGL | High-quality WGS84 ellipsoid rendering with atmosphere, lighting |
-| Flat projections | yes | 4/5 | standalone | WebMercatorProjection.js, GeographicProjection.js | Web Mercator and lat/lon; extensible to others |
+| Flat projections | partial | 2/5 | standalone | WebMercatorProjection.js, GeographicProjection.js | Spherical Web Mercator and plate carrée only (314 lines); golden values for d3 |
 | Partial-world inference | no | — | — | — | No inference engine; visualization only |
 | Import of heightmaps/layers | yes | 4/5 | loose | TerrainProvider.js, ImageryLayer.js, GeoJSON/CZML parsers | Can import heightmaps (CustomHeightmapTerrainProvider, quantized-mesh), imagery (tile services, GeoJSON/TopoJSON vectors) |
 | Fidelity/speed slider with same-seed preview | partial | 1/5 | tight | — | Clock.js can drive playback speed; no deterministic seed-based preview (no RNG seed control) |
@@ -177,7 +180,7 @@ CesiumJS is a mature, actively maintained JavaScript/WebGL library for creating 
 
 ## 7. Verdict
 
-- **What to extract**: (1) Projection classes (WebMercatorProjection, GeographicProjection) — compact (~500 LOC), no dependencies, directly applicable to MapMaker's flat-map view. (2) Ellipsoid and coordinate math (@cesium/core/Ellipsoid.js + Cartesian*.js) — essential for multi-resolution planet/regional consistency. (3) CustomHeightmapTerrainProvider — thin wrapper for terrain-from-callback pattern; useful as a reference for importing procedurally generated or user-provided heightmaps. (4) TerrainProvider abstract interface — defines the contract for terrain sources, valuable for integrating MapMaker's generators.
+- **What to extract**: (1) Projection classes (WebMercatorProjection, GeographicProjection) — compact (314 lines); d3-geo already provides both, so they serve as golden-value cross-checks, not code to adopt. Slope, aspect, contour and elevation-band material formulas and the imagery colour adjustments are small references for Phase 5c. (2) Ellipsoid and coordinate math (@cesium/core/Ellipsoid.js + Cartesian*.js) — essential for multi-resolution planet/regional consistency. (3) CustomHeightmapTerrainProvider — thin wrapper for terrain-from-callback pattern; useful as a reference for importing procedurally generated or user-provided heightmaps. (4) TerrainProvider abstract interface — defines the contract for terrain sources, valuable for integrating MapMaker's generators.
 
 - **What to skip**: (1) Scene rendering stack (Globe, Viewer, WebGL Renderer) — heavyweight, tightly coupled. MapMaker will likely build custom rendering around Babylon.js or Three.js or direct WebGL. (2) Imagery provider ecosystem — overkill for a fantasy world (no Bing/Google maps needed); can defer or skip. (3) 3D Tiles full stack — useful only if MapMaker wants to export/import tilesets; low priority. (4) All real-world service integrations (Cesium ion, ArcGIS, Google).
 

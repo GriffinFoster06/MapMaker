@@ -59,7 +59,7 @@ It must have a fast rough pass and a slow detailed pass from the same seed, wher
   - a terrane id (provenance).
 
   Moving a plate rotates its tracers exactly, so properties carried *within* a plate never diffuse, however many steps run. This is the reason for tracers over pure resampling on a fixed mesh. Resampling every step on a 141 km mesh would smear boundaries by about a cell per step.
-- **Kinematics.** Each plate has a total rotation q_i(t), a unit quaternion composed per step: q_i ← exp(½ω_iΔt) ⊗ q_i, with ω_i the angular-velocity vector (rad/Myr) for that step. These are GPlates-style finite rotations, re-implemented from published formulas (Cox & Hart 1986), not from GPlates source.
+- **Kinematics.** Each plate has a total rotation q_i(t), a unit quaternion composed per step: q_i ← exp(½ω_iΔt) ⊗ q_i, with ω_i the angular-velocity vector (rad/Myr) for that step. These are GPlates-style finite rotations. Written before Q12 as a re-implementation from published formulas (Cox & Hart 1986); since Q12 GPlates source is the preferred port (see References). GPlates premultiplies in the same way (`compose(r1, r2)` = q1·q2, `src/maths/FiniteRotation.cc:493-497`) and uses the same frame and radians.
 - **Detection mesh.** A fixed Eulerian mesh (L0 for the fast pass, finer for the slow pass) is used **only to detect interactions**. Each step rasterises tracer positions into cells, through the spatial index, and finds:
   - **gaps:** cells with no tracer, where plates diverge;
   - **overlaps:** cells with tracers from two or more plates, where plates converge.
@@ -206,13 +206,13 @@ Cost is linear in T. Geologic keyframes at L0 are small (about 0.3 MB each), so 
 
 ## 4. Upstream references (algorithm level)
 
-- **Finite rotations and quaternions:** Cox & Hart, *Plate Tectonics: How It Works* (1986); GPlates `src/maths` (finite rotations, unit quaternions, rotation interpolation) and `src/app-logic/Reconstruction*` were a citation only when written (GPL-2.0-only); since ARCHITECTURE.md Q12 they are the preferred source to port for the kinematics, with Cox & Hart kept as the validation reference.
+- **Finite rotations and quaternions:** Cox & Hart, *Plate Tectonics: How It Works* (1986); GPlates `src/maths` (finite rotations, unit quaternions, rotation interpolation) was a citation only when written (GPL-2.0-only); since ARCHITECTURE.md Q12 it is the preferred source to port for the kinematics. `src/app-logic/Reconstruction*` stays a reference: it depends on GPlates' feature model and this note needs no plate circuit (`docs/reconciliation/group-1.md` G3). Cox & Hart is kept as the validation reference.
 - **Procedural tectonics on a sphere:** Cortial, Peytavie, Galin & Guérin (2019), "Procedural Tectonic Planets", *Computer Graphics Forum* 38(2). Plates as point sets, subduction, collision, rifting. Algorithm level only.
 - **Driving forces:** Forsyth & Uyeda (1975), *GJI* 43; Conrad & Lithgow-Bertelli (2002), *Science* 298.
 - **Wilson and supercontinent cycles:** Nance, Murphy & Santosh (2014), *Gondwana Research* 25.
 - **Seafloor age:** Müller et al. (2008), *G³* 9, for the age-area distribution used in validation. Data, if used, is downloaded at tuning time.
 - **orogen** `plate-physics.js` (ported formulas), `coarse-plates.js`, `ocean-land.js` (initial state).
-- **Badlands, ASPECT:** not used here. ASPECT-derived parameterisations of mantle plumes and heat flow belong to note 21 (Phase 6c), which feeds hotspot tracks and plume-driven rifting into this stage's event schedule.
+- **Badlands, ASPECT:** not used here. Mantle plumes and heat flow belong to note 21 (Phase 6c; ASPECT has no plume-placement parameterisation, only user-placed plume geometry in its vendored World Builder), which feeds hotspot tracks and plume-driven rifting into this stage's event schedule.
 
 ## 5. Validation
 

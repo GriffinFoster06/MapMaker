@@ -52,8 +52,8 @@ Physical parameters (radius, gravity, obliquity) feed note 10's mapping, which d
 
 ## 4. Upstream references (algorithm level)
 
-- **MARBL** `src/marbl_settings_mod.F90` and `defaults/*.yaml`: a parameter registry with types, defaults and generated documentation, the model for this design.
-- **orogen** `js/config.js` (slider definitions); **Azgaar** options UI: the simple-level reference.
+- **MARBL** `src/marbl_settings_mod.F90` and `defaults/settings_*.yaml`: a parameter registry with datatype, units, long name, subcategory, per-configuration defaults and optional enumerated `valid_values`, set in four ordered categories (`settings_latest.yaml:9–39`). It has no numeric ranges and no generated documentation, and each parameter is declared twice (a Fortran `add_var` call plus default, and a YAML entry), which §3.1's single declaration avoids. A model for the metadata, not the mechanism.
+- **orogen** `js/climate-config.js` and `js/terrain-config.js` (defaults and constants; there is no `js/config.js`). The sliders themselves are DOM inputs read by `readSliders` in `js/generate.js:18` (`docs/reconciliation/review.md` M2); **Azgaar** options UI: the simple-level reference.
 - **MESSAGEix**/ixmp scenario parameters: scenario management.
 
 ## 5. Validation

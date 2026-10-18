@@ -21,6 +21,16 @@ A note that changes the architecture says so in a "Consequences for ARCHITECTURE
 
 Notes 14, 3, 6 and 13 were written first, because they could change the architecture.
 
+## Reconciliation against source (2026-10-18)
+
+Notes 15–38 and the 2026-10-13 updates to notes 1–14 were written without `upstream/` checked out. Reconciliation groups 1, 2, 3 and 6a (`docs/reconciliation/`) checked every claim about GPlates, tectonics.js, ASPECT, VPLanet, Badlands, ParFlow, WRF-Hydro, PISM, Delft3D, CESM, CTSM, MOM6 and MARBL, and the Phase 5 and 5c claims about Azgaar, QGIS and CesiumJS, against the pinned source, and corrected notes 4, 6, 10–15, 17–25, 28 and 38. References to the other upstreams and to the candidate upstreams are not checked yet; each remaining reconciliation or audit is a Prerequisite line in its phase (ARCHITECTURE.md §7). The changes the reconciliation raised were ruled on and applied on 2026-10-18 (`docs/reconciliation/pending-decisions.md`).
+
+Consequences recorded in the notes:
+- Notes 20 and 21: the ODE integrator (a port of VPLanet `evolve.c`) is built in Phase 6a and reused in 6c; two-star insolation is original code.
+- Note 12: has no groundwater design yet; its extension for stage 7g is written before that stage (note 25 depends on it).
+- Note 22: PISM gives formulas and exact tests but no solver or erosion law; the glacial-erosion law needs a source; a physically based mass balance would be new code, and the positive-degree-day default stands.
+- Note 23: coastal landforms are new code; the equation of state is the Roquet polynomial, since TEOS-10 is not in the checkout.
+
 ## Index by track
 
 ### Platform and experience
@@ -47,7 +57,7 @@ Notes 14, 3, 6 and 13 were written first, because they could change the architec
 | 3 | [Partial-world inference](03-partial-world-inference.md) | 11 | **Yes:** §4 step 0p |
 | 10 | [Physical → simulation parameter mapping](10-physical-parameter-mapping.md) | 6 | No |
 | 11 | [Continuous seasons](11-continuous-seasons.md) | 6 | **Yes:** §3.2 climate layers |
-| 12 | [Lake and basin hydrology](12-lake-and-basin-hydrology.md) | 7 | No |
+| 12 | [Lake and basin hydrology](12-lake-and-basin-hydrology.md) (groundwater extension due before stage 7g) | 7 | No |
 | 13 | [Forward plate evolution over deep time](13-forward-plate-evolution.md) | 6b | **Yes:** §3.2–3.4, §4, §5, §7 |
 | 20 | [Astronomy: star systems, moons, tides, orbital cycles](20-astronomy.md) | 6a | **Yes:** stage 0a, `bodies` |
 | 21 | [Interior: mantle plumes, volcanism, magnetic field, isostasy](21-interior-and-volcanism.md) | 6c | **Yes:** stage 2i |

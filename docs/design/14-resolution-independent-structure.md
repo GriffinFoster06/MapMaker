@@ -231,7 +231,7 @@ The design above was implemented with measured deviations. `docs/checkpoints/CHE
 - **orogen `cc2662b`.** `coarse-plates.js` (the reference-mesh pattern, `projectCoarsePlates` with continuous FBM wobble), `elevation.js` (stages 1–13, `applyPhasorRidges`), `terrain-post.js`, and the climate modules. Code is ported under GPL-3.0.
 - **Spike 1c** (`spikes/1c/ab.mjs`): the restriction operator and every A/B metric.
 - **Spectral nudging:** von Storch, Langenberg & Feser (2000), *Mon. Wea. Rev.* 128.
-- **Linear orographic precipitation:** Smith & Barstad (2004), *J. Atmos. Sci.* 61; PISM `src/coupler/atmosphere/OrographicPrecipitation.cc` as an algorithm reference only.
+- **Linear orographic precipitation:** Smith & Barstad (2004), *J. Atmos. Sci.* 61; PISM `src/coupler/atmosphere/OrographicPrecipitationSerial.cc` (transfer function at `:258–263`, solved with FFTW on a padded regular grid) as an algorithm reference only. Badlands `utils/ormodel.f90` and `utils/classoro.f90` implement the same model with a self-contained mixed-radix FFT, a second reference. Both work in Fourier space on a regular planar grid; a tangent-plane window needs its own FFT through `dmath`, an explicit Phase 7 deliverable under I3 (sized in §7).
 - **Multigrid restriction, prolongation and correction:** Briggs, Henson & McCormick, *A Multigrid Tutorial* (2000).
 - **Order-independent sampling without replacement** by smallest hash key: bottom-k sketches (Cohen & Kaplan 2007).
 
@@ -263,8 +263,9 @@ The design above was implemented with measured deviations. `docs/checkpoints/CHE
 | A/B harness in `tools/tuning/`, CI wiring | ~600 |
 | Tests | ~1,500 |
 | **Total** | **~7,000** |
+| *Phase 7, under I3:* `dmath` FFT for the tangent-plane Smith–Barstad window (radix-2 and mixed-radix complex transform, 2-D real wrapper, padding; with tests). **Estimate**, not in the total above | ~600 |
 
-This is Phase 4b's main body of work. The largest risk is the Earth-tuning gate (open question 2).
+The total is Phase 4b's main body of work; the FFT line is Phase 7 work. The largest risk is the Earth-tuning gate (open question 2).
 
 ## 8. User controls and edit points
 

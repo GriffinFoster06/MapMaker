@@ -85,7 +85,7 @@ The climate solve is at L0 (note 14), so the mapping is applied once per world. 
 
 ## 4. Upstream references (algorithm level)
 
-- **VPLanet** `src/poise.c` (EBM: `fvAnnualInsolation`, `fvDailyInsolation`, OLR models WK97/HM16/SMS09, diffusion and the `bMEPDiff` option), `src/distorb.c` and `src/distrot.c`: a TS re-implementation of the subset. MIT.
+- **VPLanet** `src/poise.c` (EBM: `fvAnnualInsolation` :5602, `fvDailyInsolation` :5530, OLR models WK97/HM16/SMS09 `poise.h:20-22`, diffusion `dDiffusion` and the `bMEPDiff` option; the annual and seasonal EBMs are implicit solves through `LUDecomp`/`LUSolve`, `poise.c:5716-5763`, which port exactly through dmath), with orbital elements taken as fixed inputs: a TS re-implementation of the subset. `src/distorb.c` and `src/distrot.c` (secular evolution, which needs `evolve.c`'s RK4 integrator) belong to note 20, not this subset. MIT.
 - **orogen** `js/climate-config.js` (`CLIMATE_DEFAULTS`), `js/terrain-config.js`.
 - **Literature:**
   - Held & Hou (1980), *J. Atmos. Sci.* 37;

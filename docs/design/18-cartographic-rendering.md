@@ -44,6 +44,8 @@ symbolizer = fill (ramp | categorical | texture) | relief (hillshade, multi-dire
 
 Labels for every named entity (seas, ranges, rivers, settlements, regions), placed by priority with collision avoidance; curved labels along rivers and ranges; area labels spread along a region's skeleton. Deterministic for a given world, style and viewport. Fonts from the asset library (note 19).
 
+The collision solver is a port of Azgaar's `src/controllers/label-spread.ts` (Phase 5c; §4): candidate positions, conflict components, refinement and seeded simulated annealing. Its SVG DOM text measurement is replaced by our own font metrics, and its screen-space run (paddings in screen pixels) is keyed by style and viewport. QGIS PAL is a later, richer option (polygon, line and curved placement costs).
+
 ### 3.4 Themes
 
 Built-in themes: atlas (physical), political, parchment fantasy, ink-and-wash, satellite-like true colour (from biome, vegetation, snow and soil colour), climate, and historical (borders at a chosen tick). Each theme is a style file; users duplicate and edit them.
@@ -58,9 +60,17 @@ Tiled rendering with per-tile caches keyed by world hash and style hash; level-o
 
 ## 4. Upstream references (algorithm level)
 
-- **Azgaar** renderers (`src/renderers/`: relief icons, coastline, rivers, labels, emblems) and its style presets: the fantasy-map vocabulary; extract the symbol placement and label logic.
-- **QGIS** `src/analysis/raster/qgshillshadefilter.cpp` and the symbology and labelling engine (`src/core/symbology/`, `src/core/labeling/`): rule-based styles and the PAL label placement design.
-- **CesiumJS** imagery layers and terrain shading on the globe.
+- **Azgaar** (MIT; checked in reconciliation group 6a). All geometry is in planar pixels with heights 0–100, so a port runs in a local tangent frame:
+  - relief symbol placement: `src/generators/relief-generator.ts` (`ReliefModule.generate`, Poisson-disc sampler). It calls the global `Math.random`, so the port needs an RNG keyed by cell id (§3.2);
+  - coastline shape and effects: `src/generators/coastline-generator.ts` (`fractalize`, seeded per feature), `src/renderers/coastal-waves.ts`, `heightmap-hachures.ts`, `lake-ripples.ts`;
+  - river paths: `src/generators/river-generator.ts` (`addMeandering`, `getRiverPath`) with `meander` in `src/utils/pathUtils.ts`;
+  - label path fitting: `src/renderers/labels/fit-state-label.ts` and `label-raycast.ts` (rays from the state's pole), `label-arc.ts` (burg arcs). The renderers have no collision handling, but **`src/controllers/label-spread.ts`** is a seeded, tested label-overlap solver (candidate positions, conflict components, refinement, simulated annealing; `Alea` from the map seed; it measures text through the SVG DOM, so a port needs font metrics). It is **the pick for the collision step** (Phase 5c, ruled 2026-10-18); QGIS PAL is the later, richer option;
+  - 14 style presets in `public/styles/` (schema `src/generators/styles-schema.ts`): the theme vocabulary, SVG-attribute-shaped.
+- **QGIS** (GPL-2.0-or-later; PAL GPL-3.0-or-later):
+  - hillshade: `src/core/raster/qgshillshaderenderer.cpp` (Horn derivatives, the GDAL fast formula and a multi-directional mode). Altitude is in degrees and azimuth clockwise from north. The cell size must be supplied in metres on the sphere. `src/analysis/raster/qgshillshadefilter.cpp` uses its angle as a zenith angle, so it is not the pick;
+  - label placement: PAL, `src/core/pal/` (candidates per feature, an initial FALP solution, then chain search; costs in `costcalculator.cpp`; curved placement in `feature.cpp`). It has no RNG, but its geometry is GEOS and its sorts are unstable, so a port needs its own geometry and stable ordering. A later option, not the Phase 5c pick;
+  - rule-based styles (`src/core/symbology/qgsrulebasedrenderer.cpp`, `src/core/labeling/qgsrulebasedlabeling.cpp`): a design reference, tied to Qt.
+- **CesiumJS** (Apache-2.0): globe shading is Lambert only. The slope, aspect, elevation-contour and elevation-band materials (`packages/engine/Source/Shaders/Materials/`, slope and aspect in `GlobeVS.glsl`) and the imagery brightness, contrast, hue, saturation and gamma (`GlobeFS.glsl`) are small closed forms. CesiumJS has no label declutter.
 - **orogen** `planet-mesh.js` colour maps and `scene.js`.
 - **Candidates to audit:** redblobgames mapgen4 (painterly terrain rendering), mewo2/terrain (Martin O'Leary's fantasy map style and label placement).
 - **Literature:** Imhof, *Cartographic Relief Presentation*; Jenny et al. on shaded relief; Christensen's label placement.
@@ -73,7 +83,7 @@ Tiled rendering with per-tile caches keyed by world hash and style hash; level-o
 
 ## 6. Open questions
 
-1. Should hand-drawn symbol sets ship with the app (CC0 packs) or be fetched on first use?
+1. Should hand-drawn symbol sets ship with the app (CC0 packs) or be fetched on first use? Phase 5c ships no third-party symbols; the question is settled with the asset audit at Phase 10b (note 19 §6).
 
 ## 7. Size estimate
 
@@ -81,7 +91,8 @@ Tiled rendering with per-tile caches keyed by world hash and style hash; level-o
 |---|---|
 | Style model and engine | ~2,500 |
 | Raster shaders and relief | ~1,500 |
-| Vector path and labels | ~2,500 |
+| Vector path and label rendering (path fitting, curved and area labels) | ~2,500 |
+| Label placement: port of Azgaar `label-spread.ts` (1,030 lines upstream), with font metrics in place of SVG DOM measurement and a style-and-viewport-keyed run. **Estimate** | ~1,300 |
 | Themes | ~1,000 |
 | Tests and goldens | ~1,500 |
 
