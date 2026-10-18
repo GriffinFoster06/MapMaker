@@ -12,7 +12,7 @@
 The requirement covers rivers, lakes and watersheds. The audits rate real lake and basin hydrology as weak everywhere (matrix gap 12):
 - orogen fills pits;
 - Azgaar detects lakes in depressions and closes them with a Penman-style evaporation proxy (`lakes.ts`: `getLakeEvaporation`, the `closed` flag);
-- Badlands has no explicit lakes.
+- Badlands fills depressions (Planchon–Darboux, `utils/classpd.f90` `fillPD`) and deposits sediment into pit volumes, but has no lake water balance.
 
 A plausible world needs:
 - lakes whose level comes from a **water balance**;
@@ -97,7 +97,7 @@ Azgaar's `lakes.ts` and `features-generator.ts` run through the facade on *our* 
   - Barnes, Callaghan & Wickert (2020), *Earth Surf. Dynam.* 8, "Computing water flow through complex landscapes", Parts 2 (depression hierarchies) and 3 (fill–spill–merge);
   - Budyko (1974); Fu (1981); Zhang et al. (2004), *WRR* 40;
   - Braun & Willett (2013), *Geomorphology* 180.
-- **WRF-Hydro:** excluded when written; allowed since ARCHITECTURE.md Q12. Phase 7 evaluates porting its Muskingum–Cunge / diffusive-wave channel routing and level-pool lake scheme for discharge in time-varying runs (history-axis floods, note 28), keeping the Barnes et al. depression hierarchy for topology.
+- **WRF-Hydro:** excluded when written; allowed since ARCHITECTURE.md Q12. Phase 7 evaluates porting its channel routing and level-pool lake scheme for discharge in time-varying runs (history-axis floods, note 28), keeping the Barnes et al. depression hierarchy for topology. The reach-based kernels fit a river graph over cells: `SUBMUSKINGCUNGE` (`src/Routing/module_channel_routing.F90:130`; per-reach length, slope, bottom width, side slope and Manning's n; SI; a secant depth solve) and `LEVELPOOL_PHYSICS` (`src/Routing/Reservoirs/Level_Pool/module_levelpool.F90:224`; weir and orifice outflow). The diffusive wave (`DIFFUSION`, `:53`) is a per-link flux that WRF-Hydro uses only in its gridded configuration (`drive_CHANNEL`, `:543`). Channel geometry has to be synthesised (hydraulic geometry from discharge), the lake outlet becomes a weir, and the hard-coded g = 9.81 (and the g implicit in Manning's n) must follow planet gravity. The native code is single precision, so it is a tolerance oracle only.
 
 ## 5. Validation
 

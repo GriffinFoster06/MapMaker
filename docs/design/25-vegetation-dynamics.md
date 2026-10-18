@@ -4,7 +4,7 @@
 |---|---|
 | Status | Draft (2026-10-13 overhaul) |
 | Built in | Phase 9b |
-| Depends on | Climate harmonics (notes 11, 24), soils (note 4), hydrology and groundwater (note 12), CO₂ (note 24), fire weather |
+| Depends on | Climate harmonics (notes 11, 24), soils (note 4), hydrology (note 12; groundwater has no design note yet, see `docs/reconciliation/group-2.md`), CO₂ (note 24), fire weather |
 | Used by | Biomes (stage 8), erosion (cover factor), albedo and the water balance (coupling loop), fauna (note 26), soils (organic input), the human layer (forests, farmland, timber, fuel), map art (true-colour and forest symbols) |
 
 ## 1. Problem

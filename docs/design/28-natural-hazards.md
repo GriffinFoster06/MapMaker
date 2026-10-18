@@ -32,7 +32,7 @@ Earthquakes, eruptions, tsunamis, floods, landslides, droughts, cyclones and imp
 
 ## 4. Upstream references (algorithm level)
 
-- **Delft3D** `src/engines_gpl/wave/` and D-Flow FM: wave, surge and tsunami propagation formulas, by reference.
+- **Delft3D** D-Flow FM (`src/engines_gpl/dflowfm/`, AGPL-3.0): a general shallow-water solver, a reference for surge propagation. Delft3D has no tsunami code (the only match for "tsunami" in `src/` is a third-party `config.guess`); tsunami propagation and run-up come from the literature below. `src/engines_gpl/wave/` only drives SWAN.
 - **orogen** `elevation.js` stress field: the input for seismicity along boundaries.
 - **Literature:** Gutenberg & Richter (1944); Newhall & Self (1982) VEI; GEM global earthquake model (rates by tectonic setting); Synolakis (1987) run-up; Collins et al. (2005) impact effects.
 

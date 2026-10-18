@@ -81,7 +81,7 @@ Added after the first pass: `tectonics.js` (see `audit/tectonics.js.md`, `docs/s
 | Rank | Repo | Rating | Extractability | Lang | License | Note |
 |---|---|---|---|---|---|---|
 | 1 | orogen | 4 | standalone | JS | GPL-3.0 | `terrain-post.js` (958 LOC, verified): glacial, hydraulic (priority-flood), thermal/talus, ridge sharpening, soil creep. |
-| 2 | Badlands | 4 | loose | Py/Fortran | GPL-3.0 | Stream-power law (6 variants) plus hillslope diffusion on a TIN; Braun-Willett flow ordering (`flow/flowNetwork.py`, `hillslope/`). Physically rigorous. |
+| 2 | Badlands | 4 | loose | Py/Fortran/C | GPL-3.0 | Five incision laws (detachment-limited and four sediment-flux-dependent forms, `utils/flowalgo.f90` `streampower`), applied explicitly with a CFL-limited step, plus linear and nonlinear hillslope diffusion (`utils/sfd.c`) on a TIN; Braun-Willett stack ordering (`flowalgo.f90` `buildfa`, `flow/flowNetwork.py`). Physically rigorous. |
 | 3 | Delft3D | 3 | tangled | Fortran | mixed | Sediment transport formulas (van Rijn); coastal/fluvial scale. Equations only. |
 
 **Pick: orogen** for the fast preview pass. **Re-implement Badlands' stream-power + diffusion in JS/TS** as the slow, realism-first pass behind the fidelity slider. That matches "prioritize realism over speed". The audit estimated 3-4 weeks for the flow network; I have not validated that.
@@ -91,8 +91,8 @@ Added after the first pass: `tectonics.js` (see `audit/tectonics.js.md`, `docs/s
 | Rank | Repo | Rating | Extractability | Lang | License | Note |
 |---|---|---|---|---|---|---|
 | 1 | Azgaar | 3 | loose | TS | MIT | `river-generator.ts`, `lakes.ts`, `features-generator.ts`: D8-style flow routing, discharge-based widths. No deltas. Verified (spike 1b): runs unmodified on orogen's sphere via a 75-line facade; all rivers terminate correctly at 200k. Uint16 flux overflows ≥~200k cells; river generation is superlinear (25 s at 1M). |
-| 2 | WRF-Hydro | 4 (channel routing) | loose | Fortran | custom UCAR, no resale | Muskingum / diffusive-wave channel routing, proven at continental scale. Reference only. |
-| 3 | Badlands | 3 | loose | Py | GPL-3.0 | Flow accumulation, no explicit lakes. |
+| 2 | WRF-Hydro | 4 (channel routing) | loose | Fortran | custom UCAR, no resale | Reach-based Muskingum and Muskingum–Cunge (`SUBMUSKINGCUNGE`, secant depth solve) and gridded diffusive-wave routing (`src/Routing/module_channel_routing.F90`), run continent-wide as the US National Water Model. Small arithmetic kernels: a Phase 7 port candidate since Q12 (single precision natively). |
+| 3 | Badlands | 3 | loose | Py/Fortran | GPL-3.0 | Flow accumulation; Planchon–Darboux pit filling with pit volumes and sediment infill (`utils/pdalgo.f90`, `classpd.f90`); no lake water balance. |
 | 4 | CTSM / ParFlow | 4 / 3 | tangled | Fortran/C | UCAR / LGPL-2.1 | Soil-water and overland flow. Not river-network *generation*. |
 | - | orogen | 2 | loose | JS | GPL-3.0 | Pit-filling only; no explicit river network, lakes, or watersheds. |
 
@@ -135,7 +135,7 @@ Added after the first pass: `tectonics.js` (see `audit/tectonics.js.md`, `docs/s
 |---|---|---|---|---|---|
 | 1 | orogen | 4 | loose | GPL-3.0 | `precipitation.js` (770), `heuristic-precip.js`: moisture advection plus six mechanisms (ITCZ, frontal, orographic, lee, polar, subtropical), tuned vs Earth. |
 | 2 | Azgaar | 3 | standalone | MIT | Wind-shadow heuristic. |
-| 3 | PISM | 2 | loose | GPL-3.0 | Orographic precipitation over given topography. |
+| 3 | PISM | 2 | loose | GPL-3.0 | Orographic precipitation over given topography (Smith & Barstad 2004 by FFTW on a regular grid, `OrographicPrecipitationSerial.cc`). Badlands has the same model with its own FFT (`utils/ormodel.f90`). |
 
 **Pick: orogen.**
 
@@ -365,14 +365,14 @@ These are the capabilities with **no usable implementation in any upstream repo*
 
 ## Expanded scope (2026-10-13, ARCHITECTURE.md Q12–Q13)
 
-Q12 lifted licence restrictions and Q13 widened the scope to every domain in `docs/REQUIREMENTS.md`. This section re-decides the picks that licences had decided and maps the new domains to the audited upstreams. Ratings and paths come from the per-repo audits; they were not re-verified against source in this pass (`upstream/` was not checked out at the time).
+Q12 lifted licence restrictions and Q13 widened the scope to every domain in `docs/REQUIREMENTS.md`. This section re-decides the picks that licences had decided and maps the new domains to the audited upstreams. Ratings and paths come from the per-repo audits; they were not re-verified against source in this pass (`upstream/` was not checked out at the time). Rows for the repos covered by `docs/reconciliation/` have since been checked and corrected.
 
 ### Picks re-decided after Q12
 
 | Capability | Before Q12 | After Q12 | Note |
 |---|---|---|---|
 | Plate kinematics and reconstruction | GPlates as math reference; formulas re-implemented | **Port GPlates** `src/maths` and `src/app-logic/Reconstruction*` to TypeScript | 13 |
-| River channel routing (time-varying discharge) | Azgaar topology only; WRF-Hydro excluded | Azgaar topology + **WRF-Hydro** Muskingum–Cunge / diffusive-wave routing as a candidate for Phase 7 | 12 |
+| River channel routing (time-varying discharge) | Azgaar topology only; WRF-Hydro excluded | Azgaar topology + **WRF-Hydro** reach-based Muskingum–Cunge (`SUBMUSKINGCUNGE`) and level-pool lake outflow (`LEVELPOOL_PHYSICS`) as a Phase 7 port candidate; its diffusive wave is a gridded option | 12 |
 | Economics (markets, firms, credit) | Original code; Eurace excluded | **Eurace** goods-market and decision rules as the candidate core for Phase 13b | 1 |
 | Vegetation and soil water | LPJmL as algorithm reference (AGPL) | **Port LPJmL** core | 4, 25 |
 | Species dispersal | RangeShiftR concepts | **Port RangeShiftR** core for the fine tier | 26 |
@@ -383,15 +383,15 @@ Q12 lifted licence restrictions and Q13 widened the scope to every domain in `do
 |---|---|---|---|
 | Stars, orbits, moons, tides | **VPLanet** DistOrb, DistRot, EqTide, Stellar (port) | — | 20 |
 | Mantle, heat flow, magnetic field | **VPLanet** ThermInt, RadHeat (port) | ASPECT (rheology parameters, `dynamic_core.cc` core evolution; dynamic topography only as a formula reference, since it needs the FEM stress field), tectonics.js (isostasy) | 21 |
-| Ice sheets, glaciers, sea level | **PISM** SIA/SSA and verification (port to the sphere) | CTSM glacier mass balance, VPLanet POISE ice, orogen glacial erosion | 22 |
+| Ice sheets, glaciers, sea level | **PISM** SIA/SSA formulations, exact solutions A–D (port as golden values) and `src/earth/` bed deformation, as references for a new SIA solver on the sphere (PISM's code is PETSc on a regular projected grid) | CTSM glacier mass balance, VPLanet POISE ice, orogen glacial erosion | 22 |
 | Ocean circulation | **MOM6** formulations (new solver on the sphere) | orogen `ocean.js` (parity), MARBL (biogeochemistry) | 23 |
-| Coasts, deltas, sediment | **Delft3D** morphology and wave formulas | Badlands | 23 |
-| Groundwater | **ParFlow** formulations | CTSM hydrology | 12 |
+| Coasts, deltas, sediment | **Delft3D** sediment-transport formulas (van Rijn 1984/1993/2004, Bijker, Soulsby; `src/utils_gpl/morphology/packages/morphology_kernel/src/`). Its wave engine is a SWAN driver (reference only); landform rules are new | Badlands | 23 |
+| Groundwater | **ParFlow** formulations (van Genuchten/Haverkamp closed forms; the Richards solver as a reference) | CTSM hydrology | 12 (proposes surface water only; no groundwater design yet) |
 | Atmosphere dynamics, paleoclimate | New, from published models | VPLanet POISE (paleo EBM), CESM docs; candidates ModelE/ROCKE-3D | 24 |
 | Vegetation, fire | **LPJmL** (port) | CTSM CNDV and fire | 25 |
 | Fauna, ranges | **RangeShiftR** (port) | SLiM spatial maps, GAMA, FLAMEGPU2 | 26 |
 | Evolution | New; **SLiM** concepts | RangeShiftR traits; candidate gen3sis | 27 |
-| Hazards | New, from published statistics | Delft3D (surge, tsunami), orogen stress | 28 |
+| Hazards | New, from published statistics | Delft3D D-Flow FM (surge, as a shallow-water reference; no tsunami code), orogen stress | 28 |
 | Disease | New (metapopulation SEIR) | FLAMEGPU2, GAMA, SLiM examples | 29 |
 | Prehistory, dispersal | New | SLiM, GAMA, LIAM2, SongsOfFOSS migration | 30 |
 | Technology | New | SongsOfFOSS, Eurace capital vintages | 31 |
@@ -427,20 +427,20 @@ These are not in `upstream-manifest.json` yet. Each needs an audit in `audit/` (
 | orogen | GPL-3.0 | Core of the plan. |
 | Azgaar | MIT | |
 | VPLanet | MIT | Verified (`LICENSE`). |
-| Badlands | GPL-3.0 | |
+| Badlands | GPL-3.0 | Root `LICENSE` and `pyproject.toml` say GPL-3.0; `COPYING.LESSER` and the two files with headers (`model.py`, `__init__.py`) say LGPL-3.0-or-later; the rest point to a missing `LICENSE.md`. Recorded as GPL-3.0. |
 | GPlates | GPL-2.0-only | Verified: `COPYING` preamble says "version 2 ... not any later version". Incompatible with GPL-3.0; was math reference only, may be ported since Q12. |
 | CesiumJS | Apache-2.0 | |
 | LPJmL, FLAMEGPU2 | AGPL-3.0 | Network-copyleft. |
 | Eurace | custom EULA | **Do not extract** without legal review. Owner-controlled modification and redistribution (verified in `LICENSE.md`). |
-| WRF-Hydro | custom UCAR | **No sale/licensing for a fee of the Software or any work containing it** (verified in `LICENSE.txt` section 1). Blocks any commercial use. |
-| Delft3D | multi-license | Per-component licenses (`utils_lgpl`, `utils_gpl`, ...). The audit reports GPL/AGPL components, which does not match the manifest's LGPL-2.1/Apache-2.0 entry. Check per-file before use. |
+| WRF-Hydro | custom UCAR | **No sale/licensing for a fee of the Software or any work containing it** (verified in `LICENSE.txt` section 1, lines 6–7). Blocks any commercial use; recorded, not enforced, since Q12. `src/Rapid_routing/` is BSD-3-Clause. |
+| Delft3D | multi-license | Verified per component: `utils_gpl` (including the morphology formulas) GPL-3.0-only, D-Flow FM AGPL-3.0, `utils_lgpl` LGPL-2.1, SWAN GPL-2.0-or-later; Apache-2.0 only in third-party code. The manifest's "LGPL-2.1, Apache-2.0, others" entry is incomplete. |
 | CESM, CTSM, MARBL, WRF-Hydro | UCAR BSD-style / custom | Fine for reference. CESM has no code here. |
 
 Combined work: the recommended core mixes GPL-3.0 (orogen, Badlands-derived), MIT, GPL-2.0 (GPlates-derived) and Apache-2.0. Per the brief this is ignored for now, but the combined output would effectively be GPL-3.0, and GPL-2.0-only code could not be included under the old rules; since Q12 this is recorded, not enforced.
 
 ## Repos with nothing to extract (reference or skip)
 
-ASPECT, CESM (empty checkout), CTSM, Delft3D, MARBL, MOM6, ParFlow, PISM, WRF-Hydro (HPC Fortran/C++, no browser path; physics references only), MESSAGEix, Eurace, LIAM2, OpenSpiel, FLAMEGPU2, Godot, SLiM, GAMA, RangeShiftR, UrbanSim (domain mismatch or unportable; design references only). QGIS and PostGIS offer ideas and algorithm references (projection handling, terrain filters, geometry) but depend on PROJ/GDAL/GEOS, which are not present.
+ASPECT, CESM (empty checkout), CTSM, Delft3D, MARBL, MOM6, ParFlow, PISM, WRF-Hydro (HPC Fortran/C++, no browser path; physics references only, except small closed-form pieces: WRF-Hydro's channel-routing and level-pool kernels, PISM's exact solutions, Delft3D's transport formulas), MESSAGEix, Eurace, LIAM2, OpenSpiel, FLAMEGPU2, Godot, SLiM, GAMA, RangeShiftR, UrbanSim (domain mismatch or unportable; design references only). QGIS and PostGIS offer ideas and algorithm references (projection handling, terrain filters, geometry) but depend on PROJ/GDAL/GEOS, which are not present.
 
 ## Decisions for you
 

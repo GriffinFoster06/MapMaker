@@ -1,5 +1,7 @@
 # Audit: Delft3D
 
+> **Reconciled 2026-10-18** against the source at `38d2603` (`docs/reconciliation/group-2.md`). Corrected: transport-formula locations (no Watanabe formula exists), `engines_gpl/wave/` is a SWAN driver with no wave formulas of its own, no tsunami code, the morphology licence (GPL-3.0-only, not AGPL), the SWAN licence (GPL-2.0-or-later), and the manifest comparison.
+
 ## 1. Overview
 
 Delft3D is a professional-grade hydrodynamics and morphodynamics simulation suite developed by Deltares for modeling coastal, estuarine, and fluvial systems. It contains ~4,700 Fortran source files (~1.55M LOC) and ~1,630 C/C++ files (~166k LOC) organized into multiple coupled engines (D-Flow FM, Delft3D-FLOW, D-Hydrology, D-WAQ, D-Waves, Delft3D-PART) for structured and unstructured grid simulations. The project is mature, actively maintained (commit 38d26033e69776078c09f6985d32840b4d3cf444), and used operationally by hydrological engineering firms worldwide. It is NOT designed for whole-planet world-building or browser deployment.
@@ -62,9 +64,9 @@ Estimated effort: 6+ months of expert porting work, or complete algorithmic reim
 **Requirements capabilities it could serve:** Hydrology (rivers/lakes/watersheds), partial-world inference (if regional flow inferred from surrounding topography).
 
 ### 3.2 Morphodynamics / Sediment Transport
-**Where:** `src/utils_gpl/morphology/packages/` (data/kernel modules), coupled into `flow2d3d` and `dflowfm`
+**Where:** `src/utils_gpl/morphology/packages/` (35,170 lines of Fortran), coupled into `flow2d3d` and `dflowfm`. Transport formulas in `morphology_kernel/src/`, dispatched by `eqtran.f90` on `iform` (`:304–386`): `tranb7.f90` van Rijn (1984), `tram1.f90` van Rijn (1993, :48), `tram2.f90` van Rijn (2004), `tranb1.f90` Engelund–Hansen, `tranb2.f90` Meyer-Peter–Müller, `tranb5.f90` Bijker with waves, `trab11.f90` Soulsby/van Rijn, `trab12.f90` Soulsby, `trab14.f90` Ashida–Michiue, `trab19.f90` Van Thiel/van Rijn (2008), `trab20.f90` Soulsby/van Rijn (XBeach). MorFac update in `updmorfac.f90`; the bed-level (Exner) update in `flow2d3d_kernel/src/compute_sediment/bott3d.f90` and `dflowfm_kernel/src/dflowfm_kernel/compute_sediment/m_fm_bott3d.f90`.
 
-**What it does:** Models bedload and suspended-load sediment transport using empirical transport formulas (van Rijn, Watanabe, etc.), bed roughness evolution, bank erosion, and morphological acceleration (time-step multiplication for faster bed changes). Includes limitations: primarily for non-cohesive sediment, tropical rivers, coastal zones; NOT for deep-time/tectonic erosion.
+**What it does:** Models bedload and suspended-load sediment transport using empirical transport formulas (van Rijn, Engelund–Hansen, Meyer-Peter–Müller, Bijker, Soulsby; no Watanabe formula exists in the source), bed roughness evolution, bank erosion, and morphological acceleration (time-step multiplication for faster bed changes). Includes limitations: primarily for non-cohesive sediment, tropical rivers, coastal zones; NOT for deep-time/tectonic erosion.
 
 **Quality & realism rating: 3/5** — Useful for engineering timescales (days–years) and coastal/fluvial morphodynamics. Limited to small sediment size ranges and moderate flow. Does NOT include: hillslope/landscape erosion, regolith production, tectonic interactions, vegetation effects on erosion. Calibrated for real rivers but not suitable for fantasy world generation (which typically needs broader parameter ranges and less tuning data).
 
@@ -97,7 +99,7 @@ Estimated effort: 6+ months of expert porting work, or complete algorithmic reim
 ### 3.5 Wave Modeling – D-Waves / Delft3D-WAVE
 **Where:** `src/engines_gpl/wave/`
 
-**What it does:** Wave generation, growth, refraction, and dissipation. Wrapper around SWAN (Simulating WAves Nearshore, third-party Fortran library in `src/third_party_open/swan/`). Provides 2D spectral wave model for coastal/estuarine applications.
+**What it does:** A driver that prepares grids, runs SWAN and maps its output to the flow grid (`packages/kernel/src/`: `run_swan.f90`, `wave2flow.f90`, `map_swan_output.f90`). It has no wave formulas of its own. The physics is SWAN (Simulating WAves Nearshore, a spectral action-balance model, third-party, `src/third_party_open/swan/`, 78 source files). Separately, D-Flow FM contains an XBeach-style surf-beat wave module (`dflowfm_kernel/src/dflowfm_kernel/compute_waves/surfbeat/xbeachwaves.f90`, AGPL).
 
 **Quality & realism rating: 3.5/5** — SWAN is a well-validated spectral wave model (used operationally by NOAA, many coastal authorities). Good for regional coastal applications. NOT for global/planetary ocean dynamics.
 
@@ -204,12 +206,13 @@ Estimated effort: 6+ months of expert porting work, or complete algorithmic reim
 
 **Verified from `/Users/griffinfoster/Projects/MapMaker/upstream/Delft3D/LICENSE`:**
 
-- **Deltares-authored code:**
-  - GPL-3.0 or AGPL-3.0 (simulation engines: D-Flow FM, Delft3D-FLOW, D-Morphology, D-WAQ, D-Waves, D-Part, Real-Time Control, Rainfall-Runoff)
+- **Deltares-authored code** (root `LICENSE:9–12` lists AGPL, GPL and LGPL; texts `agpl-3.0.txt`, `gpl-3.0.txt`, `lgpl-2.1.txt`):
+  - AGPL-3.0: D-Flow FM (1,482 files under `src/engines_gpl/dflowfm/packages` carry the Affero header), parts of RR, RTC and PART
+  - GPL-3.0-only ("the Free Software Foundation version 3", no "or later"): `src/utils_gpl/` including morphology (e.g. `tranb7.f90` header), Delft3D-FLOW, the wave driver
   - LGPL-2.1 (utility libraries: gridgeom, nefis, delftio, io_netcdf, waq_hyd_data, deltares_common, etc.)
 
 - **Third-party bundled code:**
-  - SWAN wave model: GPL-3.0 (in `src/third_party_open/swan/`)
+  - SWAN wave model: GPL-2.0-or-later (`src/third_party_open/swan/swan_license_info.txt`)
   - METIS graph partitioning: Apache 2.0 or custom (in `src/third_party_open/metis/`)
   - Triangle mesh generator: license in `src/third_party_open/triangle/` (custom, see LICENSE file)
   - FLAP Fortran library: GPL-3.0, BSD-2, BSD-3, or MIT (user choice; in `src/third_party_open/FLAP/`)
@@ -220,16 +223,16 @@ Estimated effort: 6+ months of expert porting work, or complete algorithmic reim
 
 - **Per-component verification:**
   - `src/engines_gpl/` directories: GPL-3.0 and AGPL-3.0 (confirmed by file headers and LICENSE annotations)
-  - `src/utils_gpl/` directories: GPL-3.0
+  - `src/utils_gpl/` directories: GPL-3.0-only (including the morphology and sediment-transport code)
   - `src/utils_lgpl/` directories: LGPL-2.1
   - `src/plugins_lgpl/` directories: LGPL-2.1
   - `src/tools_gpl/` directories: GPL-3.0 and LGPL-2.1 (mixed)
 
-**Manifest match:** ✓ Yes. Upstream-manifest.json lists "Multiple (LGPL-2.1, Apache-2.0, others per component)" which is accurate.
+**Manifest match:** Incomplete. `upstream-manifest.json` lists "Multiple (LGPL-2.1, Apache-2.0, others per component)". The Deltares code is mostly GPL-3.0-only and AGPL-3.0; Apache-2.0 appears only in third-party code (e.g. METIS). The manifest was not edited in this pass (configuration, not an audited document); the formulas MapMaker uses are GPL-3.0-only.
 
 **Copyleft strength:**
 - GPL-3.0 (engines): Strong reciprocal; any derivative must be released under GPL-3.0 or compatible.
-- AGPL-3.0 (D-Flow FM, D-Morphology): Network use clause; if Delft3D used as a service (e.g., cloud API), source must be offered to users.
+- AGPL-3.0 (D-Flow FM; not the morphology library, which is GPL-3.0-only): Network use clause; if Delft3D used as a service (e.g., cloud API), source must be offered to users.
 - LGPL-2.1 (utilities): Weak reciprocal; can link from proprietary code if library unmodified or modifications shipped as separate object files.
 
 **Patent clauses:** None explicitly stated; GPLv3 includes anti-Tivoization clause (relevant if deploying on restricted hardware).
@@ -280,7 +283,7 @@ Estimated effort: 6+ months of expert porting work, or complete algorithmic reim
 
 **Worth extracting:**
 1. **Flow routing logic** (if reimplemented in JS): 1D/2D shallow-water equations or simplified quasi-2D routing could inspire a fast regional hydrology engine. Estimated extraction: weeks–months of algorithmic study + JS reimplementation (medium effort).
-2. **Sediment transport formulas** (bedload/suspended): Van Rijn, Watanabe coefficients are well-documented empirical relationships; worth adapting if MapMaker needs regional-scale erosion. Estimated extraction: days (documentation only; no code reuse).
+2. **Sediment transport formulas** (bedload/suspended): van Rijn (1984, 1993, 2004), Engelund–Hansen, Meyer-Peter–Müller, Bijker and Soulsby are closed-form empirical relationships (gravity and densities are parameters, e.g. `ag` in `tranb7.f90`); worth adapting if MapMaker needs regional-scale erosion. Estimated extraction: days (documentation only; no code reuse).
 3. **Mesh/grid utilities** (gridgeom): Unstructured mesh topology ops (triangulation, neighbor-finding, area/length calcs) could be extracted or replaced with existing JS libraries (Delaunay.js, turf.js). Estimated extraction: low (reference only; use JS equivalents).
 
 **Skip:**
@@ -299,4 +302,4 @@ Estimated effort: 6+ months of expert porting work, or complete algorithmic reim
 - Can D-Hydrology hydrology kernel be isolated and ported without the full flow solver? (Needs deeper code inspection; estimated feasibility: 50%)
 - Are there standalone implementations of van Rijn sediment transport in JS/TS? (Likely yes; recommend searching npm before extracting Fortran)
 
-**Recommendation:** Use Delft3D as an *algorithmic and validation reference* (for equations, parameter ranges, test cases). Do NOT attempt code extraction. Invest in a custom JS/TS hydrology + erosion engine drawing on published scientific literature (cited in Delft3D docs, e.g., van Rijn 1984, Watanabe 1987) and simpler, more modular architectures (e.g., inspired by orogen, ASPECT's approach to geodynamics).
+**Recommendation:** Use Delft3D as an *algorithmic and validation reference* (for equations, parameter ranges, test cases). Do NOT attempt to extract the solvers. The closed-form transport formulas (§3.2) are small enough to port through `dmath` (GPL-3.0-only, compatible with MapMaker's GPL-3.0; recorded per Q12). Invest in a custom JS/TS hydrology + erosion engine drawing on published scientific literature (cited in Delft3D docs, e.g., van Rijn 1984, 1993, 2007) and simpler, more modular architectures (e.g., inspired by orogen, ASPECT's approach to geodynamics).

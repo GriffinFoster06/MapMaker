@@ -231,7 +231,7 @@ The design above was implemented with measured deviations. `docs/checkpoints/CHE
 - **orogen `cc2662b`.** `coarse-plates.js` (the reference-mesh pattern, `projectCoarsePlates` with continuous FBM wobble), `elevation.js` (stages 1–13, `applyPhasorRidges`), `terrain-post.js`, and the climate modules. Code is ported under GPL-3.0.
 - **Spike 1c** (`spikes/1c/ab.mjs`): the restriction operator and every A/B metric.
 - **Spectral nudging:** von Storch, Langenberg & Feser (2000), *Mon. Wea. Rev.* 128.
-- **Linear orographic precipitation:** Smith & Barstad (2004), *J. Atmos. Sci.* 61; PISM `src/coupler/atmosphere/OrographicPrecipitation.cc` as an algorithm reference only.
+- **Linear orographic precipitation:** Smith & Barstad (2004), *J. Atmos. Sci.* 61; PISM `src/coupler/atmosphere/OrographicPrecipitationSerial.cc` (transfer function at `:258–263`, solved with FFTW on a padded regular grid) as an algorithm reference only. Badlands `utils/ormodel.f90` and `utils/classoro.f90` implement the same model with a self-contained mixed-radix FFT, a second reference. Both work in Fourier space on a regular planar grid; a tangent-plane window needs its own FFT through `dmath`.
 - **Multigrid restriction, prolongation and correction:** Briggs, Henson & McCormick, *A Multigrid Tutorial* (2000).
 - **Order-independent sampling without replacement** by smallest hash key: bottom-k sketches (Cohen & Kaplan 2007).
 

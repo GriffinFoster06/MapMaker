@@ -1,12 +1,14 @@
 # Audit: ParFlow
 
+> **Reconciled 2026-10-18** against the source at `abb239b` (`docs/reconciliation/group-2.md`). Corrected: units (any consistent set, not SI), Fortran and CLM sizes, the random-field code (turning bands and PGS, not kriging in `geostats.c`), the vendored KINSOL, and file locations for the retention curves.
+
 ## 1. Overview
 
 ParFlow is an open-source, modular, parallel integrated hydrologic model that couples surface and subsurface flows, jointly developed by Colorado School of Mines, Lawrence Livermore National Lab, University of Bonn, and UC Berkeley since 1995. It is highly mature (v3.15.0), actively maintained, and widely used for hydrogeological research and engineering. The codebase is ~144K lines in the simulator (pfsimulator/), ~66K in tools (pftools/), split across C, Fortran, and C++ for HPC parallelization.
 
 ## 2. Language, runtime, dependencies, build
 
-- **Languages**: C (168 .c files), Fortran (2 .F files, 67 .F90 files, ~144K lines total in pfsimulator/). Tools include TCL, Python, C. Mixed allocation: ~70% C, ~25% Fortran, ~5% C++/tools.
+- **Languages**: C (168 .c files in `parflow_lib/`), Fortran (2 .F and 72 .F90 files, 63 of them the CLM in `pfsimulator/clm/`); ~144K lines in total in pfsimulator/. Tools include TCL, Python, C. Mixed allocation: ~70% C, ~25% Fortran, ~5% C++/tools.
 - **Runtime**: HPC-centric compiled executable with MPI parallelization; runs on Linux, macOS, Windows (with caveats); laptop-scale to supercomputer. No browser/Node.js capability.
 - **Key dependencies** (versioned where pinned):
   - MPI (OpenMPI, MPICH, or vendor MPI; required for default builds)
@@ -14,6 +16,7 @@ ParFlow is an open-source, modular, parallel integrated hydrologic model that co
   - HDF5 (with parallel I/O)
   - Tcl (required for pftools)
   - Optional: CUDA (GPU acceleration), Kokkos (vendor-neutral GPU programming), OpenMP, HYPRE (algebraic multigrid), SILO, PDI, SUNDIALS (ODE solver)
+  - Vendored: a 1999 LLNL copy of KINSOL (Newton–Krylov, `pfsimulator/kinsol/kinsol.c`), cJSON (`pfsimulator/third_party/cjson/`, MIT)
   - Third-party bundled: mesh simplification (MIT), TCLAP (OpenSource), plus vendored code in pftools/third-party/
 - **Does it build?** CMake-based build verified by inspection. Requires cmake ≥3.22, Fortran compiler (gfortran/ifort), C compiler, and MPI installation. No build attempted (per hard rules), but CI passes on Linux (GitHub Actions badge in README). Complexity: moderate to high (MPI, parallel I/O dependencies).
 - **Can it run in a browser?** No. ParFlow is a compiled HPC simulator requiring MPI, NetCDF, HDF5, and Fortran runtime. **Porting to browser would require a complete rewrite** of the solver and I/O stack from C/Fortran to JS/WASM (effort: very high; estimated 500K+ LOC rewrite for core solver alone). Extracting subsystems is possible (e.g., overland flow kernel) but would still need numerical solvers and grid management ported.
@@ -21,7 +24,7 @@ ParFlow is an open-source, modular, parallel integrated hydrologic model that co
 ## 3. Subsystem inventory
 
 ### 3.1 Subsurface (saturated/unsaturated) groundwater flow
-- **Where**: pfsimulator/parflow_lib/ (core solver ~50+ files), including nl_function_eval.c, saturation_eval.c, Richards equation discretization
+- **Where**: pfsimulator/parflow_lib/: `nl_function_eval.c` (2,547 lines, the Richards residual), `solver_richards.c` (7,149 lines, the time loop); van Genuchten and Haverkamp saturation in `problem_saturation.c` (case 1 at :221, closed form at :283–285) and relative permeability in `problem_phase_rel_perm.c` (van Genuchten case 1 at :567, Haverkamp case 2 at :1363). There is no `saturation_eval.c`.
 - **What it does**: Solves coupled surface-subsurface flow via Richards equation (variably saturated flow) with heterogeneous hydraulic conductivity tensors on structured grids; includes wells, boundary conditions, storage, and source/sink terms. Parallel assembly and solve via HYPRE/KINsol or custom iterative solvers.
 - **Quality & realism rating: 5/5** — Reference-grade hydrogeological model published in peer-reviewed literature (Ashby & Falgout 1996, Jones & Woodward 2001, Kollet & Maxwell 2006). Extensively validated on field sites and benchmarks. Solves real physics (mass conservation, Darcy's law) on real domains.
 - **Extractability: loosely coupled** — Solver is self-contained in nl_function_eval.c and related files (~15K LOC); imports grid, vectors, problem data structures, and material properties. Depends on HYPRE/KINsol and custom matrix/vector backends. To extract: ~200 LOC core loop, ~5K LOC for discretization, full solver ~10K LOC. Porting to JS/WASM is feasible but non-trivial (requires JS linear algebra library, e.g., stdlib, and numerical solver adaptation). Effort: medium–high.
@@ -35,10 +38,10 @@ ParFlow is an open-source, modular, parallel integrated hydrologic model that co
 - **Requirements capabilities it could serve**: Hydrology (overland/surface routing), partial Climate (connects to rainfall forcing via CLM).
 
 ### 3.3 Land-surface processes coupling (CLM — Community Land Model)
-- **Where**: pfsimulator/clm/ (67 Fortran90 files, ~45K LOC)
+- **Where**: pfsimulator/clm/ (63 .F90 files, 11,833 lines)
 - **What it does**: Integrates NCAR's Community Land Model to compute energy balance, snow, canopy interception, soil water stress on plant transpiration, soil temperature, and albedo. Driven by atmospheric forcings (air temperature, wind, humidity, precipitation, radiation). Provides land-surface boundary conditions and feedbacks to ParFlow's subsurface.
 - **Quality & realism rating: 4/5** — CLM is a mature, widely-used global climate model land component; good physics (energy, water, carbon cycles). However, ParFlow uses it as a land-surface flux calculator, not as a generative model. Requires pre-computed or externally-provided atmospheric forcings (i.e., does not generate climate from first principles; takes temperature/wind/rain as input). Not suitable as a standalone climate generator for MapMaker without driving data.
-- **Extractability: tangled** — CLM is tightly integrated into pfsimulator via Fortran modules and shared state (clmtype.F90, drv_couple.F90). Decoupling requires substantial refactoring. CLM itself has ~40K LOC and was designed for Earth-system models, not browser runtime. **Porting CLM to browser would be a separate multi-month effort.**
+- **Extractability: tangled** — CLM is tightly integrated into pfsimulator via Fortran modules and shared state (clmtype.F90, drv_couple.F90). Decoupling requires substantial refactoring. CLM was designed for Earth-system models, not browser runtime. **Porting CLM to browser would be a separate multi-month effort.**
 - **Requirements capabilities it could serve**: Climate (temperature, wind, precipitation, seasons) — but only as a coupler to external forcings, not as a generator.
 
 ### 3.4 Discretization, grid, and solver infrastructure
@@ -63,38 +66,40 @@ ParFlow is an open-source, modular, parallel integrated hydrologic model that co
 - **Requirements capabilities it could serve**: Import (DEM/heightmap), if extended; not suitable for terrain generation.
 
 ### 3.7 Material properties and spatial heterogeneity
-- **Where**: pfsimulator/parflow_lib/{geostats.c, background.c, and material property input handlers}
-- **What it does**: Assigns hydraulic conductivity, specific storage, porosity, van Genuchten/Brooks-Corey retention curves via spatially-varying fields. Supports geostatistical sampling (indicator kriging via geostats.c) to generate realizations from a covariance model.
-- **Quality & realism rating: 3/5** — Hydrogeologically sound (van Genuchten, Brooks-Corey) but not integrated with climate, terrain, or biomes. Geostatistical capability is useful but limited to kriging on pre-defined domains.
-- **Extractability: standalone** — Material property assignment and kriging are ~3K LOC. Depends on geostatistical libraries (external). Porting: medium (kriging is computational; would need JS implementation or lookup tables).
+- **Where**: pfsimulator/parflow_lib/{turning_bands.c, turning_bandsRF.c, pgsRF.c, background.c, and material property input handlers}; `geostats.h` is a header, there is no `geostats.c`
+- **What it does**: Assigns hydraulic conductivity, specific storage, porosity, van Genuchten or Haverkamp retention curves (also constant, tabulated, polynomial or file-based: `problem_saturation.c` cases 0–5, :168–602) via spatially-varying fields. Generates heterogeneous permeability realisations as random fields by turning bands or parallel Gaussian simulation (PGS), with an explicit seed key `Geom.<name>.Perm.Seed` (`turning_bandsRF.c:149`, `:519`).
+- **Quality & realism rating: 3/5** — Hydrogeologically sound (van Genuchten, Haverkamp) but not integrated with climate, terrain, or biomes. Geostatistical capability is useful but limited to random fields on pre-defined domains.
+- **Extractability: standalone** — Material property assignment and random-field generation are ~3K LOC, self-contained. Porting: medium (the RNG would be replaced by MapMaker streams).
 - **Requirements capabilities it could serve**: Soils (if extended to couple with biomes and climate); Hydrology (hydraulic properties).
 
 ### 3.8 Numerical solver (nonlinear and linear algebra)
-- **Where**: pfsimulator/parflow_lib/{kinsol/ (KINsol driver), solver.c, nl_function_eval.c}
-- **What it does**: Newton-Krylov nonlinear solver (wraps SUNDIALS' KINsol) with configurable Krylov solver and preconditioner; supports implicit time stepping. AMPS communication layer abstracts MPI.
-- **Quality & realism rating: 4/5** — Industry-standard SUNDIALS; well-proven in HPC. However, not suitable for real-time browser simulation (Newton-Krylov requires many linear solves per time step).
-- **Extractability: loosely coupled** — Solver driver is ~2K LOC. Depends on SUNDIALS (external library, C). Porting to JS would require a JS implementation of Newton-Krylov or use of a JS numerical library (e.g., TensorFlow.js, but not designed for PDE solvers). Effort: high.
+- **Where**: pfsimulator/kinsol/ (vendored KINSOL), pfsimulator/parflow_lib/{kinsol_nonlin_solver.c, solver.c, nl_function_eval.c}
+- **What it does**: Newton-Krylov nonlinear solver (the vendored 1999 KINSOL in `pfsimulator/kinsol/`, built by default, `pfsimulator/CMakeLists.txt:13`; external SUNDIALS is an optional extra, `CMakeLists.txt:514`, off by default) with configurable Krylov solver and preconditioner; supports implicit time stepping. AMPS communication layer abstracts MPI.
+- **Quality & realism rating: 4/5** — KINSOL is the ancestor of SUNDIALS' solver; well-proven in HPC. However, not suitable for real-time browser simulation (Newton-Krylov requires many linear solves per time step).
+- **Extractability: loosely coupled** — Solver driver is ~2K LOC. Depends on the vendored KINSOL (C). Porting to JS would require a JS implementation of Newton-Krylov or use of a JS numerical library (e.g., TensorFlow.js, but not designed for PDE solvers). Effort: high.
 - **Requirements capabilities it could serve**: Infrastructure (solver); not suitable for browser latency requirements without significant optimization.
 
 ## 4. Internal data representation
 
 - **Grid type**: Regular Cartesian grid in x, y, z with optional terrain-following coordinates (σ-coordinate transformation available). No Voronoi, icosahedral, or cubed-sphere support.
 - **Resolution**: User-specified uniform grid spacing (NX, NY, NZ cells); typical applications range from 50³ to 500³ cells on workstations, up to 10,000³+ on supercomputers. Terrain-following coordinates allow finer resolution near the surface.
-- **Units**: SI (meters, seconds, kg/m³, Pa, etc.). Pressures in Pa; permeabilities in m²; specific storage in 1/Pa.
+- **Units**: any consistent set; ParFlow assumes none (`docs/user_manual/keys.rst:40–44`). Pressure is head [L] and permeability is saturated hydraulic conductivity [L T⁻¹] (`models.rst:639–641`); applications commonly use m and h. Gravity is an input (head = p/(ρg), `problem_saturation.c:283`).
 - **Coordinate system**: Cartesian (x, y, z); can be mapped to lat/lon via preprocessing. No native spherical coordinates or multi-patch support.
-- **Time representation**: Explicit time stepping with configurable time step (seconds); no built-in seasonal cycles (seasonal forcing must come from external data).
+- **Time representation**: Configurable time step in user time units; each step is a nonlinear Newton–Krylov solve (`kinsol_nonlin_solver.c`, vendored KINSOL); no built-in seasonal cycles (seasonal forcing must come from external data).
 - **Serialization**: Native .pfb (ParFlow binary) format (grid values at each timestep); also outputs NetCDF, HDF5, SILO. Custom Python/Tcl tools for inspection. State saving: full domain dump (.pfb files) + simulation log; resumable only via restart feature (not a first-class design goal).
-- **RNG/seeding**: Geostatistical kriging uses random field generation; seeding is available but not emphasized for reproducibility across runs (no first-class "same seed" feature like MapMaker requires). Parallel RNG state management is implicit in AMPS layer.
+- **RNG/seeding**: The random-field generators (turning bands, PGS) take an explicit seed; reproducibility across runs and processor counts is not a stated goal (no first-class "same seed" feature like MapMaker requires). Parallel RNG state management is implicit in AMPS layer.
 - **Multi-resolution and zoom consistency**: Not supported. Regular Cartesian grid only; no built-in hierarchy or level-of-detail mechanism. Would require custom implementation to support MapMaker's planet + regional patches with consistent detail.
 
 ## 5. License
 
-**SPDX**: LGPL-2.1 (verified in /LICENSE.txt, lines 1–408)
+**SPDX**: LGPL-2.1 (verified in /LICENSE.txt; the LGPL statement is at line 12, the version at line 27)
 **File path**: /LICENSE.txt
 **Mixed licenses in bundled code**:
-- Mesh Simplification (Sven Forstmann): MIT License
-- TCLAP (Michael E. Smoot, Daniel Aarno, Google Inc.): OpenSource (unspecified; files in pftools/third-party/)
-- Main ParFlow code: LGPL-2.1 (copyright Lawrence Livermore National Lab)
+- Mesh Simplification (Sven Forstmann): MIT License (`pftools/third_party/simplify.h`)
+- TCLAP (Michael E. Smoot, Daniel Aarno, Google Inc.): MIT-style text in `pftools/third_party/tclap/COPYING` (LICENSE.txt calls it "OpenSource")
+- cJSON: MIT (`pfsimulator/third_party/cjson/cJSON.c`)
+- KINSOL 1999 copy (`pfsimulator/kinsol/`): LLNL, no separate licence file
+- Main ParFlow code: LGPL-2.1 (copyright Lawrence Livermore National Lab). File headers mis-cite it as "GNU General Public License ... version 2.1 dated February 1999" while pointing to the LGPL (`nl_function_eval.c:11–16`)
 **Matches manifest**: Yes; manifest lists "LGPL-2.1" for hydrology reference.
 **Practical notes**: LGPL-2.1 is a weak copyleft license permitting static/dynamic linking of proprietary code, but any modifications to ParFlow itself must be redistributed under LGPL-2.1. No patent clause. No EULA restrictions. Suitable for open-source integration in MapMaker (license compatibility noted but not a conflict per project brief).
 
@@ -112,7 +117,7 @@ ParFlow is an open-source, modular, parallel integrated hydrologic model that co
 | Climate – precipitation | partial | 2 | tangled | pfsimulator/clm/clmtype.F90, drv_getforce.F90 | Processes precipitation input via CLM; does not generate precipitation fields. |
 | Climate – seasons | no | — | — | — | Seasonal cycles must be imposed via external forcing data; no emergent seasonality. |
 | Biomes | no | — | — | — | No biome classification or generation. |
-| Soils | partial | 3 | loose | pfsimulator/parflow_lib/geostats.c, background.c | Hydraulic properties (van Genuchten, Brooks-Corey) for hydrology; no soil classification (e.g., USDA taxonomy), carbon, or fertility. |
+| Soils | partial | 3 | loose | pfsimulator/parflow_lib/problem_saturation.c, problem_phase_rel_perm.c | Hydraulic properties (van Genuchten, Haverkamp) for hydrology; no soil classification (e.g., USDA taxonomy), carbon, or fertility. |
 | Resources | no | — | — | — | No mineral, ore, or resource generation. |
 | Population & settlement | no | — | — | — | No population dynamics or settlement modeling. |
 | Cities & towns | no | — | — | — | No urban or settlement generation. |
@@ -143,7 +148,7 @@ ParFlow is an open-source, modular, parallel integrated hydrologic model that co
 **Biggest risks**:
 - **Language and runtime**: C/Fortran/MPI compiled program; no browser path without a complete rewrite (estimated 500K+ LOC, 6–12 months effort).
 - **Scope mismatch**: ParFlow solves a narrowly-scoped, well-defined problem (subsurface flow on a fixed domain); MapMaker's scope (whole-world fantasy simulation) is orthogonal.
-- **Extractability**: Solver depends on HYPRE, SUNDIALS, NetCDF, HDF5, MPI. Porting the entire stack to JS is infeasible; partial extraction of small kernels (e.g., Manning's overland flow) is possible but low-impact.
+- **Extractability**: Solver depends on KINSOL (vendored), HYPRE, NetCDF, HDF5, MPI. Porting the entire stack to JS is infeasible; partial extraction of small kernels (e.g., Manning's overland flow) is possible but low-impact.
 
 **Unverified points**:
 - Actual build/CI status not tested in situ (inferred from GitHub CI badge and CMake structure).

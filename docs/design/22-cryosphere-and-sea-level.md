@@ -29,7 +29,7 @@ Positive-degree-day melt from the seasonal temperature harmonics (note 11) and a
 
 ### 3.2 Ice flow
 
-The shallow-ice approximation (SIA) on the sphere for ice sheets and valley glaciers, with Glen's flow law and a basal-sliding law where the bed is temperate; the shallow-shelf approximation (SSA) for ice shelves, as a later option. Solved on L0 for ice sheets, on L1 or patches for valley glaciers. PISM's SIA/SSA formulations and its verification tests are the source.
+The shallow-ice approximation (SIA) on the sphere for ice sheets and valley glaciers, with Glen's flow law and a basal-sliding law where the bed is temperate; the shallow-shelf approximation (SSA) for ice shelves, as a later option. Solved on L0 for ice sheets, on L1 or patches for valley glaciers. PISM's SIA/SSA formulations and its verification tests are the source; its code (PETSc, a regular projected grid) is not ported, so the solver on the sphere mesh is new.
 
 ### 3.3 Coupling
 
@@ -45,7 +45,7 @@ Sea-ice fraction from SST and air temperature (note 23); permafrost from mean an
 
 ## 4. Upstream references (algorithm level)
 
-- **PISM** `src/stressbalance/` (SIA and SSA), `src/energy/` (enthalpy), `src/geometry/` (mass transport), `src/verification/` (exact solutions): port the SIA solver and its verification tests to the sphere.
+- **PISM** `src/stressbalance/` (SIA in `sia/SIAFD.cc`, Mahaffy staggered-grid diffusivity at `:158–188`; SSA in `ssa/SSAFD.cc`, Picard iteration with PETSc), `src/stressbalance/timestepping.cc:201` (diffusivity CFL step), `src/energy/` (enthalpy), `src/geometry/GeometryEvolution.cc` (mass transport), `src/verification/tests/exactTestsABCD.c` (exact solutions: B is Halfar at `:86`, C and D Bueler et al.), `src/earth/` (bed deformation, Lingle–Clark viscous half-space; a reference for §3.4 glacial isostatic adjustment): formulas and tests as references for a new SIA solver on the sphere; the closed-form tests A–D port as golden values. PISM has no glacial-erosion law (`src/earth/BedDef.hh:27` lists bed erosion as future work).
 - **CTSM** `src/biogeophys/GlacierSurfaceMassBalanceMod.F90`, `SnowSnicarMod.F90`, `ActiveLayerMod.F90`.
 - **orogen** `terrain-post.js` glacial erosion (parity and fast path).
 - **VPLanet** `src/poise.c` ice-sheet module (a 1D latitudinal ice model, for fast paleo runs: `PoiseIceSheets` :7552, Glen's-law flow with n = 3 at :7662, bedrock depression; heights in m). It is integrated by `evolve.c`'s RK4 step.
@@ -53,7 +53,7 @@ Sea-ice fraction from SST and air temperature (note 23); permafrost from mean an
 
 ## 5. Validation
 
-- PISM's exact-solution tests (Halfar, Bueler) reproduced on the sphere.
+- PISM's exact-solution tests (Halfar, Bueler) reproduced on the sphere. They are planar, radially symmetric solutions (R0 = 750 km domes), so the sphere result must match within a curvature tolerance, not exactly.
 - Mass conservation of ice plus ocean water.
 
 ## 6. Open questions

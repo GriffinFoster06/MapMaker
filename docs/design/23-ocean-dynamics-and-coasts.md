@@ -37,13 +37,13 @@ Equilibrium tides from note 20, amplified by basin and shelf resonance: a linear
 ### 3.4 Coasts
 
 - Classification from tidal range, wave energy (from wind fetch), sediment supply (river discharge and erosion), slope and climate (mangroves and reefs need warm water).
-- Landform growth: deltas where sediment supply beats wave and tidal reworking (the Galloway delta classification), barrier islands on low-slope, wave-dominated coasts, reefs in warm, clear, shallow water. Delft3D's sediment-transport and morphology formulas (van Rijn) inform the rates.
+- Landform growth: deltas where sediment supply beats wave and tidal reworking (the Galloway delta classification), barrier islands on low-slope, wave-dominated coasts, reefs in warm, clear, shallow water. Delft3D's sediment-transport formulas (van Rijn) inform the rates; Delft3D has no landform rules, so the classification and growth rules are new.
 
 ## 4. Upstream references (algorithm level)
 
 - **MOM6** `src/core/MOM_barotropic.F90`, `MOM_CoriolisAdv.F90`, `MOM_PressureForce*.F90`, `src/equation_of_state/` (TEOS-10), `src/parameterizations/vertical/MOM_tidal_forcing.F90`: formulations and constants.
 - **MARBL** `src/marbl_interior_tendency_mod.F90`, `marbl_pft_mod.F90`: optional ocean productivity for marine life and fisheries.
-- **Delft3D** `src/utils_gpl/morphology/packages/`, `src/engines_gpl/wave/`: sediment transport and wave formulas for coastal landforms.
+- **Delft3D** `src/utils_gpl/morphology/packages/morphology_kernel/src/`: closed-form sediment transport (`tranb7.f90` van Rijn 1984, `tram1.f90` 1993, `tram2.f90` 2004, `tranb5.f90` Bijker with waves, `trab11.f90`/`trab19.f90` wave–current forms), with gravity and densities as parameters; GPL-3.0-only. The inputs are per-cell depth, depth-averaged velocity, wave height and period, and grain sizes. `src/engines_gpl/wave/` only drives SWAN (`src/third_party_open/swan/`, a spectral wave model; reference only) and has no wave formulas of its own.
 - **orogen** `js/ocean.js`: parity mode.
 - **Literature:** Stommel (1948); Munk (1950); Galloway (1975) delta classification; Davis & Hayes (1984) coastal classification by tidal range.
 
