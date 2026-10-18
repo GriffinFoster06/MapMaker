@@ -68,6 +68,8 @@ export class MultiLevel {
   private readonly fineArea: Float64Array;
   private _children?: { offset: Int32Array; list: Int32Array };
   private _bumps?: Float64Array;
+  /** Reused trial iterate of `correct` (length n1). Never handed to a caller. */
+  private _trial?: Float64Array;
 
   constructor(readonly coarse: SphereMesh, readonly fine: SphereMesh) {
     this.n0 = coarse.numRegions;
@@ -119,7 +121,11 @@ export class MultiLevel {
 
   /** P: barycentric interpolation of an L0 field at every L1 centre. */
   prolong(coarse: ArrayLike<number>): Float64Array {
-    const out = new Float64Array(this.n1);
+    return this.prolongInto(coarse, new Float64Array(this.n1));
+  }
+
+  /** P into a caller-supplied array of length n1 (same arithmetic as prolong). Returns `out`. */
+  prolongInto(coarse: ArrayLike<number>, out: Float64Array): Float64Array {
     const C = this.interpCells, W = this.interpWeights;
     for (let i = 0, k = 0; i < this.n1; i++, k += 3) {
       out[i] = W[k]! * coarse[C[k]!]! + W[k + 1]! * coarse[C[k + 1]!]! + W[k + 2]! * coarse[C[k + 2]!]!;
@@ -176,15 +182,21 @@ export class MultiLevel {
     let r = new Float64Array(n0);
     let [l2, mx] = residualOf(x, r);
     let it = 0;
+    // Trial iterates go into one scratch array of length n1 that is swapped with x on acceptance, so a call allocates
+    // two fine arrays however many iterations it tries (Phase 5 M0: at 2.56M, ~187 fresh 20 MB arrays per detail
+    // pass, which WebKit kept resident). The scratch is never the array returned.
+    let x2 = this.trialScratch();
     for (; it < maxIter && mx > 0; it++) {
       const y2 = new Float64Array(n0);
       for (let c = 0; c < n0; c++) y2[c] = y[c]! + r[c]!;
-      const x2 = this.prolong(y2);
+      this.prolongInto(y2, x2);
       const r2 = new Float64Array(n0);
       const [l2b, mxb] = residualOf(x2, r2);
       if (!(l2b < l2 && mxb <= mx)) break;
-      y = y2; x = x2; r = r2; l2 = l2b; mx = mxb;
+      const old = x;
+      y = y2; x = x2; x2 = old; r = r2; l2 = l2b; mx = mxb;
     }
+    this._trial = x2;
     const psi = this.bumps;
     for (let i = 0; i < this.n1; i++) x[i]! += r[this.parentOf[i]!]! * psi[i]!;
     if (opts.stats) { opts.stats.iterations = it; opts.stats.finalStep = mx; }
@@ -295,6 +307,12 @@ export class MultiLevel {
       for (const [c, v] of ready) { out[c] = v; defined[c] = 1; pending--; }
     }
     return out;
+  }
+
+  private trialScratch(): Float64Array {
+    const t = this._trial ?? new Float64Array(this.n1);
+    this._trial = undefined;
+    return t;
   }
 
   /** Children of each L0 cell in CSR form (L1 cell ids in increasing order). */
