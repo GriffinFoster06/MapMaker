@@ -164,7 +164,7 @@ export function runElevationDetail(L1: SphereMesh, ref: ReferenceState, p: Oroge
   for (let i = 0; i < n1; i++) { const c = ml.parentOf[i]!; margin[c] = Math.max(margin[c]!, Math.abs(detail[i]!)); }
   const locked = (c: number) => ml.childCount[c]! > 0 && Math.abs(refE[c]!) > SIGN_LOCK_MARGIN * margin[c]!;
 
-  let e = ml.prolong(refE);
+  const e = ml.prolong(refE);
   for (let i = 0; i < n1; i++) e[i]! += detail[i]!;
   let signViolations = 0;
   for (let round = 0; round < SIGN_LOCK_ROUNDS; round++) {
@@ -174,7 +174,7 @@ export function runElevationDetail(L1: SphereMesh, ref: ReferenceState, p: Oroge
       if (refE[c]! > 0 && e[i]! <= 0) e[i] = SIGN_LOCK_FLOOR;
       else if (refE[c]! <= 0 && e[i]! > 0) e[i] = -SIGN_LOCK_FLOOR;
     }
-    e = ml.anchorAdditive(e, refE);
+    ml.anchorAdditiveInPlace(e, refE);
   }
   // Lock once more, then remove the remaining residual exactly with a step that cannot cross sea level in locked
   // cells: each parent's residual goes to its children in proportion to how far they can move before reaching the
@@ -292,8 +292,7 @@ export function runClimateDetail(ref: ReferenceState, d: ElevationDetail): Clima
     const pRef = precip[`r_precip_${name}`];
     const precipN = Float32Array.from(ml.anchorMultiplicative(ml.prolong(pRef), pRef));
     const tRef = temp[`r_temperature_${name}`];
-    const t = ml.prolong(tRef);
-    const tempN = Float32Array.from(ml.anchorAdditive(t, tRef));
+    const tempN = Float32Array.from(ml.anchorAdditiveInPlace(ml.prolong(tRef), tRef));
     return { windEast, windNorth, currentEast, currentNorth, pressure, temp: tempN, precip: precipN };
   };
   const summer = season('summer'), winter = season('winter');

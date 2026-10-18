@@ -70,6 +70,8 @@ export class MultiLevel {
   private _bumps?: Float64Array;
   /** Reused trial iterate of `correct` (length n1). Never handed to a caller. */
   private _trial?: Float64Array;
+  /** Reused correction array of anchorAdditiveInPlace (length n1). */
+  private _corr?: Float64Array;
 
   constructor(readonly coarse: SphereMesh, readonly fine: SphereMesh) {
     this.n0 = coarse.numRegions;
@@ -163,7 +165,7 @@ export class MultiLevel {
    * takes the guarded iterations y ← y + (δ − R(P(y))) (accepted while both the area-weighted L2 and the max residual
    * fall), and r = δ − R(P(y)) is carried by the normalised bumps ψ_c (mean 1 over c's children, 0 on c's boundary).
    */
-  correct(delta: ArrayLike<number>, opts: CorrectionOptions = {}): Float64Array {
+  correct(delta: ArrayLike<number>, opts: CorrectionOptions = {}, out?: Float64Array): Float64Array {
     const maxIter = opts.maxIter ?? 16;
     const n0 = this.n0, has = this.childCount;
     const d = this.fillChildless(delta);
@@ -178,7 +180,8 @@ export class MultiLevel {
       return [l2, mx];
     };
     let y = Float64Array.from(d);
-    let x = this.prolong(y);
+    // The first iterate goes into `out` when given; acceptance swaps buffers, so `out` may end up as the scratch.
+    let x = this.prolongInto(y, out ?? new Float64Array(this.n1));
     let r = new Float64Array(n0);
     let [l2, mx] = residualOf(x, r);
     let it = 0;
@@ -206,9 +209,9 @@ export class MultiLevel {
   /** Removes the reference-scale component of a detail field: D − C(R(D)), whose restriction is zero. */
   zeroMeanPerParent(detail: ArrayLike<number>, opts?: CorrectionOptions): Float64Array {
     const Rd = this.restrict(detail);
-    const corr = this.correct(Rd, opts);
-    const out = new Float64Array(this.n1);
-    for (let i = 0; i < this.n1; i++) out[i] = detail[i]! - corr[i]!;
+    // The correction array is fresh, so the result is written into it rather than into another fine array.
+    const out = this.correct(Rd, opts);
+    for (let i = 0; i < this.n1; i++) out[i] = detail[i]! - out[i]!;
     return out;
   }
 
@@ -217,10 +220,27 @@ export class MultiLevel {
     const Rf = this.restrict(fine);
     const delta = new Float64Array(this.n0);
     for (let c = 0; c < this.n0; c++) delta[c] = this.childCount[c]! > 0 ? ref[c]! - Rf[c]! : NaN;
-    const corr = this.correct(delta, opts);
-    const out = new Float64Array(this.n1);
-    for (let i = 0; i < this.n1; i++) out[i] = fine[i]! + corr[i]!;
+    // Written into the fresh correction array (same sum, fine[i] + corr[i]).
+    const out = this.correct(delta, opts);
+    for (let i = 0; i < this.n1; i++) out[i] = fine[i]! + out[i]!;
     return out;
+  }
+
+  /**
+   * Additive anchoring in place: the same values as anchorAdditive(fine, ref), written into `fine`. The correction is
+   * computed in scratch arrays kept on this object, so repeated calls allocate no fine array. Returns `fine`.
+   */
+  anchorAdditiveInPlace(fine: Float64Array, ref: ArrayLike<number>, opts?: CorrectionOptions): Float64Array {
+    const Rf = this.restrict(fine);
+    const delta = new Float64Array(this.n0);
+    for (let c = 0; c < this.n0; c++) delta[c] = this.childCount[c]! > 0 ? ref[c]! - Rf[c]! : NaN;
+    const buf = this._corr ?? new Float64Array(this.n1);
+    this._corr = undefined;
+    const corr = this.correct(delta, opts, buf);
+    for (let i = 0; i < this.n1; i++) fine[i] = fine[i]! + corr[i]!;
+    // correct() returned either buf or the trial scratch; keep whichever is not now the trial scratch.
+    this._corr = corr;
+    return fine;
   }
 
   /**
@@ -235,8 +255,10 @@ export class MultiLevel {
     const R1 = this.restrict(p);
     const ratio = new Float64Array(n0);
     for (let c = 0; c < n0; c++) ratio[c] = has[c]! > 0 ? (R1[c]! > 0 ? ref[c]! / R1[c]! : 1) : NaN;
-    const m = this.prolong(this.fillChildless(ratio));
+    // P(ratio) goes into the trial scratch of `correct`, which is free here.
+    const m = this.prolongInto(this.fillChildless(ratio), this.trialScratch());
     for (let i = 0; i < this.n1; i++) p[i] = p[i]! * m[i]!;
+    this._trial = m;
     const R2 = this.restrict(p);
     const { offset, list } = this.children;
     const psi = this.bumps, area = this.fineArea;
