@@ -1,6 +1,6 @@
 # Phase 5 M0: peak browser memory at 2.56M cells
 
-Date: 2026-10-18. Branch `phase-5`. This is the item Checkpoint 4b carried into Phase 5 (decision 8): measure and break down peak browser memory at 2.56M cells, then reduce it without changing any output. Approved reductions R1–R6 and the bench changes are done; **M0 stops here for review**.
+Date: 2026-10-18. Branch `phase-5`. This is the item Checkpoint 4b carried into Phase 5 (decision 8): measure and break down peak browser memory at 2.56M cells, then reduce it without changing any output. Approved reductions R1–R6 and the bench changes were done first; M0 was accepted on 2026-10-18 with two rulings: R7 approved (done, below) and R8 deferred to Phase 7.
 
 ## Verdict
 
@@ -8,7 +8,8 @@ Date: 2026-10-18. Branch `phase-5`. This is the item Checkpoint 4b carried into 
 - **The structured detail pass now allocates 2.65 GB of typed arrays instead of 7.43 GB (−64%)** at 2.56M (Node, seed 12345).
 - **WebKit peak drops by about 0.8 GB:** with the engine worker alone, the mean of three runs went from 6,718 MB to 5,909 MB. With the full app, a single run went from 7,002 MB to 6,120 MB.
 - **Chromium, Firefox and Node barely change.** Chromium and Firefox move by −220 to +113 MB, within run-to-run noise (stock, which these changes barely touch, moves by as much). Node's peak goes from 2,120 to 1,922 MB.
-- **WebKit is still about 1.5 GB above stock** (5,909 MB against 4,383 MB, engine worker alone). Where that goes is measured below, with two proposed follow-ups (R7, R8) that need your approval.
+- **R7 (approved after review) takes WebKit down another 0.7 GB:** mean of three runs 5,219 MB, so **−1.5 GB in all from 6,718 MB**. Outputs stay bit-identical (same nine worlds).
+- **WebKit is still about 0.84 GB above stock** (5,219 MB against 4,383 MB, engine worker alone). The remaining structured-specific part is mostly in the elevation step at N; R8, the known opportunity there, is deferred to Phase 7.
 
 ## Method
 
@@ -88,6 +89,7 @@ Date: 2026-10-18. Branch `phase-5`. This is the item Checkpoint 4b carried into 
 | `7f9c370` R4 | Detail drainage heap capacity n | Each cell is marked seen before its only push, so at most n entries; heap order does not depend on capacity |
 | `264b8e5` R5 | `sha256` copies only SharedArrayBuffer-backed views | Same bytes hashed; new `hash.test.ts` checks the FIPS 180-2 vector and that shared, offset and multi-part views agree |
 | `4f4f021` R6 | `runElevationDetail({ keepIntermediates })` (default true); the stage passes false, writes the elevation layers first, and keeps only what climate and drainage read | No values change; only lifetimes. Layer values do not depend on write order |
+| `a9d7902` R7 | `basis()` in the climate downscaling writes into one reused `Float64Array(6)` instead of returning a new array per cell | The stored values are doubles, so each read returns the same number; nine-world hash comparison: 0 differences |
 | `4435279`, `7435aa3` | Bench: per-process peaks, `BENCH_MODE=worker`, and process matching through symlinked browser paths | Measurement only |
 
 ## What remains in WebKit (after)
@@ -103,28 +105,27 @@ WebKit trace on the after build, engine worker alone, with stage progress timest
 | detail: drainage, output hashes, layer writes | 0.4 s | 5,549 MB |
 
 - **Climate (+973 MB in 0.6 s).** Only 275 MB of typed arrays are allocated there now. The rest is plain JS garbage: `basis()` in `detail.ts` returns a new 6-element array for every cell, 4 fields × 2.56M cells ≈ 10 million arrays. V8 discards these cheaply; WebKit does not.
-  - **Proposed R7:** write the basis into scalars or a reused Float64Array (same arithmetic).
-  - **Expected:** about −0.8 to −1.0 GB in WebKit.
-  - **Not done:** it was not in the approved R1–R6.
+  - **R7 (approved and done):** `basis()` writes into a reused `Float64Array(6)`.
+  - **Result:** WebKit worker-only, three runs: 5,179 / 5,147 / 5,332 MB (mean 5,219), against 5,909 before R7. Files: `docs/benchmarks/phase5-m0/after-r7/`.
 - **Elevation at N (+3.4 GB).** Most of this is orogen's own work at N, which stock also does: tectonics, elevation, erosion. Stock's whole run peaks at 4.1–4.4 GB in WebKit's content process.
   - A JavaScriptCore shell probe (system `jsc`, full GC at each step) attributes the structured-specific steps: `new MultiLevel` (+494 MB of RSS for about 130 MB of arrays) and the stage 1–3 fields at N.
   - orogen first computes its own stage 1–3 fields at N; the detail pass then replaces most of them with prolonged ones. Live typed arrays reach 1,481 MB at that point.
-  - **Proposed R8:** investigate, without code changes yet, whether orogen's own fields at N can be skipped where they are replaced, keeping the port bit-identical to stock where it is not hooked. That would cut both memory and time. It touches `port/elevation.ts`, so it needs its own approval and parity tests.
+  - **R8, a known opportunity for Phase 7 (deferred 2026-10-18; not investigated, no code changed):** skip orogen's own stage 1–3 fields at N wherever the detail pass replaces them, keeping the port bit-identical to stock where it is not hooked. It would cut both memory and time. It touches `port/elevation.ts`, so it needs its own approval and parity tests.
   - **Caveat:** the system `jsc` shell is not Playwright's WebKit build. It does not reproduce the browser's structured-over-stock gap (shell: structured 4,032 MB vs stock 4,843 MB), so its step attribution is indicative only.
 
 ## Checks run (2026-10-18, this machine)
 
 | Check | Result |
 |---|---|
-| Per-layer and world hashes, 200k / 1M / 2.56M × seeds 1, 777, 12345, before vs after | **0 differences** (and 0 at 200k after each of R1–R6 separately) |
+| Per-layer and world hashes, 200k / 1M / 2.56M × seeds 1, 777, 12345, before vs after | **0 differences** after R1–R6, and again after R7 (and 0 at 200k after each of R1–R6 separately) |
 | `npm run lint`, `npm run typecheck`, `npm run provenance:check` | Passed (24 vendored files, 41 headers, 18 direct / 246 total packages) |
 | `npm test` | 260 passed, 1 skipped (the opt-in `REQUIRE_UPSTREAM` preflight); the 2 new tests are `hash.test.ts` |
 | `npm run e2e` | 18 passed (Chromium, Firefox, WebKit) |
-| `npm run bench` at 2.56M, both pipelines, app and worker modes, three browsers, before and after | All 24 runs `ok` |
+| `npm run bench` at 2.56M, both pipelines, app and worker modes, three browsers, before and after | All 24 runs `ok`; plus WebKit structured worker-only three times each before, after R1–R6 and after R7 |
 | `ab-gate`, realism gate, `REQUIRE_UPSTREAM=1` | **Not run.** Outputs are bit-identical, so they cannot change; that is an inference, not a run |
 
-## Decisions for review
+## Decisions (2026-10-18)
 
-1. Accept M0 as is, or ask for changes.
-2. **R7** (allocation-free `basis()` in the climate downscaling): approve or not.
-3. **R8** (investigate skipping orogen's own stage 1–3 fields at N where the detail pass replaces them): approve as an investigation, or defer to Phase 7.
+1. **M0 accepted.**
+2. **R7 approved** and done as its own commit, with the nine-world hash comparison and three WebKit runs (above).
+3. **R8 deferred to Phase 7** as a known opportunity; it needs its own approval and parity tests there.
