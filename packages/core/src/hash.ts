@@ -17,10 +17,11 @@ export async function sha256(data: Bytes | Uint8Array[]): Promise<string> {
     let o = 0;
     for (const p of parts) { bytes.set(p, o); o += p.length; }
   } else bytes = toBytes(data);
-  // Copy into a fresh ArrayBuffer-backed view: SharedArrayBuffer-backed views are rejected by digest().
-  const copy = new Uint8Array(bytes.length);
-  copy.set(bytes);
-  return hex(await crypto.subtle.digest('SHA-256', copy));
+  // digest() rejects SharedArrayBuffer-backed views, so only those are copied into a fresh ArrayBuffer (Phase 5 M0:
+  // copying every layer cost 228 MB of allocation per 2.56M detail pass). Same bytes either way.
+  const shared = typeof SharedArrayBuffer !== 'undefined' && bytes.buffer instanceof SharedArrayBuffer;
+  const input = shared ? Uint8Array.from(bytes) : (bytes as Uint8Array<ArrayBuffer>);
+  return hex(await crypto.subtle.digest('SHA-256', input));
 }
 
 export async function hashString(s: string): Promise<string> {
