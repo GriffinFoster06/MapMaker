@@ -13,7 +13,7 @@
 // measureUserAgentSpecificMemory is not used: it needs cross-origin isolation (the optional ?coi shim), and the benchmark
 // measures the default deployment, which has none.
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { arch, platform, cpus, totalmem } from 'node:os';
 import { resolve } from 'node:path';
 import { test } from '@playwright/test';
@@ -37,15 +37,15 @@ function kind(cmd: string): string {
   return 'browser';
 }
 
-/** RSS (MB) of processes whose command line contains `needle`: the total and per kind. */
-function rssMB(needle: string): { total: number; byKind: Record<string, number> } | null {
+/** RSS (MB) of processes whose command line contains one of `needles`: the total and per kind. */
+function rssMB(needles: string[]): { total: number; byKind: Record<string, number> } | null {
   if (platform() === 'win32') return null;
   try {
     const out = execFileSync('ps', ['-axo', 'rss=,command='], { encoding: 'utf8', maxBuffer: 1 << 26 });
     let kb = 0;
     const byKind: Record<string, number> = {};
     for (const line of out.split('\n')) {
-      if (!line.includes(needle)) continue;
+      if (!needles.some((n) => line.includes(n))) continue;
       const m = line.trim().match(/^(\d+)\s+(.*)$/);
       if (!m) continue;
       const v = Number(m[1]) / 1024, k = kind(m[2]!);
@@ -71,7 +71,10 @@ for (const tier of wanted) {
   test(`${VARIANT} pipeline at ${tier} cells`, async ({ browser }) => {
     const cells = TIERS[tier]!;
     // Processes of this browser install: the Playwright browser directory is in every command line.
-    const needle = process.env['PLAYWRIGHT_BROWSERS_PATH'] || 'ms-playwright';
+    // Both the given and the resolved path: when the browsers directory is reached through a symlink, the main process
+    // shows the given path and helper processes the real one.
+    const browsers = process.env['PLAYWRIGHT_BROWSERS_PATH'];
+    const needle = browsers ? [...new Set([browsers, existsSync(browsers) ? realpathSync(browsers) : browsers])] : ['ms-playwright'];
     const context = await browser.newContext();
     const page = await context.newPage();
     const r: TierResult = { tier, cells, ok: false, mode: MODE };
