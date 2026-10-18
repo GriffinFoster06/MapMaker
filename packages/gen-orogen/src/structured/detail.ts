@@ -241,8 +241,12 @@ export function runElevationDetail(L1: SphereMesh, ref: ReferenceState, p: Oroge
 //  Climate downscaling (design note 14 §3.6)
 // ─────────────────────────────────────────────────────────────────────────
 
-/** orogen's east and north unit vectors at an orogen-frame point (wind.ts: east = norm(z, 0, −x), north = p × east). */
-function basis(x: number, y: number, z: number): [number, number, number, number, number, number] {
+/**
+ * orogen's east and north unit vectors at an orogen-frame point (wind.ts: east = norm(z, 0, −x), north = p × east),
+ * written into `out` as [ex, ey, ez, nx, ny, nz]. A reused Float64Array instead of a new array per cell (Phase 5 M0
+ * R7: ~10 million short-lived arrays per 2.56M run, which WebKit kept resident); the stored doubles are exact.
+ */
+function basis(x: number, y: number, z: number, out: Float64Array): Float64Array {
   let ex = z, ez = -x;
   let elen = Math.sqrt(ex * ex + ez * ez);
   if (elen < 1e-10) { ex = 1; ez = 0; elen = 1; }
@@ -250,7 +254,8 @@ function basis(x: number, y: number, z: number): [number, number, number, number
   let nx = -y * ez, ny = z * ex - x * ez, nz = y * ex;
   const nlen = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
   nx /= nlen; ny /= nlen; nz /= nlen;
-  return [ex, 0, ez, nx, ny, nz];
+  out[0] = ex; out[1] = 0; out[2] = ez; out[3] = nx; out[4] = ny; out[5] = nz;
+  return out;
 }
 
 /** L1 cells per chunk of prolongEastNorth. */
@@ -263,8 +268,10 @@ const VECTOR_CHUNK = 1 << 16;
 export function prolongEastNorth(ml: MultiLevel, ref_xyz: ArrayLike<number>, fine_xyz: ArrayLike<number>, east: ArrayLike<number>, north: ArrayLike<number>): [Float32Array, Float32Array] {
   const n0 = ml.n0, n1 = ml.n1;
   const v0 = new Float64Array(3 * n0);
+  const b = new Float64Array(6);
   for (let c = 0; c < n0; c++) {
-    const [ex, ey, ez, nx, ny, nz] = basis(ref_xyz[3 * c]!, ref_xyz[3 * c + 1]!, ref_xyz[3 * c + 2]!);
+    basis(ref_xyz[3 * c]!, ref_xyz[3 * c + 1]!, ref_xyz[3 * c + 2]!, b);
+    const ex = b[0]!, ey = b[1]!, ez = b[2]!, nx = b[3]!, ny = b[4]!, nz = b[5]!;
     const vx = east[c]! * ex + north[c]! * nx, vy = east[c]! * ey + north[c]! * ny, vz = east[c]! * ez + north[c]! * nz;
     v0[3 * c] = vz; v0[3 * c + 1] = vx; v0[3 * c + 2] = vy;
   }
@@ -275,7 +282,8 @@ export function prolongEastNorth(ml: MultiLevel, ref_xyz: ArrayLike<number>, fin
     const j = i % VECTOR_CHUNK;
     if (j === 0) ml.prolongVector(v0, i, Math.min(n1, i + VECTOR_CHUNK), v1);
     const vx = v1[3 * j + 1]!, vy = v1[3 * j + 2]!, vz = v1[3 * j]!;
-    const [ex, ey, ez, nx, ny, nz] = basis(fine_xyz[3 * i]!, fine_xyz[3 * i + 1]!, fine_xyz[3 * i + 2]!);
+    basis(fine_xyz[3 * i]!, fine_xyz[3 * i + 1]!, fine_xyz[3 * i + 2]!, b);
+    const ex = b[0]!, ey = b[1]!, ez = b[2]!, nx = b[3]!, ny = b[4]!, nz = b[5]!;
     outE[i] = vx * ex + vy * ey + vz * ez;
     outN[i] = vx * nx + vy * ny + vz * nz;
   }
