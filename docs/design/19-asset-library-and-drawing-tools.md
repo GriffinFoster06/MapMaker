@@ -65,6 +65,7 @@ Drawing a mountain stamp is annotation (map art); sculpting elevation is a world
 ## 6. Open questions
 
 1. Raster painting on the sphere at high zoom: per-patch raster tiles, or vector strokes only?
+2. Licences of Azgaar's bundled assets: the 338 heraldry charges (`public/charges/`), the relief `<symbol>`s (`src/index.html`) and the icons (`public/images/`) have no documented licence (`docs/wiki/Policy.md:54` names none; the root MIT `LICENSE` covers the code). Each needs a documented licence source before any is bundled; this is part of the Phase 10b prerequisite, and Phase 5c ships no third-party symbols until then.
 
 ## 7. Size estimate
 

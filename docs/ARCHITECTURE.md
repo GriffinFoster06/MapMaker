@@ -526,7 +526,7 @@ The full product adds stages to the table above. They slot in by dependency; eac
 |---|---|---|---|---|---|---|
 | 0a | **Astronomy**: star(s), orbit, moons, rotation; insolation by latitude and day; tides; orbital cycles over deep time | — | VPLanet (DistOrb, DistRot, EqTide, Stellar, Binary, with `evolve.c`'s integrator) | `bodies`, `astro.*`, calendar | 20 | 6a |
 | 2i | **Interior and volcanism**: plume placement, heat flow, volcanic provinces, magnetic field; with 2e, events on the geologic axis | R | VPLanet `thermint`/`radheat` parameterisations; ASPECT rheology and core-evolution references; plume placement new | `plumes`, `volcanoes`, `interior.*` | 21 | 6c |
-| 4c | **Cryosphere and sea level**: ice sheets and glaciers from climate (shallow-ice approximation), sea ice, permafrost; eustatic and isostatic sea level | R + D | PISM (SIA/SSA), orogen glacial erosion | `ice.*`, `iceSheets`, `glaciers`, sea level | 22 | 7b |
+| 4c | **Cryosphere and sea level**: ice sheets and glaciers from climate (shallow-ice approximation), sea ice, permafrost; eustatic and isostatic sea level | R + D | PISM (SIA/SSA formulations and exact tests; new solver), orogen glacial erosion as the fast-path default | `ice.*`, `iceSheets`, `glaciers`, sea level | 22 | 7b |
 | 5o | **Ocean dynamics**: wind-driven gyres and a thermohaline proxy on the sphere, SST and salinity, tides; replaces the heuristic current field when on | R + D | MOM6 (formulation), MARBL (biogeochemistry, optional), orogen `ocean.js` (parity) | `ocean.*` | 23 | 7c |
 | 5a | **Atmosphere dynamics** (optional variant): shallow-water or simplified GCM circulation, storm tracks and variability; paleoclimate over the geologic axis | R | new, from published models; CAM formulations from the literature (CESM's checkout is empty) | `atm.*`, refined `wind.*`, `precip.*` | 24 | 8b |
 | 7g | **Groundwater**: aquifers, water table, springs, baseflow | D | ParFlow, CTSM hydrology (formulation) | `groundwater.*` | 12 | 7 |
@@ -710,7 +710,7 @@ The roadmap is open-ended (Q13) and interleaved (Q14): a usable editor and attra
 
 After 18 the roadmap continues: each new domain or deeper model gets a design note and a phase, through the same checkpoints.
 
-**Reconciliation (2026-10-18).** The 2026-10-13 roadmap and notes were written without `upstream/` checked out. Reconciliation groups 1, 2, 3 and 6a (`docs/reconciliation/group-*.md`) checked the claims about 16 upstreams against the pinned source (for Azgaar, QGIS and CesiumJS, only those for Phases 5 and 5c), and the phase text below reflects their findings. The upstreams not yet checked, the candidate upstreams not yet audited and the datasets not yet recorded are each a **Prerequisite** line in the phase that first depends on them (5b, 5c, 7, 8b, 9b, 9d, 10b, 11b, 13, 18). Changes the reconciliation raised that are not yet decided are in `docs/reconciliation/pending-decisions.md`.
+**Reconciliation (2026-10-18).** The 2026-10-13 roadmap and notes were written without `upstream/` checked out. Reconciliation groups 1, 2, 3 and 6a (`docs/reconciliation/group-*.md`) checked the claims about 16 upstreams against the pinned source (for Azgaar, QGIS and CesiumJS, only those for Phases 5 and 5c), and the phase text below reflects their findings. The upstreams not yet checked, the candidate upstreams not yet audited and the datasets not yet recorded are each a **Prerequisite** line in the phase that first depends on them (5b, 5c, 7, 8b, 9b, 9c, 9d, 9e, 10, 10b, 11b, 13, 14, 16, 17, 18). The decisions the reconciliation raised were all ruled on 2026-10-18 and are recorded in `docs/reconciliation/pending-decisions.md`.
 
 **Dependencies.** An arrow means "needs".
 
@@ -960,7 +960,7 @@ Added at Checkpoint 1 (D5):
 
 ### Phase 5b: Editor core v1 (Q14, Q16; notes 16, 17)
 
-**Prerequisite:** reconcile Godot first (its undo-redo and plugin system, the references for notes 16 and 37; `audit/Godot.md`). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
+**Prerequisite:** reconcile first: Godot (its undo-redo and plugin system, the references for notes 16 and 37; `audit/Godot.md`); orogen (every claim in the design notes that cites it, especially notes 17 and 21; `audit/orogen.md`); Azgaar beyond Phases 5 and 5c (its editors and options UI, cited by notes 16 and 17); and MESSAGEix (cited by note 17; `audit/MESSAGEix.md`). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
 
 - The edit log, pins, soft constraints and seeds (§3.8), wired into stage invalidation, with undo and redo.
 - Editing tools on the globe and flat views: elevation sculpt and paint (raise, lower, smooth, flatten, noise), land/sea paint, plate-boundary and hotspot seeds, and a categorical paint for any enum layer.
@@ -977,6 +977,9 @@ Added at Checkpoint 1 (D5):
 **Prerequisite:** audit the candidate upstreams mapgen4 and mewo2/terrain first (`audit/CAPABILITY_MATRIX.md`, Candidate upstreams to audit). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
 
 - A style system (`styles/`, note 18): layer-to-symbol rules, palettes, hillshade and relief shading, coastline and river rendering, graticules, scale bars, legends and labels (with collision handling), for the globe and every projection.
+- **Label placement:** port Azgaar's `src/controllers/label-spread.ts` (MIT TypeScript, seeded) first, replacing its SVG DOM text measurement with our own font metrics and adapting its screen-space solver to a run keyed by style and viewport (note 18 §3.3). QGIS PAL is a later, richer option (polygon, line and curved placement), not part of this phase.
+- **Hillshade and relief symbols:** the hillshade follows QGIS's renderer formula (`qgshillshaderenderer.cpp:433–489`: Horn derivatives, the GDAL formula and multi-directional weighting), with cell size in sphere metres. Azgaar's relief placement needs an RNG keyed by cell id in place of its global `Math.random` (`relief-generator.ts`; note 18 §4).
+- **No third-party symbols.** Phase 5c ships no third-party symbol, icon or charge art until the asset licence audit at Phase 10b (the CC0 packs, and the undocumented licences of Azgaar's charges, relief symbols and icons). Its symbols are drawn by our own code.
 - Built-in themes: atlas, physical, parchment/fantasy, political, satellite-like.
 - Export of styled views to PNG and SVG through the exact inverse path (§3.7).
 - Tests: switching style never changes a `World` hash; label placement is deterministic; golden images per theme with a pixel-difference tolerance.
@@ -986,6 +989,7 @@ Added at Checkpoint 1 (D5):
 ### Phase 6: Planet physics
 
 - VPLanet subset in TS (insolation, seasons, EBM core) with golden tests against native VPLanet output.
+- Phase 6 takes orbital elements as fixed inputs. Their secular evolution (DistOrb, DistRot) is Phase 6a; insolation comes from POISE (`poise.c:5530`, `:5602`), since DistOrb and DistRot have no steady-state insolation formulas.
 - Parameter-mapping layer (design note 10); `planet.radius_m` threaded through.
 - Continuous seasons (design note 11).
 - **Q7 baseline rule:** any change to the climate model (the parameter mapping, seasons, or downscaling) re-records the Q7 A/B baseline in the **same commit**.
@@ -1014,6 +1018,7 @@ Added at Checkpoint 1 (D5):
 ### Phase 6c: Interior, volcanism and the magnetic field (note 21)
 
 - Stage 2i: plume placement and hotspot tracks (consistent with 6b), heat flow, volcanic provinces and eruption histories, isostasy and flexure, the magnetic field and its reversals (feeding seafloor magnetic stripes in 6b).
+- **Plume placement is original code**, written from Sleep (1990) and Davies (1988) (note 21 §3.2): ASPECT has no plume-placement model, and World Builder's `plume.cc` only describes user-placed geometry.
 - ThermInt's thermal history runs on the ODE integrator built in Phase 6a (RadHeat's radiogenic power is closed form); this phase adds no integrator of its own.
 - Earth tests: hotspot counts, heat-flow versus crust-age curve, volcano distribution by setting.
 
@@ -1024,8 +1029,10 @@ Added at Checkpoint 1 (D5):
 **Prerequisites:**
 - **Groundwater design before stage 7g.** Note 12 has no groundwater design (its open question 1 proposed surface water only), and note 25 depends on groundwater. Before stage 7g is built, a groundwater design is written as an extension of note 12, using ParFlow's closed-form retention and relative-permeability curves (van Genuchten and Haverkamp; `pfsimulator/parflow_lib/problem_saturation.c`, `problem_phase_rel_perm.c`) and CTSM's water-table depth and TOPMODEL-style baseflow (`src/biogeophys/SoilHydrologyMod.F90:615`, `:1218`). ParFlow's Richards solver is a reference only (`docs/reconciliation/group-2.md` P1–P2, `group-3.md` L9).
 - **Audit FastScape** (`audit/CAPABILITY_MATRIX.md`, Candidate upstreams to audit). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
+- **Reconcile LPJmL** (`src/lpj/drain.c`, cited by note 12; `audit/LPJmL.md`) and **Azgaar's `lakes.ts` and `features-generator.ts`** (the lake and feature generators used through the facade). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
 
 - Badlands-style stream power and diffusion on the sphere, as slow detail erosion at L1 and as the reference erosion at L0. The L0 model uses an effective erodibility calibrated so that R(an unanchored fine run) ≈ the L0 run (note 14 §3.8). Shared flow routing. Azgaar rivers, lakes and features via the facade. Lake water balance (design note 12).
+- **WRF-Hydro reach routing, if ported** (whether to port it is still evaluated here, note 12 §4): the native model is single precision, so it is a tolerance oracle only; channel geometry is synthesised; gravity follows the planet.
 - **D4 validation**:
   1. On a planar benchmark, compare against Python Badlands with the same initial DEM, uplift and parameters (longitudinal profiles, hypsometry, drainage-area statistics). The benchmark is authored from scratch: `upstream/Badlands` has no example inputs (they live in the separate `badlands-workshop` repository), so the DEM, uplift and XML input are written for this test, and the native run needs gfortran, meson, f2py, `numpy<2`, `triangle` and gFlex. Badlands applies incision explicitly with a CFL time step (`utils/flowalgo.f90:396`, `:946–1103`), while MapMaker solves it implicitly (§2), so the comparison carries a stated tolerance for the explicit-versus-implicit scheme difference (`docs/reconciliation/group-2.md` B2, B7);
   2. compare against orogen's fast pass on the same world;
@@ -1034,6 +1041,7 @@ Added at Checkpoint 1 (D5):
 - **I3, from Checkpoint 4b:** make sub-reference detail the same function of position at every N, through band-limited synthesis of orogen's sub-reference terms and erosion in physical rather than hop units. This should:
   - bring native-cell hypsometry and river-mouth distance within their Q7 targets;
   - allow the sub-reference lapse rate and Smith–Barstad rain (note 14 §3.12, deviations 3 and 4).
+  - **Deliverable: a `dmath` FFT** for the tangent-plane Smith–Barstad window. Both references solve the linear model by FFT on a regular planar grid (PISM with FFTW, `OrographicPrecipitationSerial.cc:101–103`; Badlands with its own mixed-radix `fftmx`, `utils/classoro.f90:278`), and neither is portable as is. Size line in note 14 §7 (an estimate).
 
 **Checkpoint 7.** Stop and wait.
 
@@ -1041,7 +1049,7 @@ Added at Checkpoint 1 (D5):
 
 - Stage 4c: ice sheets and glaciers (shallow-ice approximation, a new solver on the sphere written from PISM's formulations), sea ice, permafrost, eustatic and isostatic sea level, coupled with climate and erosion.
 - **What PISM supplies:** formulas (SIA, SSA, the diffusivity time-step rule, enthalpy, mass transport, Lingle–Clark bed deformation) and the exact tests A–D, ported as golden values within a curvature tolerance. It supplies **no portable solver** (its code is PETSc on a regular projected grid) and **no erosion law** (PISM has none; `src/earth/BedDef.hh:27` lists bed erosion as future work). The glacial-erosion law therefore needs a source; none is chosen yet (`docs/reconciliation/group-2.md` S1, S2, S6).
-- **Surface mass balance:** the positive-degree-day scheme stays the default. A physically based mass balance would be new code, a surface energy balance written from the CLM5 technical note: CTSM's `GlacierSurfaceMassBalanceMod.F90` only books melt and accumulation computed elsewhere in its energy balance, so there is no scheme to port (`docs/reconciliation/group-3.md` L3).
+- **Surface mass balance:** the positive-degree-day scheme is the default and the only mass balance this phase delivers. A physically based surface-energy-balance option is an **unbudgeted stretch goal**, not a Phase 7b deliverable: it would be new code written from the CLM5 technical note, because CTSM's `GlacierSurfaceMassBalanceMod.F90` only books melt and accumulation computed elsewhere in its energy balance, so there is no scheme to port (`docs/reconciliation/group-3.md` L3; note 22 §3.1).
 - Earth tests: present ice extent (T2), glacial-maximum sea-level drop and ice extent under LGM forcing.
 
 **Checkpoint 7b.** Stop and wait.
@@ -1085,7 +1093,7 @@ Implement design notes 4 and 5, and the biome layer that combines Köppen and th
 
 ### Phase 9b: Vegetation dynamics (note 25)
 
-**Prerequisite:** reconcile LPJmL, SLiM and RangeShiftR first (`audit/LPJmL.md`, `audit/SLiM.md`, `audit/RangeShiftR.md`). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
+**Prerequisite:** reconcile SLiM and RangeShiftR first (`audit/SLiM.md`, `audit/RangeShiftR.md`); LPJmL is reconciled before Phase 7. The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
 
 - Stage 8v: plant functional types, biomass, fire and succession (LPJmL formulation), feeding biomes, soils, erosion cover, albedo and the water balance.
 - Earth tests: biome areas and NPP against observed maps (T2).
@@ -1093,6 +1101,8 @@ Implement design notes 4 and 5, and the biome layer that combines Köppen and th
 **Checkpoint 9b.** Stop and wait.
 
 ### Phase 9c: Fauna, species ranges and food webs (note 26)
+
+**Prerequisite:** reconcile GAMA and FLAMEGPU2 first (cited by notes 26 and 29; `audit/GAMA.md`, `audit/FLAMEGPU2.md`). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
 
 - Stage 8f: species with traits and ranges (RangeShiftR-style dynamics), trophic guilds and food webs, migration, domesticable species flagged for civilization.
 - Earth tests: latitudinal richness gradient, species-area relation, island endemism.
@@ -1110,12 +1120,16 @@ Implement design notes 4 and 5, and the biome layer that combines Köppen and th
 
 ### Phase 9e: Natural hazards and disease (notes 28, 29)
 
+**Prerequisite:** reconcile SongsOfFOSS first (cited by note 29; `audit/SongsOfFOSS.md`). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
+
 - Stage 9h: hazard return-period layers (earthquakes, eruptions, tsunamis, floods, landslides, cyclones, impacts) and pathogen reservoirs, both used by the history simulation.
 - Earth tests: Gutenberg–Richter statistics, hazard maps against observed patterns.
 
 **Checkpoint 9e.** Stop and wait.
 
 ### Phase 10: Static human layer on the sphere, and SVG
+
+**Prerequisite:** reconcile UrbanSim first (cited by note 9; `audit/UrbanSim.md`). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
 
 Azgaar generators (step 11 in §4) via the facade, with injected RNG. Settlement, border, route and label rendering on the globe and flat views. SVG export via the vector path.
 
@@ -1136,7 +1150,7 @@ Azgaar generators (step 11 in §4) via the facade, with injected RNG. Settlement
 
 ### Phase 10b: Cartography v2 and drawing tools (notes 18, 19)
 
-**Prerequisite:** audit the candidate CC0 map-asset packs (symbols, textures, fonts; `audit/CAPABILITY_MATRIX.md`, Candidate upstreams to audit). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
+**Prerequisite:** audit the candidate CC0 map-asset packs (symbols, textures, fonts; `audit/CAPABILITY_MATRIX.md`, Candidate upstreams to audit). Azgaar's heraldry charges (`public/charges/`), relief symbols (`src/index.html`) and icons (`public/images/`) have no documented licence upstream (`docs/wiki/Policy.md:54`); each needs a documented licence source before any is bundled (note 19 §6). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
 
 - The asset library (symbols, textures, brushes, fonts, frames, compass roses, cartouches), with CC0 packs and user imports.
 - Drawing tools for annotation layers: freehand, stamps, paths, regions, labels on curves, text boxes.
@@ -1170,7 +1184,7 @@ STL (design note 7), GeoJSON, PNG tiles, and other formats as feasible. Save siz
 
 ### Phase 13: History simulation (built last; a checkpoint after each sub-phase)
 
-**Prerequisite:** reconcile Eurace, UrbanSim, LIAM2, MESSAGEix, GAMA, FLAMEGPU2, OpenSpiel and SongsOfFOSS first (`audit/<repo>.md` for each). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
+**Prerequisite:** reconcile Eurace, LIAM2 and OpenSpiel first (`audit/<repo>.md` for each); UrbanSim, MESSAGEix, GAMA, FLAMEGPU2 and SongsOfFOSS are reconciled earlier (Phases 10, 5b, 9c and 9e). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
 
 | Sub-phase | Content |
 |---|---|
@@ -1178,7 +1192,6 @@ STL (design note 7), GeoJSON, PNG tiles, and other formats as feasible. Save siz
 | 13b | Trade networks and economics (dynamic prices and flows over Azgaar's route graph) |
 | 13c | Politics, diplomacy, borders and war |
 | 13d | Language evolution and time-dependent naming |
-
 | 13e | Technology and innovation: a technology graph, discovery, diffusion along contacts and loss (note 31) |
 | 13f | Religion, ideology and culture dynamics (note 32) |
 | 13g | Characters, dynasties and the narrative chronicle (note 33) |
@@ -1187,6 +1200,8 @@ STL (design note 7), GeoJSON, PNG tiles, and other formats as feasible. Save siz
 Each sub-phase ends at a checkpoint. Stop and wait after each.
 
 ### Phase 14: Performance and desktop fallback (conditional)
+
+**Prerequisite:** reconcile CesiumJS beyond Phases 5 and 5c (LOD and tiling, the references for note 38; `audit/CesiumJS.md`). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
 
 Profile, add WASM kernels where they are justified, and build the Electron wrapper **only if** earlier benchmarks require it.
 
@@ -1203,11 +1218,15 @@ Phase 14 is no longer only conditional (Q13): it re-measures the full scope, imp
 
 ### Phase 16: Worldbuilder tools (note 36)
 
+**Prerequisite:** reconcile CesiumJS's claims in note 36 (`audit/CesiumJS.md`), if not already done before Phase 14. The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
+
 - The encyclopedia (an article per entity, generated and editable), the timeline and history scrubber, notes, search, and what-if branches.
 
 **Checkpoint 16.** Stop and wait.
 
 ### Phase 17: Plugin, mod and scripting API (note 37)
+
+**Prerequisite:** reconcile the QGIS Processing framework (cited by note 37; `audit/QGIS.md`). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
 
 - A sandboxed scripting API over the canonical model, plugin packaging, and user-defined stages, rules, styles and tools.
 

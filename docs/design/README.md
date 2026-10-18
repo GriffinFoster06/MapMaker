@@ -23,7 +23,7 @@ Notes 14, 3, 6 and 13 were written first, because they could change the architec
 
 ## Reconciliation against source (2026-10-18)
 
-Notes 15–38 and the 2026-10-13 updates to notes 1–14 were written without `upstream/` checked out. Reconciliation groups 1, 2, 3 and 6a (`docs/reconciliation/`) checked every claim about GPlates, tectonics.js, ASPECT, VPLanet, Badlands, ParFlow, WRF-Hydro, PISM, Delft3D, CESM, CTSM, MOM6 and MARBL, and the Phase 5 and 5c claims about Azgaar, QGIS and CesiumJS, against the pinned source, and corrected notes 4, 6, 10–15, 17–25, 28 and 38. References to the other upstreams and to the candidate upstreams are not checked yet; each remaining reconciliation or audit is a Prerequisite line in its phase (ARCHITECTURE.md §7). Open changes are in `docs/reconciliation/pending-decisions.md`.
+Notes 15–38 and the 2026-10-13 updates to notes 1–14 were written without `upstream/` checked out. Reconciliation groups 1, 2, 3 and 6a (`docs/reconciliation/`) checked every claim about GPlates, tectonics.js, ASPECT, VPLanet, Badlands, ParFlow, WRF-Hydro, PISM, Delft3D, CESM, CTSM, MOM6 and MARBL, and the Phase 5 and 5c claims about Azgaar, QGIS and CesiumJS, against the pinned source, and corrected notes 4, 6, 10–15, 17–25, 28 and 38. References to the other upstreams and to the candidate upstreams are not checked yet; each remaining reconciliation or audit is a Prerequisite line in its phase (ARCHITECTURE.md §7). The changes the reconciliation raised were ruled on and applied on 2026-10-18 (`docs/reconciliation/pending-decisions.md`).
 
 Consequences recorded in the notes:
 - Notes 20 and 21: the ODE integrator (a port of VPLanet `evolve.c`) is built in Phase 6a and reused in 6c; two-star insolation is original code.

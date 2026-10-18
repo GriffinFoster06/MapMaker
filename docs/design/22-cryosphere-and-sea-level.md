@@ -25,7 +25,7 @@ orogen has glacial erosion and an `iceCover` classification, but no ice that flo
 
 ### 3.1 Surface mass balance
 
-Positive-degree-day melt from the seasonal temperature harmonics (note 11) and accumulation from snowfall (precipitation below a temperature threshold), with an elevation feedback. A physically based option needs a surface energy balance. CTSM computes melt from its full energy balance and soil/snow phase change and only books the result in `GlacierSurfaceMassBalanceMod.F90` (`:209`, `:214`), so the reference is the CLM5 technical note (`doc/source/tech_note/Glacier/`, `Soil_Snow_Temperatures/`), not a standalone scheme. A physically based option would therefore be new code; the positive-degree-day scheme stays the default (ARCHITECTURE.md Phase 7b).
+Positive-degree-day melt from the seasonal temperature harmonics (note 11) and accumulation from snowfall (precipitation below a temperature threshold), with an elevation feedback. A physically based option needs a surface energy balance. CTSM computes melt from its full energy balance and soil/snow phase change and only books the result in `GlacierSurfaceMassBalanceMod.F90` (`:209`, `:214`), so the reference is the CLM5 technical note (`doc/source/tech_note/Glacier/`, `Soil_Snow_Temperatures/`), not a standalone scheme. A physically based option would therefore be new code. **Ruling (2026-10-18):** the positive-degree-day scheme is the default and the only mass balance Phase 7b delivers; the physically based surface-energy-balance option is an **unbudgeted stretch goal**, not a Phase 7b deliverable (ARCHITECTURE.md Phase 7b).
 
 ### 3.2 Ice flow
 
@@ -65,7 +65,7 @@ Sea-ice fraction from SST and air temperature (note 23); permafrost from mean an
 
 | Part | LOC |
 |---|---|
-| Mass balance (the positive-degree-day default; a physically based option is new code and is not sized here) | ~600 |
+| Mass balance (the positive-degree-day default; the physically based option is an unbudgeted stretch goal, not sized) | ~600 |
 | SIA solver on the sphere | ~1,500 |
 | SSA (optional) | ~1,500 |
 | Sea level and GIA coupling | ~800 |

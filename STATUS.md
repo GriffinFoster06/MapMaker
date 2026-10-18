@@ -49,6 +49,14 @@ Updated at every checkpoint.
 
 Since `121dc1e` only Markdown files and five `license.spdx` strings in `upstream-manifest.json` changed. No code, `upstream/` or `packages/gen-orogen/vendor/` file changed, so the code checks above are expected to be unaffected, but that is an inference, not a re-run.
 
+**Addendum (2026-10-18): pending decisions resolved.** The user ruled on every item in `docs/reconciliation/pending-decisions.md` (A1–A5, B1–B5, C1–C4, D1–D4); each is now under "Resolved 2026-10-18" there, and the "Open items" and "Deferred reconciliations" paragraphs above are superseded. Documentation and manifest only: `upstream-manifest.json` QGIS and GPlates `license.spdx`/`notes` (commits unchanged); `provenance:check` and `lint` passed after the edit. New Prerequisite lines in `docs/ARCHITECTURE.md` §7:
+- **5b:** Godot; orogen (every design-note claim citing it, especially notes 17 and 21); Azgaar editors and options UI; MESSAGEix.
+- **7:** FastScape audit; LPJmL (`src/lpj/drain.c`); Azgaar `lakes.ts` and `features-generator.ts` (plus the groundwater design before 7g).
+- **9b:** SLiM and RangeShiftR (LPJmL moved to 7). **9c:** GAMA and FLAMEGPU2. **9e:** SongsOfFOSS. **10:** UrbanSim.
+- **10b:** CC0 asset packs, plus a documented licence source for Azgaar's charges, relief symbols and icons (Phase 5c ships no third-party symbols until then).
+- **13:** Eurace, LIAM2, OpenSpiel. **14** and **16:** CesiumJS. **17:** QGIS Processing.
+- Unchanged: 5c (mapgen4, mewo2/terrain), 8b, 9d, 11b, 18.
+
 **Local setup:** `scripts/node24.sh npm ci`, then the commands in `AGENTS.md`. `upstream/` is present locally; the nightly-style strict path (`REQUIRE_UPSTREAM=1`) has not been run.
 
 **Next concrete step: Phase 5 (projection and distortion layer).** Stop and wait for the user first (§7). Before starting: decide the Phase 5 projection source (d3-geo, with its `PROVENANCE.md` entry, since no upstream has projection code); measure peak browser memory per 4b decision 8; and read the Phase 5 text in `docs/ARCHITECTURE.md` §7 and the Prerequisite lines of 5b and 5c (Godot reconciliation; mapgen4 and mewo2/terrain audits).

@@ -137,6 +137,7 @@ Build inferred from documentation and CI config (no build attempted in scratchpa
   - `contrib/landlab/`: Python/Cython, unclear; not bundled, external dependency.
   - `contrib/world_builder/`: Separate licence, LGPL-2.1 (verified in `contrib/world_builder/LICENSE`).
 - No vendored third-party code in core; deal.II and Trilinos are external dependencies with their own licenses (LGPL/BSD). `contrib/world_builder/` is vendored and LGPL-2.1 (`contrib/world_builder/LICENSE`); it bundles vtu11 with its own `LICENSE`.
+- **World Builder licence version (2026-10-18).** `contrib/world_builder/LICENSE` is the LGPL-2.1 text, but the source headers grant "the GNU Lesser General Public License … either version 2 of the License, or (at your option) any later version" (`contrib/world_builder/source/world_builder/features/plume.cc:6–9`), that is LGPL-2.0-or-later. It also bundles vtu11 under BSD-3-Clause (`include/vtu11/LICENSE:1`) and RapidJSON (`include/rapidjson/license.txt`). The manifest records ASPECT's own licence; this record keeps "LGPL-2.1" for the World Builder, matching `docs/reconciliation/group-1.md` (ruling C2). Either version can be used in MapMaker (GPL-3.0-only).
 
 **Does it match the manifest?** Yes. Manifest lists: "Mantle convection / geodynamics FEM solver — tectonics reference; license GPL-2.0-or-later." Verified.
 

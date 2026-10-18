@@ -1,6 +1,6 @@
 # Reconciliation
 
-Documentation-only passes that check what the planning documents claim about each upstream against the source in `upstream/`. This file records why they exist, the method, what is done and what is deferred, and how to run the next one. The results are in `group-1.md`, `group-2.md`, `group-3.md` and `group-6a.md`. `pending-decisions.md` lists changes the passes raised that need a decision. `review.md` is an independent review of the first four passes.
+Documentation-only passes that check what the planning documents claim about each upstream against the source in `upstream/`. This file records why they exist, the method, what is done and what is deferred, and how to run the next one. The results are in `group-1.md`, `group-2.md`, `group-3.md` and `group-6a.md`. `pending-decisions.md` records the changes the passes raised and the user's rulings on them (all resolved 2026-10-18). `review.md` is an independent review of the first four passes.
 
 ## 1. Why reconciliation exists
 
@@ -22,7 +22,7 @@ Used in `group-1.md` through `group-3.md` and `group-6a.md`:
 
 ## 3. Status
 
-"Done" means a group file exists and the corrections were applied. The Prerequisite column matches the **Prerequisite** lines in `docs/ARCHITECTURE.md` §7 (Phases 5b, 5c, 7, 8b, 9b, 9d, 10b, 11b, 13, 18). The group numbers 4, 5 and 6b were never defined in a record, so deferred work is listed by Prerequisite phase instead.
+"Done" means a group file exists and the corrections were applied. The Prerequisite column matches the **Prerequisite** lines in `docs/ARCHITECTURE.md` §7 (Phases 5b, 5c, 7, 8b, 9b, 9c, 9d, 9e, 10, 10b, 11b, 13, 14, 16, 17, 18; placement ruled in `pending-decisions.md` D3). The group numbers 4, 5 and 6b were never defined in a record, so deferred work is listed by Prerequisite phase instead.
 
 ### Manifest repos (30)
 
@@ -41,23 +41,23 @@ Used in `group-1.md` through `group-3.md` and `group-6a.md`:
 | CTSM | Done | group 3 | — |
 | MOM6 | Done | group 3 | — |
 | MARBL | Done | group 3 | — |
-| Azgaar | **Partly done**: Phases 5 and 5c only | group 6a | The rest (Phase 5b editors and options UI, Phase 7 `lakes.ts` and `features-generator.ts`, notes 5 and 9) has **no Prerequisite line** (`pending-decisions.md` D3) |
-| QGIS | **Partly done**: Phases 5 and 5c only | group 6a | The rest (Processing framework, note 37, Phase 17) has **no Prerequisite line** (D3) |
-| CesiumJS | **Partly done**: Phases 5 and 5c only | group 6a | The rest (LOD and tiling, note 38, Phase 14; note 36, Phase 16) has **no Prerequisite line** (D3) |
+| Azgaar | **Partly done**: Phases 5 and 5c only | group 6a | Phase 5b (editors and options UI); Phase 7 (`lakes.ts`, `features-generator.ts`). Notes 5 and 9 are covered by those passes or by Phase 10; asset licences at Phase 10b |
+| QGIS | **Partly done**: Phases 5 and 5c only | group 6a | Phase 17 (Processing framework, note 37) |
+| CesiumJS | **Partly done**: Phases 5 and 5c only | group 6a | Phase 14 (LOD and tiling, note 38); Phase 16 (note 36) |
 | Godot | Deferred | — | Phase 5b |
-| orogen | Deferred (vendored and parity-tested, but its claims in notes 17 and 21 were wrong or unchecked: `review.md` M1, M2) | — | **No Prerequisite line** (D3) |
-| LPJmL | Deferred | — | Phase 9b (note 12, Phase 7, cites it earlier: D3) |
+| orogen | Deferred (vendored and parity-tested, but its claims in notes 17 and 21 were wrong or unchecked: `review.md` M1, M2) | — | Phase 5b (every design-note claim that cites it, especially notes 17 and 21) |
+| LPJmL | Deferred | — | Phase 7 (`src/lpj/drain.c`, note 12) |
 | SLiM | Deferred | — | Phase 9b |
 | RangeShiftR | Deferred | — | Phase 9b |
 | PostGIS | Deferred | — | Phase 11b |
 | Eurace | Deferred | — | Phase 13 |
-| UrbanSim | Deferred | — | Phase 13 (note 9, Phase 10, cites it earlier: D3) |
+| UrbanSim | Deferred | — | Phase 10 |
 | LIAM2 | Deferred | — | Phase 13 |
-| MESSAGEix | Deferred | — | Phase 13 (note 17, Phase 5b, cites it earlier: D3) |
-| GAMA | Deferred | — | Phase 13 (note 26, Phase 9c, cites it earlier: D3) |
-| FLAMEGPU2 | Deferred | — | Phase 13 (notes 26 and 29, Phases 9c and 9e, cite it earlier: D3) |
+| MESSAGEix | Deferred | — | Phase 5b |
+| GAMA | Deferred | — | Phase 9c |
+| FLAMEGPU2 | Deferred | — | Phase 9c |
 | OpenSpiel | Deferred | — | Phase 13 |
-| SongsOfFOSS | Deferred | — | Phase 13 (note 29, Phase 9e, cites it earlier: D3) |
+| SongsOfFOSS | Deferred | — | Phase 9e |
 
 Totals: 13 done, 3 partly done, 14 deferred (30).
 
@@ -76,7 +76,7 @@ Totals: 13 done, 3 partly done, 14 deferred (30).
 
 ### Other open items
 
-- `pending-decisions.md` holds the decisions the passes raised (A: plan and estimate changes, B: optional phase-text clarifications, C: record corrections, D: observations).
+- `pending-decisions.md` holds the decisions the passes raised (A: plan and estimate changes, B: optional phase-text clarifications, C: record corrections, D: observations). All were ruled on and applied on 2026-10-18; none is open.
 - The independent review (`review.md`) found one wrong claim (H1), the missing README (H2) and the placement gaps summarised in D3. Each finding has a Resolution line.
 
 ## 4. How to run a reconciliation session

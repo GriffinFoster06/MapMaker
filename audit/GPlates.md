@@ -120,7 +120,7 @@ GPlates has **no built-in support** for:
 - No EULA restrictions (standard GPL terms apply).
 - Conflict with MapMaker (currently undefined license): GPL-2.0 derivation must remain GPL-2.0. OK if MapMaker also adopts GPL-2.0 or compatible (MIT, Apache-2.0 are not compatible; would need GPLv3+ or AGPL-3.0 for some compatibility).
 
-**Manifest match**: Yes, upstream-manifest.json lists `"license": { "spdx": "GPL-2.0", "file": "COPYING" }`. Matches.  
+**Manifest match**: Yes. upstream-manifest.json listed `"spdx": "GPL-2.0"`, the same string QGIS used for or-later; since 2026-10-18 it says `"GPL-2.0-only"`.  
 **Git commit**: 5392e78f1c1d22a5fe09e2b9702be2514b8e6b47 matches manifest commit.
 
 ## 6. Capability coverage summary
