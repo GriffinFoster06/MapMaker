@@ -110,7 +110,7 @@ What is kept from orogen besides generation:
 |---|---|---|
 | **orogen** (JS, GPL-3.0) | **Vendor → adapt → port incrementally** | Copy `js/` stage modules at commit `cc2662b` into `packages/gen-orogen/vendor/` unchanged. Wrap each stage behind the stage interface (§4) with an adapter that does axis permutation, unit conversion, RNG injection and the radius parameter (F1–F4). Port to TypeScript one module at a time, with the parity test as a guard. Drop orogen's inlined Delaunator for the npm package. |
 | **Azgaar** (TS, MIT) | **Source-level adaptation** of selected generators | Extract `river-generator`, `lakes`, `features-generator`, `biomes-generator`, `population-generator`, `cultures-generator`, `names-generator`, `burgs-generator`, `states-generator`, `provinces-generator`, `routes-generator`, `religions-generator`, `goods-generator`, `production-generator`, `markets-generator`. Replace globals (`pack`, `grid`, `options`) with an explicit context and replace `Math.random` with injected streams (F7). Run them over a sphere-backed `PackedGraph` facade (§3.6). Azgaar's renderers, UI and `.map` format are references only. |
-| **VPLanet** (C, MIT) | **TypeScript re-implementation of a small subset**, validated against the native binary | Port only what MapMaker needs: insolation by latitude and day of year from orbital elements and obliquity (DistOrb/DistRot steady-state formulas, not secular evolution), and the POISE energy-balance core (annual and seasonal modes, OLR parameterisation, ice-albedo). A full WASM port is rejected: `poise.c` is tangled with `evolve.c` and the body struct, and we need a fraction of it. Native `vplanet` is built locally and its `examples/EarthClimate` output is used as golden data in tests. |
+| **VPLanet** (C, MIT) | **TypeScript re-implementation of a small subset**, validated against the native binary | Port only what MapMaker needs: insolation by latitude and day of year from orbital elements and obliquity (closed-form, POISE `fvDailyInsolation`/`fvAnnualInsolation`, `src/poise.c:5530`, `:5602`; DistOrb and DistRot do secular evolution only and need `evolve.c`'s integrator, so they are not part of this subset), and the POISE energy-balance core (annual and seasonal modes, OLR parameterisation, ice-albedo). A full WASM port is rejected: `poise.c` is tangled with `evolve.c` and the body struct, and we need a fraction of it. Native `vplanet` is built locally and its `examples/EarthClimate` output is used as golden data in tests. |
 | **Badlands** (Python/Fortran, GPL-3.0) | **Re-implementation in TypeScript** on the sphere mesh | Braun–Willett O(n) receiver and stack ordering, implicit stream-power incision (detachment-limited first, with transport-limited variants later), and linear and nonlinear hillslope diffusion, all using spherical cell areas. Validated against a Python Badlands run on a planar benchmark (Phase 7). Flexure (gFlex) is not ported; Airy isostasy if needed. |
 | **GPlates** (C++, GPL-2.0-only) | **Port where useful (Q12)** | Previously math reference only. Since Q12, finite rotations, Euler poles, quaternion composition and reconstruction code may be ported from GPlates source to TypeScript; published formulas (for example Cox & Hart, *Plate Tectonics: How It Works*) remain the validation reference. |
 | **d3-geo, d3-geo-projection** | npm dependency | All projection math (D1). License recorded in `PROVENANCE.md`†. |
@@ -280,7 +280,7 @@ This exists in the schema and save format from Phase 3, even though only a dummy
 | climate stages at N | — | **Parity mode only.** From Phase 4b, orogen's climate runs at L0 and is downscaled to N (note 14 §3.6). |
 | wind / currents (3D tangent vectors) | `wind.*`, `current.*` (east/north) | Project onto local east = (−sin λ, cos λ, 0) and north = (−sin φ cos λ, −sin φ sin λ, cos φ). |
 | Köppen class index (1–30) | `koppen` enum | Table map; the canonical enum is a superset (adds `As`, separate from `Aw`). |
-| `r_plate`, plate seeds, vectors, density | `plate` layer + `plates` table | Plate velocity becomes an Euler pole and rate (GPlates-style math, re-implemented). |
+| `r_plate`, plate seeds, vectors, density | `plate` layer + `plates` table | Plate velocity becomes an Euler pole and rate (GPlates finite-rotation math, ported since Q12). |
 | `CLIMATE` / terrain config constants | `params` | Via the parameter-mapping layer (gap 11). Constants become parameters with documented 0 / 1.0 / 1.5 meaning (Phase 8). |
 | hard-coded `6371` | `planet.radius_m` | Patched in the vendored copy as a single injected constant. Parity tests run at R = 6371 km. |
 
@@ -323,7 +323,7 @@ Spike 1b ran `features-generator`, `lakes` and `river-generator` unmodified over
 **GPlates math → canonical**
 
 - `plates` rows carry an Euler pole and rate.
-- Finite rotations are unit quaternions, composed with standard quaternion algebra.
+- Finite rotations are unit quaternions, composed with standard quaternion algebra. GPlates uses the same frame (`src/maths/LatLonPoint.cc:127-139`: +Z north, +X at 0°E) and radians, so a port needs no axis permutation. Its rotation times are Ma before present; the geo axis is t ≤ 0 Myr, so Ma = −t.
 - These rotations give plate-motion vectors at boundaries for the static snapshot.
 - They are also the kinematic core of **forward plate evolution**, which is a core feature (Q9, design note 13). `plates` rows use `validFrom/validTo` in Myr of geologic time, and finite rotations compose per time step.
 
@@ -524,8 +524,8 @@ The full product adds stages to the table above. They slot in by dependency; eac
 
 | # | Stage | Pass | Main sources | Writes | Note | Phase |
 |---|---|---|---|---|---|---|
-| 0a | **Astronomy**: star(s), orbit, moons, rotation; insolation by latitude and day; tides; orbital cycles over deep time | — | VPLanet (DistOrb, DistRot, EqTide, Stellar) | `bodies`, `astro.*`, calendar | 20 | 6a |
-| 2i | **Interior and volcanism**: plume placement, heat flow, volcanic provinces, magnetic field; with 2e, events on the geologic axis | R | ASPECT and VPLanet `thermint` parameterisations; new | `plumes`, `volcanoes`, `interior.*` | 21 | 6c |
+| 0a | **Astronomy**: star(s), orbit, moons, rotation; insolation by latitude and day; tides; orbital cycles over deep time | — | VPLanet (DistOrb, DistRot, EqTide, Stellar, Binary, with `evolve.c`'s integrator) | `bodies`, `astro.*`, calendar | 20 | 6a |
+| 2i | **Interior and volcanism**: plume placement, heat flow, volcanic provinces, magnetic field; with 2e, events on the geologic axis | R | VPLanet `thermint`/`radheat` parameterisations; ASPECT rheology and core-evolution references; plume placement new | `plumes`, `volcanoes`, `interior.*` | 21 | 6c |
 | 4c | **Cryosphere and sea level**: ice sheets and glaciers from climate (shallow-ice approximation), sea ice, permafrost; eustatic and isostatic sea level | R + D | PISM (SIA/SSA), orogen glacial erosion | `ice.*`, `iceSheets`, `glaciers`, sea level | 22 | 7b |
 | 5o | **Ocean dynamics**: wind-driven gyres and a thermohaline proxy on the sphere, SST and salinity, tides; replaces the heuristic current field when on | R + D | MOM6 (formulation), MARBL (biogeochemistry, optional), orogen `ocean.js` (parity) | `ocean.*` | 23 | 7c |
 | 5a | **Atmosphere dynamics** (optional variant): shallow-water or simplified GCM circulation, storm tracks and variability; paleoclimate over the geologic axis | R | new, from published models; CESM/CAM formulations as reference | `atm.*`, refined `wind.*`, `precip.*` | 24 | 8b |

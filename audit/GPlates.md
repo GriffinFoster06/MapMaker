@@ -1,5 +1,9 @@
 # Audit: GPlates
 
+**Reconciled 2026-10-18 against `5392e78`** (`docs/reconciliation/group-1.md`). Since ARCHITECTURE.md Q12 the licence no longer limits GPlates to a math reference; its code may be ported.
+
+**Conventions (verified):** rotation angles in radians (`src/maths/FiniteRotation.h:75`); rotation-file times in Ma, positive into the past (MapMaker's geo axis is t ≤ 0 Myr, so Ma = −t); lat/lon → unit vector is x = cos φ cos λ, y = cos φ sin λ, z = sin φ (`src/maths/LatLonPoint.cc:127–139`), which is MapMaker's canonical frame with no permutation. `compose(r1, r2)` returns q1·q2 (`FiniteRotation.cc:493–497`), with r1 the root-ward (fixed-plate) rotation (`FiniteRotation.h:355–363`): applied to a point, r2 acts first, then r1, i.e. premultiplication, the same convention as note 13's q ← exp(½ωΔt)⊗q. SLERP is `FiniteRotation.cc:366`, `interpolate` at `:434`. The maths core includes Qt and Boost headers (`src/maths/Real.h:34–37`: boost fpclassify, `QDebug`, `QTextStream`; Scribe serialisation), which a TS port drops; `Real` compares with epsilons, which a port must reproduce exactly. **Projections** are PROJ calls with `ellps=WGS84` (`src/gui/MapProjection.cc:67–71`: `proj=latlong`, `merc`, `moll`, `robin`); there is no native projection maths, so for MapMaker they are a reference to PROJ, not portable code (D1 uses d3-geo).
+
 ## 1. Overview
 
 GPlates is a professional-grade desktop application for interactive visualization of plate tectonics, with an associated Python library (pyGPlates) for programmatic access. Developed by an international team led by researchers at the University of Sydney, the Geological Survey of Norway, and Caltech since 2003. The repository contains ~327K LOC in ~2,276 C++ source files. Active development, modern CMake/Qt6 build system, well-maintained CI. Maturity: production-grade, used in geoscience research.
@@ -17,7 +21,7 @@ GPlates is a professional-grade desktop application for interactive visualizatio
 - **Build determination**: Verified by inspecting CMakeLists.txt, dependencies in pyproject.toml and conda environment files (env.*.yml), and presence of platform-specific BUILD-*.md. CMake available on test system; build is complex but documented. **Builds: inferred from manifest** (not attempted; would require Qt6 + 10+ dependencies via conda).
 - **Browser feasibility**: **Not suitable as-is**. Desktop Qt/OpenGL application tightly coupled to GUI framework. Porting to browser would require:
   - Rewrite or WASM-wrap ~50K+ LOC of Qt/OpenGL rendering (src/gui, src/opengl, src/qt-*)
-  - Replace GDAL/PROJ with pure-JS alternatives (already available: Proj.js, GeoTIFF.js)
+  - Replace GDAL/PROJ with pure-JS alternatives (for example proj4js or d3-geo, geotiff.js)
   - Separate core reconstruction logic (plausible: ~100K LOC in src/app-logic, src/maths) from UI
   - Effort: high (9-12 months for a well-staffed team). Recommendation: extract pyGPlates bindings instead and wrap in Node/Wasm, or use as offline reference.
 
@@ -41,7 +45,7 @@ GPlates is a professional-grade desktop application for interactive visualizatio
 - **Where**: src/gui/MapProjection.h/.cc, file-io/Proj.h (wrapper around PROJ library)
 - **What it does**: Converts lat-lon to 2D map coordinates using various projections. Currently supports: Orthographic (3D globe), Rectangular (equirectangular), Mercator, Mollweide, Robinson. Wraps the industry-standard PROJ library (libproj). Handles poles, date line wrapping, and clamping for numerical stability.
 - **Quality & realism rating: 4/5** — Reuses proven PROJ library, no home-grown math. Limited projection set (only 5 types; Equirectangular ≈ Rectangular). Mercator has documented pole issues; workarounds in place. Suitable for fantasy-world cartography.
-- **Extractability: standalone** — Pure adapter over PROJ. No GUI dependencies. Extractable as ~500 LOC C++ class. Effort to lift: low (port existing code or bind PROJ.js). Requirements: must export PROJ wrapper or switch to JS/Wasm port.
+- **Extractability: standalone** — Pure adapter over PROJ (Qt core types only: `QPointF`, `QString`, `QDebug`; no widgets). Nothing to port without PROJ itself, which is not in `upstream/` (reconciled 2026-10-18). Extractable as ~500 LOC C++ class. Effort to lift: low (port existing code or bind PROJ.js). Requirements: must export PROJ wrapper or switch to JS/Wasm port.
 - **Requirements capabilities it could serve**: Flat projections (Mercator, Mollweide, Robinson, Equirectangular); Globe view (orthographic); Planet-scale + regional patches (projection handles coordinate transforms).
 
 ### 3.4 Geometry, mesh, and spatial operations

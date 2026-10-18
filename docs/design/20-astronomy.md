@@ -26,7 +26,7 @@ The planet's sky drives everything below it: insolation by latitude and season, 
 
 ### 3.1 Star
 
-Stellar luminosity and radius from mass and age with the Baraffe et al. (2015) tracks VPLanet's `stellar.c` uses, or main-sequence scaling relations as a fast path. Binary stars: circumbinary (P-type) orbits get a time-varying insolation from both stars; S-type orbits treat the companion as a perturbation.
+Stellar luminosity and radius from mass and age with the Baraffe et al. (2015) tracks VPLanet's `stellar.c` uses, or main-sequence scaling relations as a fast path. Binary stars: circumbinary (P-type) orbits get a time-varying insolation from both stars; S-type orbits treat the companion as a perturbation. (VPLanet's `binary.c` gives circumbinary orbits and only an orbit-averaged scalar flux, `fndApproxInsol` :2482, and POISE takes one star, `body[0].dLuminosity`, `poise.c:5538`; latitude-resolved two-star insolation is new code.)
 
 ### 3.2 Orbit and rotation
 
@@ -49,7 +49,7 @@ An impact-rate parameter (Earth-like flux by default) produces impact events on 
 
 ## 4. Upstream references (algorithm level)
 
-- **VPLanet** `src/distorb.c` (DistOrb, secular orbital evolution), `src/distrot.c` (DistRot, obliquity and precession), `src/eqtide.c` (EqTide), `src/stellar.c` (Stellar), `src/poise.c` (insolation): port the needed parts to TypeScript, validated against native runs of `examples/CassiniStates`, `examples/BinaryTides` and `examples/EarthClimate`.
+- **VPLanet** `src/distorb.c` (DistOrb, secular orbital evolution), `src/distrot.c` (DistRot, obliquity and precession), `src/eqtide.c` (EqTide), `src/stellar.c` (Stellar), `src/poise.c` (insolation): port the needed parts to TypeScript, validated against native runs of `examples/CassiniStates`, `examples/BinaryTides`, `examples/SSDistOrbDistRot` and `examples/EarthClimate` (which runs `distorb distrot poise` and plots Milankovitch cycles). DistOrb, DistRot and EqTide supply derivatives only; the port includes `src/evolve.c`'s RK4 step (:403) and adaptive time step (:138). EqTide's two models are CPL and CTL (`eqtide.h:15-16`). `src/binary.c` (circumbinary orbits) is also needed for P-type planets.
 - **Literature:** Berger (1978); Laskar et al. (2004); Baraffe et al. (2015); Kopparapu et al. (2013) habitable zones; Murray & Dermott, *Solar System Dynamics*.
 
 ## 5. Validation

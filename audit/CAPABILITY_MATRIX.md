@@ -57,12 +57,12 @@ Each row ranks the candidates that actually matter and gives my pick. Repos that
 |---|---|---|---|---|---|---|
 | 1 | orogen | 4 | loose | JS | GPL-3.0 | `plates.js`, `plate-physics.js`, `coarse-plates.js`, `super-plates.js`: farthest-point plate seeding, drift-based boundary classification, stress propagation, density-based subduction. Toy physics, good visual results. |
 | 2 | GPlates | 5 (kinematics only) | loose | C++/Qt | GPL-2.0 | Finite-rotation / Euler-pole algebra and rotation-model handling (`src/app-logic/Reconstruction*`, `RotationUtils.h`). Reconstructs *given* motion; does not generate a world. |
-| 3 | tectonics.js (new) | 3 | loose | JS | CC-BY-4.0 | The only forward plate-evolution code in browser JS: rigid plates as 3×3 rotations, subduction by overlap, rifting by gap-fill, age-dependent crust density, Airy isostasy (`Lithosphere.js`, `Plate.js`, `Tectonophysics.js`). Runs; 40,962 cells max (Uint16 ids); 54 ms/step median, measured. The author's own comment calls its velocity model "mostly wrong"; no collision/orogeny/event logic; wall-clock time steps; plate set re-segmented every 150 Myr. Licence is not a blocker (FSF: CC BY 4.0 is GPL-compatible), but the code is of limited use for note 13. Algorithm reference only. |
-| 4 | VPLanet | 2 | tangled | C | MIT | Parameterized thermal-interior and plate scaling (`thermint.c`), useful for deciding whether plate tectonics is plausible on a given planet. |
+| 3 | tectonics.js (new) | 3 | loose | JS | CC-BY-4.0 | The only forward plate-evolution code in browser JS: rigid plates as 3×3 rotations, subduction by overlap, rifting by gap-fill, age-dependent crust density, Airy isostasy (`Lithosphere.js`, `Plate.js`, `Tectonophysics.js`; isostasy in `FluidMechanics.js:65-76`). Runs; 40,962 cells max (Uint16 ids); 54 ms/step median, measured. The author's own comment calls its velocity model "mostly wrong"; no collision/orogeny/event logic; wall-clock time steps; plate set re-segmented every 150 Myr. Licence is not a blocker (FSF: CC BY 4.0 is GPL-compatible), but the code is of limited use for note 13. Algorithm reference only. |
+| 4 | VPLanet | 2 | tangled | C | MIT | Parameterised thermal interior (`thermint.c`): mantle heat flow by Nusselt scaling under a mobile-lid or stagnant-lid regime the user selects (`dStagLid`, `thermint.c:649-708`). It sets plate vigour but does not decide whether plate tectonics is plausible (reconciled 2026-10-18). |
 | - | SongsOfFOSS (new) | none | n/a | Lua | MIT (Lua) | Terrain and plates come from a closed Windows binary `libSOTE.dll` (no source). A legacy Lua plate seeder (`game/world-gen/plate-gen.lua`) is dev-only and has no plate interactions. Nothing to use. |
-| - | ASPECT | 5 (physics) / 2 (fit) | tangled | C++/MPI | GPL-2.0+ | Mantle convection FEM. Not portable, not procedural. Parameter reference only. |
+| - | ASPECT | 5 (physics) / 2 (fit) | tangled | C++/MPI | GPL-2.0+ | Mantle convection FEM. Not portable, not procedural. Parameter reference only (rheology, core-evolution and plume-geometry references for note 21; see `docs/reconciliation/group-1.md`). |
 
-**Pick: orogen** for generation. Re-implement GPlates-style rotation algebra (small, well-defined math) if plate *history* over time is needed. Original code is needed for forward plate evolution; see Gaps.
+**Pick: orogen** for generation. For plate *history* over time, port GPlates' rotation algebra (`src/maths/UnitQuaternion3D`, `FiniteRotation`; allowed since Q12, see Expanded scope) rather than re-implementing it. Original code is needed for forward plate evolution; see Gaps.
 
 Added after the first pass: `tectonics.js` (see `audit/tectonics.js.md`, `docs/spikes/NEW_UPSTREAMS.md`) does not change this pick. It supplies ideas for note 13's detection mesh and crust pools, but not its event schedule, force balance, fast/slow split or keyed RNG.
 
@@ -114,7 +114,7 @@ Added after the first pass: `tectonics.js` (see `audit/tectonics.js.md`, `docs/s
 |---|---|---|---|
 | 1 | orogen | 4 | `wind.js` (895 LOC): pressure-driven, longitude-varying ITCZ, Coriolis deflection, zonal bands. No frontal systems. |
 | 2 | Azgaar | 2 | Six latitude-tier wind angles. |
-| 3 | VPLanet | 2 | 1D Hadley-style diffusion. |
+| 3 | VPLanet | 2 | 1D meridional diffusion (`dDiffusion`, optional `bMEPDiff`), with an optional `bHadley` bump that raises diffusion within about ±25° latitude (`poise.c:2159-2165`; the code notes it is "not self-consistent with rotation rate"). No winds. |
 
 **Pick: orogen.** (CESM's atmosphere code is not in the checkout; MOM6 etc. are ocean-only.)
 
@@ -266,7 +266,7 @@ Added after the first pass: `tectonics.js` (see `audit/tectonics.js.md`, `docs/s
 
 | Rank | Repo | Rating | Note |
 |---|---|---|---|
-| 1 | GPlates | 4 | Rectangular, Mercator, Mollweide, Robinson through PROJ (C++, Qt-coupled). Reference only. |
+| 1 | GPlates | 4 | Rectangular, Mercator, Mollweide, Robinson as PROJ calls on the WGS84 ellipsoid (`src/gui/MapProjection.cc:67-71`); no projection maths of its own. Reference only. |
 | 2 | CesiumJS | 4 | `WebMercatorProjection`, `GeographicProjection` only (standalone, ~500 LOC). |
 | 3 | orogen | 2 | Equirectangular only (see correction 1). |
 | 4 | Azgaar | 1† | Equirectangular graticule only. |
@@ -382,7 +382,7 @@ Q12 lifted licence restrictions and Q13 widened the scope to every domain in `do
 | Domain | Pick | Others | Note |
 |---|---|---|---|
 | Stars, orbits, moons, tides | **VPLanet** DistOrb, DistRot, EqTide, Stellar (port) | — | 20 |
-| Mantle, heat flow, magnetic field | **VPLanet** ThermInt, RadHeat (port) | ASPECT (parameters, dynamic topography), tectonics.js (isostasy) | 21 |
+| Mantle, heat flow, magnetic field | **VPLanet** ThermInt, RadHeat (port) | ASPECT (rheology parameters, `dynamic_core.cc` core evolution; dynamic topography only as a formula reference, since it needs the FEM stress field), tectonics.js (isostasy) | 21 |
 | Ice sheets, glaciers, sea level | **PISM** SIA/SSA and verification (port to the sphere) | CTSM glacier mass balance, VPLanet POISE ice, orogen glacial erosion | 22 |
 | Ocean circulation | **MOM6** formulations (new solver on the sphere) | orogen `ocean.js` (parity), MARBL (biogeochemistry) | 23 |
 | Coasts, deltas, sediment | **Delft3D** morphology and wave formulas | Badlands | 23 |
@@ -428,7 +428,7 @@ These are not in `upstream-manifest.json` yet. Each needs an audit in `audit/` (
 | Azgaar | MIT | |
 | VPLanet | MIT | Verified (`LICENSE`). |
 | Badlands | GPL-3.0 | |
-| GPlates | GPL-2.0-only | Verified: `COPYING` preamble says "version 2 ... not any later version". Incompatible with GPL-3.0; math reference only. |
+| GPlates | GPL-2.0-only | Verified: `COPYING` preamble says "version 2 ... not any later version". Incompatible with GPL-3.0; was math reference only, may be ported since Q12. |
 | CesiumJS | Apache-2.0 | |
 | LPJmL, FLAMEGPU2 | AGPL-3.0 | Network-copyleft. |
 | Eurace | custom EULA | **Do not extract** without legal review. Owner-controlled modification and redistribution (verified in `LICENSE.md`). |
@@ -436,7 +436,7 @@ These are not in `upstream-manifest.json` yet. Each needs an audit in `audit/` (
 | Delft3D | multi-license | Per-component licenses (`utils_lgpl`, `utils_gpl`, ...). The audit reports GPL/AGPL components, which does not match the manifest's LGPL-2.1/Apache-2.0 entry. Check per-file before use. |
 | CESM, CTSM, MARBL, WRF-Hydro | UCAR BSD-style / custom | Fine for reference. CESM has no code here. |
 
-Combined work: the recommended core mixes GPL-3.0 (orogen, Badlands-derived), MIT, GPL-2.0 (GPlates-derived) and Apache-2.0. Per the brief this is ignored for now, but the combined output would effectively be GPL-3.0, and GPL-2.0-only code could not be included.
+Combined work: the recommended core mixes GPL-3.0 (orogen, Badlands-derived), MIT, GPL-2.0 (GPlates-derived) and Apache-2.0. Per the brief this is ignored for now, but the combined output would effectively be GPL-3.0, and GPL-2.0-only code could not be included under the old rules; since Q12 this is recorded, not enforced.
 
 ## Repos with nothing to extract (reference or skip)
 

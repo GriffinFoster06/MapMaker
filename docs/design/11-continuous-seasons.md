@@ -57,7 +57,7 @@ The timeline calendar (§3.4) takes year length (in days of the planet's own rot
 
 ## 4. Upstream references (algorithm level)
 
-- **VPLanet** `src/poise.c` (`fvDailyInsolation`, seasonal EBM mode) and `src/distorb.c` (orbital elements): TS subset.
+- **VPLanet** `src/poise.c` (`fvDailyInsolation` :5530, seasonal EBM `PoiseSeasonal` :7387): TS subset. Orbital elements are inputs here; their secular evolution (`src/distorb.c`) is note 20's.
 - **orogen** `wind.js`, `temperature.js`, `precipitation.js`, `koppen.js`: the season sign and swing parameters, and the proxy classifier kept for parity.
 - **Literature:**
   - Kottek et al. (2006), *Meteorol. Z.* 15, Köppen–Geiger criteria;

@@ -1,9 +1,11 @@
 # Audit: VPLanet
 
+**Reconciled 2026-10-18 against `dd55da7`** (`docs/reconciliation/group-1.md`). Corrections: the ODE modules (DistOrb, DistRot, EqTide, ThermInt, POISE ice sheets) supply derivatives that `src/evolve.c` integrates (`RungeKutta4Step` :403, `EulerStep` :373, adaptive `fdGetTimeStep` :138), so porting secular evolution means porting an integrator; insolation (`fvDailyInsolation` `src/poise.c:5530`) is closed-form and needs none; the POISE annual and seasonal EBMs are implicit matrix solves (`LUDecomp`/`LUSolve`, `poise.c:5719`, `:5732`, `:5750`, `:5763`); ThermInt's stagnant-lid regime is a user input, not a criterion; unsupported validation claims removed; `examples/MagneticField` does not exist.
+
 ## 1. Overview
 VPLanet (Virtual Planet Simulator) is a scientific software suite for simulating planetary system evolution over gigayear timescales, with emphasis on habitability. Developed by the Virtual Planetary Laboratory at University of Washington, led by Rory Barnes. Active development: latest commit dd55da7e1ff063f0ea7048f91c9d2d97d6ba9a5d (main branch, Oct 2025). Mature, reference-grade project with 19,667 unit tests, 41 published-figure examples, 70 test simulations, comprehensive documentation.
 
-**Code composition**: 74,389 lines C source (50 files), 1,266 lines Python wrapper. Version 2.5.36. Modular ODE framework; 13 functioning modules for different physical processes. No external solver libraries required; integrates RK4 and other solvers internally.
+**Code composition**: 74,389 lines C source (49 files: 25 .c + 24 .h), 1,266 lines Python wrapper. Modular ODE framework; 13 functioning modules for different physical processes (atmesc, binary, distorb, distrot, eqtide, flare, galhabit, magmoc, poise, radheat, spinbody, stellar, thermint). No external solver libraries required; integrates RK4 and other solvers internally (src/evolve.c:403 RungeKutta4Step, line 138 fdGetTimeStep for adaptive timestepping).
 
 ## 2. Language, runtime, dependencies, build
 **Primary language**: C (gnu99 standard). Python 3.6+ wrapper via setuptools C extension (vplanet_core). Builds with gcc/clang on Linux, macOS, Windows (MSVC).
@@ -26,21 +28,21 @@ No native JavaScript/TypeScript implementation exists. Full rewrite to JS/TS wou
 - **Where**: src/distorb.c (6,831 lines), src/distorb.h, examples/ChaoticResonances, examples/Cassini*
 - **What it does**: Semi-analytic models of orbital evolution outside resonance. Two models: RD4 (4th order) and LL2 (Laplace-Lagrange 2nd order). Handles multi-body orbital stability, mutual inclination, eccentricity damping via tidal friction. Integrated with EqTide for tidal orbital coupling.
 - **Quality & realism rating: 5/5**. Published models validated against full N-body integrations. Used extensively in exoplanet habitability studies. Includes Laplace coefficients pre-computed for efficiency (LAPLNUM=26).
-- **Extractability: loosely coupled**. Depends on body/control structures and evolve.c orchestration, but core orbital equations are self-contained. ~5-6K lines of pure algorithm extractable with adapter. Module-level LOC for extraction: ~3K. Effort to port to JS: medium (complex matrix operations, Laplace expansion, orbital mechanics math; doable in JS/TS with numerical libraries or WASM).
+- **Extractability: loosely coupled**. Depends on body/control structures and evolve.c orchestration (RungeKutta4Step src/evolve.c:403, fdGetTimeStep line 138 for adaptive timestep). Extraction yields derivative functions (da/dt, de/dt, di/dt only); a TS port must include the integrator (RK4 or equivalent). Core orbital equations: matrix algebra for Laplace coefficients (L1055–1129), RD4/LL2 selection logic (L36–43, 256–258). Effort to port to JS: medium (complex matrix operations, Laplace expansion, orbital mechanics math, ODE integrator; doable in JS/TS with numerical libraries or WASM).
 - **Requirements capabilities it could serve**: Planet-parameter derivation (orbital elements → insolation, obliquity coupling); multi-resolution zoom consistency (orbital geometry constant across scales); partial-world inference (orbital context of regional map).
 
 ### 3.2 DistRot (Rotational axis evolution)
 - **Where**: src/distrot.c (2,211 lines), src/distrot.h, examples/CassiniStates
 - **What it does**: Evolution of world's rotational axis (obliquity, precession) due to orbital evolution and stellar torque. Includes Cassini states for moon-planet systems, free precession, forced precession from stellar perturbations.
 - **Quality & realism rating: 4/5**. Well-validated against planetary dynamics literature. Clear physical basis (Euler equation for rotation). Less extensively published than DistOrb but standard in exoplanet science.
-- **Extractability: loosely coupled**. Depends on orbital state from DistOrb and body structure. Core rotation equations standalone. ~1.5K extractable algorithm lines. Effort: low-medium (mostly ODE evaluation, matrix algebra; JS feasible).
+- **Extractability: loosely coupled**. Depends on orbital state from DistOrb and body structure. Extraction yields derivative functions (dobliquity/dt, dprecession/dt only); TS port must include the integrator. Core rotation equations: Euler equations, Cassini state logic (L742, 1373–1482), precession models (L197–221, 1610–1646). Effort: low-medium (ODE evaluation, matrix algebra, plus integrator; JS feasible).
 - **Requirements capabilities it could serve**: Obliquity → insolation pattern; seasonal forcing; climate derivation from orbital parameters.
 
 ### 3.3 POISE (Energy-balance climate model)
 - **Where**: src/poise.c (7,859 lines), src/poise.h, examples/EarthClimate, examples/CosmicShoreline
 - **What it does**: Latitude-dependent energy balance climate model including: (a) annual and seasonal models, (b) outgoing longwave radiation (OLR) via Planck function with 3 parameterizations (WK97, HM16, SMS09), (c) dynamic ice sheet evolution (Glen's law ice deformation, lithospheric rebound), (d) surface albedo (fixed or computed from ice), (e) atmospheric diffusion, (f) CO₂ forcing, (g) orbital/obliquity effects (insolation calculation). Includes options for uniform or modern geography, sea-ice model.
-- **Quality & realism rating: 5/5**. Reference-grade energy balance model. Extensively validated against GCMs (e.g., CESM). Ice sheet physics includes accumulation/ablation, flow, bedrock deformation. Published in multiple peer-reviewed climate papers. Handles Snowball Earth scenarios.
-- **Extractability: tangled**. Deeply coupled to evolve.c (called every timestep), depends on stellar luminosity from Stellar module, receives obliquity/eccentricity from DistOrb/DistRot. Body struct carries ~50 POISE-specific fields (temperatures, albedos, ice mass, etc.). ~4-5K lines of pure climate physics; ~2-3K lines of integration/I/O boilerplate. Extractable core: medium. Effort to port to JS: high (complex ice dynamics, implicit energy balance solver, large latitudinal grid). WASM preferred.
+- **Quality & realism rating: 5/5**. Reference-grade energy balance model. Ice sheet physics includes accumulation/ablation (src/poise.c:7662 Glen's law; implicit matrix solver fvMatrixInvertAnnual line 5716, fvMatrixInvertSeasonal line 5747 using LUDecomp/LUSolve), flow, bedrock deformation. Published in multiple peer-reviewed climate papers. Handles Snowball Earth scenarios.
+- **Extractability: tangled**. Deeply coupled to evolve.c (called every timestep), depends on stellar luminosity from Stellar module, receives obliquity/eccentricity from DistOrb/DistRot. Body struct carries ~50 POISE-specific fields (temperatures, albedos, ice mass, etc.). Annual EBM uses implicit backwards-Euler matrix solver (fvMatrixAnnual/fvMatrixInvertAnnual L5827, 5716; LUDecomp L5719, LUSolve L5732 — all arithmetic, dmath-compatible). Seasonal EBM similarly (fvMatrixSeasonal/fvMatrixInvertSeasonal L6836, 5747; LUDecomp L5750, LUSolve L5763). Ice-sheet flow uses Glen's law (L7662, nGLEN constant). A TS port must include: (a) matrix solve (LU decomposition, back-substitution), (b) ODE integrator for time-stepping, (c) grid-based ice dynamics. Effort to port to JS: high. WASM+adapter or substantial TS rewrite.
 - **Requirements capabilities it could serve**: Climate simulation (temperature, precipitation, ice coverage from orbital/obliquity parameters); biomes (Köppen climate from simulated climate); partial-world inference (regional climate from whole-planet model).
 
 ### 3.4 AtmEsc (Atmospheric escape)
@@ -51,15 +53,15 @@ No native JavaScript/TypeScript implementation exists. Full rewrite to JS/TS wou
 - **Requirements capabilities it could serve**: Whole-planet habitability (water loss history); partial-world inference (atmospheric composition context for regional climate).
 
 ### 3.5 ThermInt (Thermal interior evolution)
-- **Where**: src/thermint.c (5,598 lines), src/thermint.h, examples/EarthInterior, examples/MagneticField
-- **What it does**: Thermal evolution of planet interior including: (a) mantle convection (Nusselt number scaling), (b) core cooling and solidification, (c) radiogenic heating (from RadHeat module), (d) surface heat loss, (e) magnetic field generation (for atmosphere retention via magnetosphere). Supports plate tectonics and stagnant-lid regimes. Includes models for core dynamo lifetime.
-- **Quality & realism rating: 4/5**. Appropriate scaling laws for mantle convection. Validated against GplatesGPlates reference data. Main limitation: 1D interior model, parameterized convection (not resolved).
+- **Where**: src/thermint.c (5,598 lines), src/thermint.h, examples/EarthInterior
+- **What it does**: Thermal evolution of planet interior including: (a) mantle convection (Nusselt number scaling), (b) core cooling and solidification, (c) radiogenic heating (from RadHeat module), (d) surface heat loss, (e) magnetic field generation (for atmosphere retention via magnetosphere). Supports plate-tectonic and stagnant-lid regimes, but the regime is a **user input**: `dStagLid > 0` sets the mantle heat-flow prefactor to `HFLOWREDUCTSTAG` (`fvReadStagLid`, `thermint.c:649–708`). ThermInt does not decide whether plate tectonics happens. Inner-core radius `fdRIC` (`thermint.c:4989`), its rate `fdRICDot` (`:5073`), and the dipole moment `fdMagMom` (`:5128`, buoyancy-flux scaling with `MAGMOMCOEF`, `thermint.h:219`). Includes models for core dynamo lifetime and inner-core solidification (EMASSIC constants thermint.h:24; magnetic moment coefficient MAGMOMCOEF line 219).
+- **Quality & realism rating: 4/5**. Appropriate scaling laws for mantle convection. Main limitation: 1D interior model, parameterized convection (not resolved).
 - **Extractability: loosely coupled**. Depends on RadHeat (radiogenic heat), surface energy balance, mass/radius. ~2.5K algorithm lines. Effort: low (coupled ODE system, straightforward integration). JS feasible with numerical solver.
 - **Requirements capabilities it could serve**: Interior state (core/mantle temp, magnetic field strength) for habitability; magnetic shielding from stellar wind (coupled with AtmEsc).
 
 ### 3.6 EqTide (Equilibrium tidal evolution)
 - **Where**: src/eqtide.c (4,785 lines), src/eqtide.h, examples/Cassini*, examples/BinaryTides
-- **What it does**: Tidal evolution in equilibrium tide framework. Includes: (a) tidal potential from orbiting bodies, (b) tidal dissipation (energy-dependent Love number), (c) orbital decay via tidal friction, (d) rotational synchronization, (e) multi-body tidal coupling. Spin-orbit evolution.
+- **What it does**: Tidal evolution in equilibrium tide framework. Two models: CPL (Constant Phase Lag, L594, 729, 899, 1502) and CTL (Constant Time Lag, L596, 1276, 1307, 1488). Includes: (a) tidal potential from orbiting bodies, (b) tidal dissipation (energy-dependent Love number L66, 73, 303, 353, 378), (c) orbital decay via tidal friction, (d) rotational synchronization, (e) multi-body tidal coupling. Spin-orbit evolution.
 - **Quality & realism rating: 4/5**. Standard framework in planetary dynamics. Accurate for low-eccentricity, non-resonant orbits. Known limitation: does not handle orbital resonances (distinct from DistOrb which handles those).
 - **Extractability: loosely coupled**. Couples to DistOrb (orbital feedback), DistRot (rotational state). ~2K algorithm lines. Effort: low-medium (Love number lookup, energy dissipation). JS feasible.
 - **Requirements capabilities it could serve**: Tidal heating (climate forcing, habitability); moon formation and long-term stability; orbital evolution coupling.
@@ -67,15 +69,15 @@ No native JavaScript/TypeScript implementation exists. Full rewrite to JS/TS wou
 ### 3.7 Stellar (Stellar evolution)
 - **Where**: src/stellar.c (3,049 lines), src/stellar.h, examples/AtmEscFlare*, examples/HabitableZone
 - **What it does**: Stellar luminosity and XUV evolution over time. Includes: (a) mass-luminosity relations for main sequence, (b) XUV luminosity evolution, (c) stellar radius evolution, (d) magnetic braking (spin-down) and wind properties, (e) flare frequency/energy for M-dwarfs (Flare module). Provides boundary conditions (stellar forcing) for all other modules.
-- **Quality & realism rating: 4/5**. Uses established stellar evolution tracks (e.g., Baraffe models). XUV evolution includes realistic age-dependent scaling. Flare statistics empirically calibrated.
-- **Extractability: loosely coupled**. Standalone module; provides luminosity/XUV/temperature output only. ~1.5K algorithm lines. Effort: low (lookup tables, interpolation, power-law fits). JS readily portable.
+- **Quality & realism rating: 4/5**. Uses established stellar evolution tracks (Baraffe et al. 2015). Baraffe tracks are tabulated under `src/tracks/Data/` (with `src/tracks/Scripts/Baraffe2015RGInterp.py`); interpolation is in `body.c` (`fdBaraffe` :1430, bilinear :1254, bicubic :1280). XUV evolution includes realistic age-dependent scaling. Flare statistics empirically calibrated.
+- **Extractability: loosely coupled**. Standalone module; provides luminosity/XUV/temperature output only. Interpolation is pure arithmetic (fdBaraffeBiLinear L1254, fdBaraffeBiCubic L1280, fdBaraffeInterpolate L1337). Effort: low (lookup tables, interpolation, power-law fits, all dmath-compatible). JS readily portable.
 - **Requirements capabilities it could serve**: Stellar forcing (inputs to POISE, AtmEsc, all other modules); habitability zone calculation; long-term climate forcing.
 
 ### 3.8 RadHeat (Radiogenic heating)
 - **Where**: src/radheat.c (6,964 lines), src/radheat.h, examples/EarthInterior
-- **What it does**: Radiogenic heating in planet core, mantle, crust from decay of U-238, U-235, Th-232, K-40. Tracks isotope mass fractions, heat production rate vs. time, crustal enrichment. Provides heat source for ThermInt.
+- **What it does**: Radiogenic heating in planet core, mantle, crust from decay of U-238, U-235, Th-232, K-40 and optionally Al-26 (power functions `fd26AlPower`, `fd40KPower`, `fd232ThPower`, `fd238UPower` at `radheat.c:6662–6698`; `fvRead*Power*` functions at lines 313–1374 are input readers). Tracks isotope mass fractions, heat production rate vs. time, crustal enrichment. Provides heat source for ThermInt.
 - **Quality & realism rating: 4/5**. Accurate decay constants and partition coefficients. Handles differentiation and crustal concentration. May underestimate crustal enrichment in some regimes.
-- **Extractability: standalone**. No dependencies on other modules; provides table of heat production(t). ~1.5K algorithm lines. Effort: very low (decay calculations, straightforward). Highly extractable to JS.
+- **Extractability: standalone**. No dependencies on other modules; provides table of heat production(t). Decay calculations are closed-form (exponential decay, elementary math). Effort: very low. Highly extractable to JS.
 - **Requirements capabilities it could serve**: Interior heat source; long-term planetary cooling; habitability (magnetic field lifetime).
 
 ### 3.9 Supporting modules (brief)
@@ -106,7 +108,7 @@ No native JavaScript/TypeScript implementation exists. Full rewrite to JS/TS wou
 
 | Capability | Present? | Rating | Extractability | Key files | One-line note |
 |---|---|---|---|---|---|
-| Tectonics | partial | 2 | tangled | src/thermint.c; src/radheat.c | Parameterized plate-tectonics model (Nusselt scaling); no fault-network or plate-boundary dynamics. |
+| Tectonics | partial | 2 | tangled | src/thermint.c; src/radheat.c | Parameterised mantle heat flow (Nusselt scaling) under a user-chosen mobile-lid or stagnant-lid regime (`dStagLid`); no plate-tectonics criterion, no fault-network or plate-boundary dynamics. |
 | Heightmap generation | no | — | — | — | VPLanet provides no heightmap/DEM output; climate model is 1D latitudinal only. |
 | Erosion | no | — | — | — | No erosion modeling. |
 | Hydrology (rivers/lakes/watersheds) | no | — | — | — | No surface hydrology; POISE includes precipitation but no runoff/river routing. |

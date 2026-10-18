@@ -2,6 +2,8 @@
 
 Commit `e43927ce88e766b63e35e896f36bfb882a4c8de4` (master, 2020-08-22). **Verified** = read in source or measured by me. **Inferred** = not checked directly. The first draft of this audit (by a subagent) was rewritten after I checked it against the source: it named a non-existent `Erosion.js`, claimed a 1M-cell mesh at 60 FPS, a seeded-rifting determinism test and a "reference" Schellart implementation, none of which hold up.
 
+Reconciled 2026-10-18 against `e43927c` (`docs/reconciliation/group-1.md`): claims hold; the coordinate frame was added under §4.
+
 ## 1. Overview
 
 A browser plate-tectonics and planet simulator by davidson16807: an icosphere of up to 40,962 cells carrying per-plate crust rasters, with rigid-plate motion, subduction, rifting, isostasy, a basic atmosphere, a star-system generator and a three.js globe UI. 1,755 commits; last commit August 2020. About 24,955 lines of first-party JS outside `libraries/` (`noncompiled` 8,341, `precompiled` 5,959, `postcompiled` 8,835; `postcompiled` is generated from `precompiled`, so first-party code is nearer 14K). The plate-evolution core is small: `Lithosphere.js` 494, `Plate.js` 124, `Tectonophysics.js` 290, `Crust.js` 607, `SupercontinentCycle.js` 35.
@@ -53,7 +55,7 @@ three.js globe, projection views, Vue UI (`noncompiled/views`, `index.html`). Ta
 
 - **Grid**: three.js `IcosahedronGeometry(1, level)` (`index.html:579`), level ≤ 6 → ≤ 40,962 vertices. Cells are vertices; neighbours from the face list. `getNearestIds` for point lookup.
 - **Units**: SI seconds throughout (`Units.MEGAYEAR` etc.); radians; the world radius is hard-coded at 6,367 km in `Tectonophysics.js:151`.
-- **Coordinates**: unit vectors; plate-local frame via 3×3 matrix.
+- **Coordinates**: unit vectors; plate-local frame via 3×3 matrix. **+Y is north**: `lat = asin(y/|p|)`, `lon = atan2(−z, x)` (`noncompiled/academics/SphericalGeometry.js:17–23`), so to MapMaker's canonical frame (+Z north, +X at 0°N 0°E, +Y at 0°N 90°E) an adapter maps (x, y, z) → (x, −z, y). Lengths in metres, densities in kg/m³, time through `Units.MEGAYEAR` (`Crust.js:263`). The mantle density for isostasy is 3,075 kg/m³, "derived empirically using isostatic model" (`noncompiled/models/World.js:41`), not a physical value.
 - **Time**: continuous seconds (`elapsed_time`); no calendar.
 - **Serialization**: `Simulation.getParameters()` includes `seed`, `elapsed_time` and the RNG state (`random.mt`, `random.mti`). `Lithosphere.getParameters()` omits the grid (`// TODO: add grid`). Rasters are written uncompressed.
 - **RNG**: `random-0.26.js` Mersenne Twister, seeded from `?seed=` (default `Date.getTime()`, `index.html:568`). **It is not used by plate motion, rifting or subduction** (verified by grep: random draws occur only in `CrustGenerator`, `SphericalGeometry`, `StarSystemGenerator`, `NameGenerator`). `Math.random` appears only in `RealisticPointLightSourceView` (starfield). The library uses native `Math.log/exp/pow/sqrt`.

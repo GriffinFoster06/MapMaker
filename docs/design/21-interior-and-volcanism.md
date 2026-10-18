@@ -46,10 +46,10 @@ Dipole strength from core heat flow (ThermInt's dynamo criterion); reversals as 
 
 ## 4. Upstream references (algorithm level)
 
-- **VPLanet** `src/thermint.c` (ThermInt) and `src/radheat.c` (RadHeat): port the parameterised thermal evolution, validated against `examples/EarthInterior` and `examples/MagneticField`.
-- **ASPECT** `source/material_model/` and `source/postprocess/dynamic_topography.cc`: parameter values and formulations for rheology and dynamic topography; full mantle convection stays out of scope.
+- **VPLanet** `src/thermint.c` (ThermInt) and `src/radheat.c` (RadHeat): port the parameterised thermal evolution (integrated with `src/evolve.c`'s RK4 step), validated against `examples/EarthInterior` (`saModules radheat thermint`). There is no `examples/MagneticField`; the dipole moment is `fdMagMom` (`thermint.c:5128`) and inner-core radius `fdRIC` (`:4989`). The plate-tectonic vs stagnant-lid regime is a ThermInt input (`dStagLid`), not an output.
+- **ASPECT** `source/material_model/` and `rheology/` (diffusion, dislocation, Peierls creep, Frank-Kamenetskii) and `data/material-model/steinberger/` (radial viscosity profiles): parameter values for rheology. `source/boundary_temperature/dynamic_core.cc`: a parameterised core energy budget with inner-core growth, a cross-check for ThermInt. `source/postprocess/dynamic_topography.cc` is only a formula reference, h = (−σ·n − p_surface)/(Δρ g) (lines 304–316); it needs the FEM stress field, so a dynamic-topography layer here needs its own stress or buoyancy model. ASPECT has no plume placement; its vendored World Builder (`contrib/world_builder`, LGPL-2.1) only describes user-placed plume geometry. Full mantle convection stays out of scope.
 - **orogen** `elevation.js` hotspot and island-arc stages: the existing heuristic, kept for parity mode.
-- **tectonics.js** `Lithosphere.js`: Airy isostasy on the sphere, a small reference.
+- **tectonics.js** `noncompiled/academics/FluidMechanics.js:65-76` (called from `models/lithosphere/Lithosphere.js:42`): per-column Airy isostasy with no flexure and an empirically tuned mantle density (3,075 kg/m³, `World.js:41`), a small reference. Its frame is +Y north (`SphericalGeometry.js:17-23`).
 - **Literature:** Sleep (1990); Courtillot et al. (2003) plume types; Watts, *Isostasy and Flexure of the Lithosphere*; Stein & Stein (1992) heat flow versus age; Cande & Kent (1995) reversal timescale.
 
 ## 5. Validation

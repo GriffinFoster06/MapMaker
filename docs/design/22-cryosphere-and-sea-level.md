@@ -48,7 +48,7 @@ Sea-ice fraction from SST and air temperature (note 23); permafrost from mean an
 - **PISM** `src/stressbalance/` (SIA and SSA), `src/energy/` (enthalpy), `src/geometry/` (mass transport), `src/verification/` (exact solutions): port the SIA solver and its verification tests to the sphere.
 - **CTSM** `src/biogeophys/GlacierSurfaceMassBalanceMod.F90`, `SnowSnicarMod.F90`, `ActiveLayerMod.F90`.
 - **orogen** `terrain-post.js` glacial erosion (parity and fast path).
-- **VPLanet** `src/poise.c` ice-sheet module (a 1D latitudinal ice model, for fast paleo runs).
+- **VPLanet** `src/poise.c` ice-sheet module (a 1D latitudinal ice model, for fast paleo runs: `PoiseIceSheets` :7552, Glen's-law flow with n = 3 at :7662, bedrock depression; heights in m). It is integrated by `evolve.c`'s RK4 step.
 - **Literature:** Cuffey & Paterson, *The Physics of Glaciers*; Huybrechts (1990s) ice-sheet modelling; Peltier ICE-6G (validation).
 
 ## 5. Validation
