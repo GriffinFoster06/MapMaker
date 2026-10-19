@@ -2,15 +2,15 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-19, by the cloud assistant, as the handoff to local autonomous work.
-- **Authorized through: Checkpoint 5c** (end of Phase 5c, Cartography v1, the first usable app). Edit this line to extend or shorten; the agent never goes past it.
+- **Last updated:** 2026-10-19, by the local agent (Claude Code), after M3 and the M2 ruling.
+- **Authorized through: Checkpoint 5 (end of Phase 5).** Edit this line to extend or shorten; the agent never goes past it. The autonomous run through Phase 5c (the items below Phase 5) starts only after the user confirms Phase 5 and extends this line.
 - **Suggested model/effort for the next batch:** Sonnet 5.5 medium for M3 and M5; Opus 5.5 medium for M4 (GLSL and cross-browser float32), high only after a failed attempt.
 
 ## Branches
 
 - `main` = `b51bd40`: Phase 4b, the settings panel, reconciliation of 16 upstreams, all pending decisions applied. This operating guide arrives by a PR from `claude/bold-dijkstra-k0fgj1`; merge it first.
-- `phase-5` (origin, head `07b557a`): Phase 5 M0 (memory work R1 to R7), M1 (registry, `ProjectionView`, distortion) and M2 (exact CPU sampler, d3-dmath alias, 16-bit PNG export, probe v5). Not merged to `main`. **First action:** `git checkout phase-5 && git pull && git merge origin/main`, then check `git log` for an M3 commit.
-- The M3 prompt (below, "Phase 5 remaining") may already have been sent in an earlier session; whatever `git log phase-5` shows is the truth. Skip to the first unfinished item.
+- `phase-5` (origin): Phase 5 M0 (memory work R1 to R7), M1 (registry, `ProjectionView`, distortion), M2 (exact CPU sampler, d3-dmath alias, 16-bit PNG export, probe v5), the M2 ruling (`ca50aae`) and M3 (`2e77a5a`: vector path, Tissot, distortion overlays). `claude/bold-dijkstra-k0fgj1` (this guide) is merged into `phase-5`. Not merged to `main`.
+- Whatever `git log phase-5` shows is the truth. Skip to the first unfinished item.
 
 ## Next
 
@@ -18,9 +18,9 @@ The living state of the project for any agent starting a session. **Update this 
 
 Do in this order; milestones commit and push separately.
 
-1. **Rulings first** (decision 5-4): plain 16-bit greyscale PNG by default, outside pixels = 0 recorded in the text chunk, transparent-outside as an option; say in the commit that the `fd.projection` probe hashes are re-recorded because they are new in this phase and that no pre-Phase-5 hash changed. Correct `docs/ARCHITECTURE.md` §3.7 rule 3 (decision 5-6).
-2. **M3, vector path:** graticule, exact coastlines traced along land/sea cell edges, the Tissot overlay (true indicatrix shapes from `geoCircle`, plus the ellipse axes), distortion overlays; all through `geoPath`. Interactive display may use stock d3; anything exported (SVG or PNG) goes through the exact path. Tests: pole (±90°) and antimeridian cases, the World-hash guard.
-3. **M4, GPU shaders** (Opus medium): GLSL ports of the inverse formulas for the set in decision 5-5 (using three); data lookup through a triangle-id cube map plus a bounded walk across neighbouring triangles, matching the CPU path except where float32 precision falls exactly on a triangle edge; other projections fall back to the CPU path at reduced resolution. Tests: each GLSL inverse against d3 `invert`, shader-versus-d3 pixel difference, in Chromium, Firefox and WebKit.
+1. ~~**Rulings first**~~ **done** (`ca50aae`; §3.7 rule 3 corrected in `2e77a5a`). Was (decision 5-4): plain 16-bit greyscale PNG by default, outside pixels = 0 recorded in the text chunk, transparent-outside as an option; say in the commit that the `fd.projection` probe hashes are re-recorded because they are new in this phase and that no pre-Phase-5 hash changed. Correct `docs/ARCHITECTURE.md` §3.7 rule 3 (decision 5-6).
+2. ~~**M3, vector path**~~ **done** (`2e77a5a`). Was: graticule, exact coastlines traced along land/sea cell edges, the Tissot overlay (true indicatrix shapes from `geoCircle`, plus the ellipse axes), distortion overlays; all through `geoPath`. Interactive display may use stock d3; anything exported (SVG or PNG) goes through the exact path. Tests: pole (±90°) and antimeridian cases, the World-hash guard.
+3. **M4, GPU shaders — next** (Opus medium): GLSL ports of the inverse formulas for the set in decision 5-5 (using three); data lookup through a triangle-id cube map plus a bounded walk across neighbouring triangles, matching the CPU path except where float32 precision falls exactly on a triangle edge; other projections fall back to the CPU path at reduced resolution. Tests: each GLSL inverse against d3 `invert`, shader-versus-d3 pixel difference, in Chromium, Firefox and WebKit.
 4. **M5, app and checkpoint:** globe/flat-map switch, projection and rotation controls, distortion and Tissot overlays, Export heightmap button; end-to-end tests; `docs/checkpoints/CHECKPOINT_5.md` (template in the guide §9, including the M0 memory outcome and R8 as a Phase 7 item). Phase 5 tests (ARCHITECTURE §7): analytic distortion values, distortion at ±90°, pole and antimeridian pixel tests, shader versus d3 `invert`, projection switching leaves every World hash unchanged.
 5. Open the PR `phase-5` → `main` (ready for review) and continue; do not wait for the merge.
 
@@ -55,5 +55,7 @@ You are continuing MapMaker autonomously. Read AGENTS.md, docs/OPERATING_GUIDE.m
 ```
 
 ## Work log (newest first; 2 to 4 lines per milestone)
+
+- 2026-10-19: M2 ruling (`ca50aae`: colour type 0 default, `fd.projection.*.png` re-recorded, no pre-Phase-5 hash changed) and M3 (`2e77a5a`: graticule, coastlines along land/sea Voronoi edges, Tissot circles and axes, distortion overlays, SVG and overlay PNG exports through the exact path, 0.05 px export resampling; 7 new probe keys). §3.7 rule 3 corrected. Authorization narrowed to Checkpoint 5 by the user. Next: M4.
 
 - 2026-10-19: operating guide, decisions log and this file written by the cloud assistant. Phase 5 M0, M1, M2 done on `phase-5` (details: `docs/checkpoints/PHASE5_M0_MEMORY.md`, `PROVENANCE.md`, commit messages).
