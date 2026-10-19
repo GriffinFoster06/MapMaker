@@ -10,8 +10,8 @@ import type { CellStyle } from './cellstyle';
 import type { Style } from './style';
 
 /** RGBA8 pixels of the band of rows `[y0, y1)`; outside the view's domain the colour is `outside` (default transparent). */
-export function styleBand(r: LocatedRaster, mesh: MeshSampler['mesh'], elev: ArrayLike<number>, cs: CellStyle, style: Style, lut: Lut, outside: [number, number, number, number] = [0, 0, 0, 0]): Uint8ClampedArray {
-  const n = r.tri.length, out = new Uint8ClampedArray(4 * n), T = mesh.triangles;
+export function styleBand(r: LocatedRaster, T: Int32Array, elev: ArrayLike<number>, cs: Pick<CellStyle, 'factor' | 'colors'>, lut: Lut, outside: [number, number, number, number] = [0, 0, 0, 0]): Uint8ClampedArray {
+  const n = r.tri.length, out = new Uint8ClampedArray(4 * n);
   const c = [0, 0, 0];
   for (let o = 0; o < n; o++) {
     const t = r.tri[o]!;
@@ -34,7 +34,7 @@ export function styledRaster(view: ProjectionView, sampler: MeshSampler, elev: A
   const outside = opts.opaque ? hexToRgbaBytes(style.background) : undefined;
   for (const b of rowBands(height, opts.rowsPerBand ?? 64)) {
     const located = locateRaster(view, sampler, { y0: b.y0, y1: b.y1 });
-    out.set(styleBand(located, sampler.mesh, elev, cs, style, lut, outside), 4 * b.y0 * width);
+    out.set(styleBand(located, sampler.mesh.triangles, elev, cs, lut, outside), 4 * b.y0 * width);
   }
   return out;
 }

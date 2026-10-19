@@ -10,12 +10,16 @@ import type { MultiLineString } from 'geojson';
 import type { HeightmapArgs } from '@mapmaker/projection/exact/kernels';
 import { CPU_REDUCTION, FlatMap, type MapState } from './flat-map';
 import { lonLatDegToUnit, unitToLonLatDeg } from '../editor/editing';
+import { type CartoData, type OverlayOptions, type Style, furnitureLayout, overlaySvg, planLabels, riverThreshold } from '@mapmaker/carto';
+import type { LabelPlan } from '@mapmaker/carto';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 export const MAX_ZOOM = 16;
 /** Linear resolution factor of the distortion heatmap (computed on the CPU in the engine worker). */
 const DISTORTION_REDUCTION = 4;
+
+export interface StyledArgs { view: { projection: string; width: number; height: number; rotate: [number, number, number]; parallels?: [number, number] }; style: Style }
 
 export interface MapUi {
   /** Whether the flat map is showing. */
@@ -35,6 +39,19 @@ export interface MapUi {
   setRing(points: ArrayLike<number> | null): void;
   /** The ring's SVG path data (test hook), '' when hidden. */
   ringPath(): string;
+  /**
+   * Phase 5c: the styled map. `style()` is the style the controls choose; `active()` says whether the styled layer is on (then
+   * the overlays are the style's, with rivers, labels, scale bar and legend). Exports always use `style()`.
+   */
+  setStyleSource(style: () => Style, active: () => boolean, data: () => Promise<CartoData>): void;
+  /** The cartographic data of the world changed (a new world, or a re-run that changed the terrain). */
+  dataChanged(): void;
+  /** Redraws the overlays (a style control changed). */
+  restyle(): void;
+  /** Number of labels in the last styled overlay (test hook). */
+  labelCount(): number;
+  /** The styled export through the exact path: the raster PNG, the SVG with vectors and labels, and the composed PNG. */
+  exportStyled(): Promise<{ raster: Uint8Array; svg: string; png: Uint8Array; args: StyledArgs }>;
   /** Resolves when the map and its overlays are drawn for the current state. */
   rendered(): Promise<void>;
   /** Exports with the current controls; resolves with the file's bytes (also offered for download) and the kernel args. */
@@ -68,6 +85,11 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
   const viewSel = $<HTMLSelectElement>('viewMode');
   const ovGrat = $<HTMLInputElement>('ovGraticule'), ovCoast = $<HTMLInputElement>('ovCoast'), ovTissot = $<HTMLInputElement>('ovTissot');
   const ovDist = $<HTMLSelectElement>('ovDistortion');
+  const ovRivers = $<HTMLInputElement>('ovRivers'), ovLabels = $<HTMLInputElement>('ovLabels'), ovFurniture = $<HTMLInputElement>('ovFurniture');
+  let styleOf: () => Style = () => { throw new Error('no style source'); };
+  let styledOn: () => boolean = () => false;
+  let dataOf: () => Promise<CartoData> = () => { throw new Error('no style source'); };
+  let labelCount = 0;
 
   let zoom = 1, pan: [number, number] = [0, 0];
   let coast: Promise<MultiLineString> | undefined;
@@ -101,13 +123,31 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
     // Overlays, through the same stock view at the map's device-pixel size.
     const view = FlatMap.view(st, W, H), p = pathFor(view);
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-    let body = `<path d="${p(view.outline()) ?? ''}" fill="none" stroke="#9aa" stroke-width="${W / 600}"/>`;
-    if (ovGrat.checked) body += `<path class="graticule" d="${p(graticule(view, 15)) ?? ''}" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="${W / 1200}"/>`;
-    if (ovCoast.checked) {
-      coast ??= client.worldKernel<MultiLineString>('projection.coastlines', {});
-      const c = await coast;
+    let body = '';
+    if (styledOn()) {
+      // The styled map's vector layers: the same geometry the exports draw, through this stock view.
+      const style = styleOf();
+      const data = await dataOf();
       if (my !== gen) return;
-      body += `<path class="coast" d="${p(c) ?? ''}" fill="none" stroke="#111" stroke-width="${W / 900}"/>`;
+      const o: OverlayOptions = { graticule: ovGrat.checked, coast: ovCoast.checked, rivers: ovRivers.checked, outline: true, labels: null, scaleBar: ovFurniture.checked, legend: ovFurniture.checked };
+      let plan: LabelPlan | null = null;
+      if (ovLabels.checked) {
+        const fur = furnitureLayout(W, H, style, o);
+        plan = planLabels(data, view, style, { obstacles: [fur.scale, fur.legend].filter((b): b is NonNullable<typeof b> => !!b), riverMinArea: riverThreshold(style, view.scale) });
+        o.labels = plan;
+      }
+      labelCount = plan?.labels.length ?? 0;
+      body = overlaySvg(view, data, style, o);
+    } else {
+      labelCount = 0;
+      body = `<path d="${p(view.outline()) ?? ''}" fill="none" stroke="#9aa" stroke-width="${W / 600}"/>`;
+      if (ovGrat.checked) body += `<path class="graticule" d="${p(graticule(view, 15)) ?? ''}" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="${W / 1200}"/>`;
+      if (ovCoast.checked) {
+        coast ??= client.worldKernel<MultiLineString>('projection.coastlines', {});
+        const c = await coast;
+        if (my !== gen) return;
+        body += `<path class="coast" d="${p(c) ?? ''}" fill="none" stroke="#111" stroke-width="${W / 900}"/>`;
+      }
     }
     if (ovTissot.checked) {
       const f = tissotFeatures(tissot(view, { step: 30, radius: 5 }));
@@ -145,6 +185,7 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
     mapEl.hidden = !isFlat;
     globeCanvas.hidden = isFlat;
     $('mapControls').hidden = !isFlat;
+    $('globeLabels').hidden = isFlat;
     schedule();
   }
 
@@ -152,7 +193,7 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
   projSel.addEventListener('change', () => { zoom = 1; pan = [0, 0]; syncParallels(true); schedule(); });
   for (const r of par) r.addEventListener('input', () => { syncParallels(false); schedule(); });
   for (const r of rot) r.addEventListener('input', schedule);
-  for (const el of [ovGrat, ovCoast, ovTissot, ovDist]) el.addEventListener('change', schedule);
+  for (const el of [ovGrat, ovCoast, ovTissot, ovDist, ovRivers, ovLabels, ovFurniture]) el.addEventListener('change', schedule);
   $('mapReset').addEventListener('click', () => { for (const r of rot) r.value = '0'; zoom = 1; pan = [0, 0]; syncParallels(true); schedule(); });
   new ResizeObserver(() => schedule()).observe(mapEl);
 
@@ -206,6 +247,38 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
     $('exportStatus').textContent = `heightmap: ${(png.length / 1e6).toFixed(1)} MB`;
     return { png, args };
   }
+  /** The view of an export at the chosen size, with the conic's parallels when it has them. */
+  const exportView = (): StyledArgs['view'] => {
+    const [width, height] = exportSize(), st = state();
+    return { projection: st.projection, width, height, rotate: st.rotate, ...(st.parallels ? { parallels: st.parallels } : {}) };
+  };
+
+  /**
+   * The styled export (Phase 5c): the raster comes from the exact path in the worker; the vectors, labels, scale bar and legend
+   * are an SVG from the same worker, laid over it on a canvas for the PNG, and embedded with it in the SVG file.
+   */
+  async function exportStyled(): Promise<{ raster: Uint8Array; svg: string; png: Uint8Array; args: StyledArgs }> {
+    const args: StyledArgs = { view: exportView(), style: styleOf() };
+    const { width, height } = args.view;
+    $('exportStatus').textContent = `exporting styled map ${width} × ${height}…`;
+    const [raster, overlay, svg] = await Promise.all([
+      client.worldKernel<Uint8Array>('carto.png', args),
+      client.worldKernel<string>('carto.svg', { ...args, layers: { raster: false, background: false } }),
+      client.worldKernel<string>('carto.svg', args),
+    ]);
+    const bmp = await createImageBitmap(new Blob([raster as Uint8Array<ArrayBuffer>], { type: 'image/png' }));
+    const canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(bmp, 0, 0);
+    const img = new Image();
+    const url = URL.createObjectURL(new Blob([overlay], { type: 'image/svg+xml' }));
+    try { img.src = url; await img.decode(); ctx.drawImage(img, 0, 0, width, height); } finally { URL.revokeObjectURL(url); }
+    const blob = await new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('PNG encoding failed'))), 'image/png'));
+    const png = new Uint8Array(await blob.arrayBuffer());
+    $('exportStatus').textContent = `styled map: ${(png.length / 1e6).toFixed(1)} MB PNG, ${(svg.length / 1e6).toFixed(1)} MB SVG`;
+    return { raster, svg, png, args };
+  }
   async function exportSvg(): Promise<string> {
     const [width, height] = exportSize(), st = state();
     $('exportStatus').textContent = 'exporting SVG…';
@@ -214,6 +287,8 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
     $('exportStatus').textContent = `SVG: ${(text.length / 1e6).toFixed(1)} MB`;
     return text;
   }
+  $('exportStyledPng').addEventListener('click', () => { void exportStyled().then((r) => { download(`map-styled-${r.args.view.projection}-${r.args.view.width}x${r.args.view.height}.png`, r.png as Uint8Array<ArrayBuffer>, 'image/png'); }).catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
+  $('exportStyledSvg').addEventListener('click', () => { void exportStyled().then((r) => { download(`map-styled-${r.args.view.projection}.svg`, r.svg, 'image/svg+xml'); }).catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
   $('exportHeightmap').addEventListener('click', () => { void exportHeightmap().catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
   $('exportSvg').addEventListener('click', () => { void exportSvg().catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
 
@@ -236,6 +311,11 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
   return {
     get flatShown() { return viewSel.value === 'flat'; },
     worldChanged() { coast = undefined; schedule(); },
+    dataChanged() { coast = undefined; schedule(); },
+    setStyleSource(style, active, data) { styleOf = style; styledOn = active; dataOf = data; },
+    restyle() { schedule(); },
+    labelCount: () => labelCount,
+    exportStyled,
     layerChanged() { schedule(); },
     state: () => ({ ...state(), view: viewSel.value as 'globe' | 'flat' }),
     setEditing(on) { editing = on; drag = null; },

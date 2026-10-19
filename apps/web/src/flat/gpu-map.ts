@@ -3,6 +3,7 @@
 // (texelFetch only, no filtering): the triangle-id cube map, triangle vertex ids, halfedges, Float32 cell positions,
 // the Delaunay adjacency, and the layer's per-cell values or colours. Debug renders go to an RGBA32UI target.
 import * as THREE from 'three';
+import type { Lut } from '@mapmaker/carto';
 import { type DebugMode, type GpuProjectionId, MAP_VERTEX, type ProjectionView, cubeResolution, flatTextureWidth, mapFragmentShader, mapUniforms, padTo } from '@mapmaker/projection';
 
 export interface GpuMesh {
@@ -17,11 +18,16 @@ export interface GpuMesh {
   cube: Uint32Array;
 }
 
-/** A layer as the shader draws it: barycentric values through a palette, or nearest-cell colours. */
+/**
+ * A layer as the shader draws it: barycentric values through a palette, nearest-cell colours, or (Phase 5c) a styled map:
+ * barycentric elevation through the style's lookup, optionally nearest land colours above sea level, times a per-cell relief
+ * factor interpolated barycentrically.
+ */
 export type GpuLayer =
   | { rule: 'barycentric'; values: Float32Array; palette: 'elevation' }
   | { rule: 'barycentric'; values: Float32Array; palette: 'ramp'; lo: number; hi: number }
-  | { rule: 'nearest'; colors: Float32Array /* rgb per cell, linear 0..1 */ };
+  | { rule: 'nearest'; colors: Float32Array /* rgb per cell, linear 0..1 */ }
+  | { rule: 'styled'; elevation: Float32Array; factor: Float32Array; colors: Float32Array | null; lut: Lut };
 
 export class GpuMap {
   readonly renderer: THREE.WebGLRenderer;
@@ -51,12 +57,13 @@ export class GpuMap {
     return flatTextureWidth(longest, this.maxTextureSize) !== null && 3 * cubeResolution(triangleIndices / 3) <= this.maxTextureSize;
   }
 
-  private dataTexture(data: Uint32Array | Float32Array | Uint8Array, w: number, h: number, kind: 'u32' | 'f32' | 'rgba8'): THREE.DataTexture {
+  private dataTexture(data: Uint32Array | Float32Array | Uint8Array, w: number, h: number, kind: 'u32' | 'f32' | 'rgba8' | 'rgba32f'): THREE.DataTexture {
     const d = data as ArrayBufferView<ArrayBuffer>;
     const t = kind === 'u32' ? new THREE.DataTexture(d, w, h, THREE.RedIntegerFormat, THREE.UnsignedIntType)
       : kind === 'f32' ? new THREE.DataTexture(d, w, h, THREE.RedFormat, THREE.FloatType)
+      : kind === 'rgba32f' ? new THREE.DataTexture(d, w, h, THREE.RGBAFormat, THREE.FloatType)
       : new THREE.DataTexture(d, w, h, THREE.RGBAFormat, THREE.UnsignedByteType);
-    t.internalFormat = kind === 'u32' ? 'R32UI' : kind === 'f32' ? 'R32F' : 'RGBA8';
+    t.internalFormat = kind === 'u32' ? 'R32UI' : kind === 'f32' ? 'R32F' : kind === 'rgba32f' ? 'RGBA32F' : 'RGBA8';
     t.minFilter = t.magFilter = THREE.NearestFilter;
     t.generateMipmaps = false;
     t.flipY = false;
@@ -94,22 +101,34 @@ export class GpuMap {
   private regions = 0;
 
   setLayer(l: GpuLayer): void {
-    this.textures['uValue']?.dispose();
-    this.textures['uColor']?.dispose();
+    for (const k of ['uValue', 'uColor', 'uShade', 'uLut']) this.textures[k]?.dispose();
     const n = this.regions;
-    if (l.rule === 'barycentric') {
+    const dummyShade = () => this.dataTexture(new Float32Array(1), 1, 1, 'f32');
+    const rgba8 = (colors: Float32Array) => {
+      const h = Math.ceil(n / this.texW), px = new Uint8Array(4 * this.texW * h);
+      for (let i = 0; i < n; i++) {
+        px[4 * i] = Math.round(Math.min(1, Math.max(0, colors[3 * i]!)) * 255);
+        px[4 * i + 1] = Math.round(Math.min(1, Math.max(0, colors[3 * i + 1]!)) * 255);
+        px[4 * i + 2] = Math.round(Math.min(1, Math.max(0, colors[3 * i + 2]!)) * 255);
+        px[4 * i + 3] = 255;
+      }
+      return this.dataTexture(px, this.texW, h, 'rgba8');
+    };
+    this.textures['uShade'] = dummyShade();
+    this.textures['uLut'] = this.dataTexture(new Float32Array(8), 2, 1, 'rgba32f');
+    if (l.rule === 'styled') {
+      this.textures['uValue'] = this.flat(l.elevation, 'f32');
+      this.textures['uShade']?.dispose();
+      this.textures['uShade'] = this.flat(l.factor, 'f32');
+      this.textures['uLut']?.dispose();
+      this.textures['uLut'] = this.dataTexture(l.lut.rgba, l.lut.rgba.length / 4, 1, 'rgba32f');
+      this.textures['uColor'] = l.colors ? rgba8(l.colors) : this.dataTexture(new Uint8Array(4), 1, 1, 'rgba8');
+    } else if (l.rule === 'barycentric') {
       this.textures['uValue'] = this.flat(l.values, 'f32');
       this.textures['uColor'] = this.dataTexture(new Uint8Array(4), 1, 1, 'rgba8');
     } else {
-      const h = Math.ceil(n / this.texW), px = new Uint8Array(4 * this.texW * h);
-      for (let i = 0; i < n; i++) {
-        px[4 * i] = Math.round(Math.min(1, Math.max(0, l.colors[3 * i]!)) * 255);
-        px[4 * i + 1] = Math.round(Math.min(1, Math.max(0, l.colors[3 * i + 1]!)) * 255);
-        px[4 * i + 2] = Math.round(Math.min(1, Math.max(0, l.colors[3 * i + 2]!)) * 255);
-        px[4 * i + 3] = 255;
-      }
       this.textures['uValue'] = this.dataTexture(new Float32Array(1), 1, 1, 'f32');
-      this.textures['uColor'] = this.dataTexture(px, this.texW, h, 'rgba8');
+      this.textures['uColor'] = rgba8(l.colors);
     }
     this.layer = l;
   }
@@ -120,7 +139,7 @@ export class GpuMap {
     if (!m) {
       m = new THREE.RawShaderMaterial({ glslVersion: THREE.GLSL3, vertexShader: MAP_VERTEX, fragmentShader: mapFragmentShader(projection, debug), uniforms: {}, depthTest: false, depthWrite: false });
       // Every uniform exists before the first compile (three resolves them then).
-      for (const k of ['uK', 'uTx', 'uTy', 'uOrigin', 'uTargetH', 'uRot', 'uHasClip', 'uCosClip', 'uHasMaxLat', 'uMaxLat', 'uVecRot', 'uMode', 'uCubeR', 'uTexW', 'uRule', 'uPalette', 'uLo', 'uHi', 'uCube', 'uTri', 'uHalf', 'uPos', 'uAdjOff', 'uAdj', 'uValue', 'uColor']) m.uniforms[k] = { value: null };
+      for (const k of ['uK', 'uTx', 'uTy', 'uOrigin', 'uTargetH', 'uRot', 'uHasClip', 'uCosClip', 'uHasMaxLat', 'uMaxLat', 'uVecRot', 'uMode', 'uCubeR', 'uTexW', 'uRule', 'uPalette', 'uLo', 'uHi', 'uCube', 'uTri', 'uHalf', 'uPos', 'uAdjOff', 'uAdj', 'uValue', 'uColor', 'uShade', 'uLut', 'uHasShade', 'uLutN', 'uOceanMin', 'uLandMax']) m.uniforms[k] = { value: null };
       this.materials.set(key, m);
     }
     return m;
@@ -138,8 +157,12 @@ export class GpuMap {
       uHasClip: { value: u.cosClip !== null }, uCosClip: { value: u.cosClip ?? -2 },
       uHasMaxLat: { value: u.maxLat !== null }, uMaxLat: { value: u.maxLat ?? 10 }, uVecRot: { value: u.vecRot },
       uMode: { value: mode }, uCubeR: { value: this.cubeR }, uTexW: { value: this.texW },
-      uRule: { value: l.rule === 'barycentric' ? 1 : 0 },
-      uPalette: { value: l.rule === 'barycentric' && l.palette === 'ramp' ? 1 : 0 },
+      uRule: { value: l.rule === 'nearest' ? 0 : 1 },
+      uPalette: { value: l.rule === 'styled' ? (l.colors ? 3 : 2) : l.rule === 'barycentric' && l.palette === 'ramp' ? 1 : 0 },
+      uHasShade: { value: l.rule === 'styled' ? 1 : 0 },
+      uLutN: { value: l.rule === 'styled' ? l.lut.rgba.length / 8 : 2 },
+      uOceanMin: { value: l.rule === 'styled' ? l.lut.oceanMin : -1 },
+      uLandMax: { value: l.rule === 'styled' ? l.lut.landMax : 1 },
       uLo: { value: l.rule === 'barycentric' && l.palette === 'ramp' ? l.lo : 0 },
       uHi: { value: l.rule === 'barycentric' && l.palette === 'ramp' ? l.hi : 1 },
     };

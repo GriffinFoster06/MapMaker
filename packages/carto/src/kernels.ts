@@ -6,7 +6,7 @@ import { MeshSampler, encodePngRgba8 } from '@mapmaker/projection';
 import { exactView } from '@mapmaker/projection/exact';
 import type { ViewOptions } from '@mapmaker/projection';
 import { type CartoData, computeCartoData } from './data';
-import { type CellStyle, type CellStyleOptions, cellStyle } from './cellstyle';
+import { type CellStyle, type CellStyleOptions, cellStyle, shadeFor } from './cellstyle';
 import { type OverlayOptions, furnitureLayout, overlaySvg, riverThreshold } from './overlay';
 import { planLabels } from './placement';
 import { styledRaster } from './raster';
@@ -19,7 +19,7 @@ export interface SvgArgs {
   view: ViewSpec;
   style: Style;
   /** Which layers to include; every one defaults to true. `raster` is the embedded base image. */
-  layers?: Partial<Pick<OverlayOptions, 'graticule' | 'coast' | 'rivers' | 'outline' | 'scaleBar' | 'legend'>> & { raster?: boolean; labels?: boolean };
+  layers?: Partial<Pick<OverlayOptions, 'graticule' | 'coast' | 'rivers' | 'outline' | 'scaleBar' | 'legend'>> & { raster?: boolean; labels?: boolean; background?: boolean };
   mesh?: string;
 }
 
@@ -46,6 +46,8 @@ function base64(bytes: Uint8Array): string {
 export function cartoKernels(opts: CellStyleOptions = {}) {
   const dataCache = new WeakMap<object, { fp: number; data: CartoData }>();
   const styleCache = new WeakMap<object, { key: string; fp: number; cs: CellStyle }>();
+  // The hillshade depends on the hillshade settings only, so a change of relief strength or theme colours reuses it.
+  const shadeCache = new WeakMap<object, { key: string; fp: number; shade: Float32Array }>();
   const elevationOf = (world: World, meshId: string) => world.layers.get(meshId, 'elevation');
   const dataFor = (world: World, meshId = 'global'): CartoData => {
     const elev = elevationOf(world, meshId), fp = fingerprint(elev), hit = dataCache.get(elev);
@@ -57,18 +59,26 @@ export function cartoKernels(opts: CellStyleOptions = {}) {
   const styleFor = (world: World, style: Style, meshId = 'global'): CellStyle => {
     const elev = elevationOf(world, meshId), fp = fingerprint(elev), key = styleKey(style), hit = styleCache.get(elev);
     if (hit && hit.fp === fp && hit.key === key) return hit.cs;
-    const cs = cellStyle(world, style, dataFor(world, meshId), { ...opts, meshId });
+    const hs = JSON.stringify(style.relief.hillshade), sh = shadeCache.get(elev);
+    let shade = sh && sh.fp === fp && sh.key === hs ? sh.shade : undefined;
+    if (!shade) { shade = shadeFor(world, style, meshId); shadeCache.set(elev, { key: hs, fp, shade }); }
+    const cs = cellStyle(world, style, dataFor(world, meshId), { ...opts, meshId, shade });
     styleCache.set(elev, { key, fp, cs });
     return cs;
   };
 
   return {
     /** Features, river chains and the coastline of the world (cached until the terrain changes). */
-    'carto.data': (world: World, a: { mesh?: string }) => dataFor(world, a.mesh),
+    'carto.data': (world: World, a: { mesh?: string }): CartoData => {
+      // Copies of the typed arrays: the worker transfers what a kernel returns, which would detach the cached ones.
+      const d = dataFor(world, a.mesh);
+      return { ...d, landmass: d.landmass.slice(), rivers: d.rivers.map((r) => ({ pts: r.pts.slice(), area: r.area.slice() })) };
+    },
     /** The relief factor per cell, and the land colour per cell for the climate and landmass modes. */
     'carto.cellStyle': (world: World, a: { style: Style; mesh?: string }) => {
       const cs = styleFor(world, a.style, a.mesh);
-      return { factor: cs.factor, colors: cs.colors };
+      // Copies: the worker transfers what a kernel returns, which would detach the cached arrays.
+      return { factor: cs.factor.slice(), colors: cs.colors ? cs.colors.slice() : null };
     },
     /** The styled raster alone as an 8-bit RGBA PNG through an exact view (vector layers and labels are in the SVG). */
     'carto.png': (world: World, a: PngArgs) => {
@@ -99,8 +109,7 @@ export function cartoKernels(opts: CellStyleOptions = {}) {
       return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${view.width}" height="${view.height}" viewBox="0 0 ${view.width} ${view.height}">
 <!-- MapMaker: ${view.spec.id} rotate ${rot.join(' ')}, style ${style.id} -->
-<rect width="${view.width}" height="${view.height}" fill="${style.background}"/>
-${raster}${overlaySvg(view, data, style, o)}</svg>
+${(L.background ?? true) ? `<rect width="${view.width}" height="${view.height}" fill="${style.background}"/>\n` : ''}${raster}${overlaySvg(view, data, style, o)}</svg>
 `;
     },
   } satisfies Record<string, (world: World, args: never) => unknown>;

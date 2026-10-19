@@ -93,6 +93,20 @@ function riverClasses(rivers: RiverChain[], minArea: number, classes: number): M
   return out;
 }
 
+/** SVG elements of a label plan: point labels as text, path labels as text on a path, each with a halo (paint-order stroke). */
+export function labelsSvg(plan: LabelPlan, idPrefix = 'lp'): string {
+  let defs = '', body = '', n = 0;
+  for (const t of plan.labels) {
+    const common = `font-family="${FONT_FAMILY}" font-size="${r2(t.size)}"${t.italic ? ' font-style="italic"' : ''}${t.tracking ? ` letter-spacing="${r2(t.tracking)}"` : ''} fill="${t.fill}" stroke="${t.halo}" stroke-width="${r2(2 * t.haloWidth)}" stroke-linejoin="round" paint-order="stroke"${t.opacity < 1 ? ` opacity="${t.opacity}"` : ''}`;
+    if (t.pathD) {
+      const id = `${idPrefix}${n++}`;
+      defs += `<path id="${id}" d="${t.pathD}"/>\n`;
+      body += `<text ${common} text-anchor="middle" class="carto-label carto-${t.kind}"><textPath href="#${id}" startOffset="${r2(t.startOffset ?? 50)}%">${esc(t.text)}</textPath></text>\n`;
+    } else body += `<text x="${r2(t.x!)}" y="${r2(t.y!)}" ${common} class="carto-label carto-${t.kind}">${esc(t.text)}</text>\n`;
+  }
+  return `<defs>\n${defs}</defs>\n<g class="carto-labels">\n${body}</g>\n`;
+}
+
 /** The overlay's SVG elements (no <svg> wrapper), in the view's pixel space. */
 export function overlaySvg(view: ProjectionView, data: CartoData, style: Style, o: OverlayOptions): string {
   const p = pathFor(view), W = view.width, H = view.height, u = W / 1000;
@@ -113,18 +127,7 @@ export function overlaySvg(view: ProjectionView, data: CartoData, style: Style, 
   }
   if (o.outline) out += line(p(view.outline()), `class="carto-outline" stroke="${style.outline.color}" stroke-width="${r2(style.outline.width * u)}"`);
 
-  if (o.labels) {
-    let defs = '', body = '', n = 0;
-    for (const t of o.labels.labels) {
-      const common = `font-family="${FONT_FAMILY}" font-size="${r2(t.size)}"${t.italic ? ' font-style="italic"' : ''}${t.tracking ? ` letter-spacing="${r2(t.tracking)}"` : ''} fill="${t.fill}" stroke="${t.halo}" stroke-width="${r2(2 * t.haloWidth)}" stroke-linejoin="round" paint-order="stroke"${t.opacity < 1 ? ` opacity="${t.opacity}"` : ''}`;
-      if (t.pathD) {
-        const id = `lp${n++}`;
-        defs += `<path id="${id}" d="${t.pathD}"/>\n`;
-        body += `<text ${common} text-anchor="middle" class="carto-label carto-${t.kind}"><textPath href="#${id}" startOffset="${r2(t.startOffset ?? 50)}%">${esc(t.text)}</textPath></text>\n`;
-      } else body += `<text x="${r2(t.x!)}" y="${r2(t.y!)}" ${common} class="carto-label carto-${t.kind}">${esc(t.text)}</text>\n`;
-    }
-    out += `<defs>\n${defs}</defs>\n<g class="carto-labels">\n${body}</g>\n`;
-  }
+  if (o.labels) out += labelsSvg(o.labels);
 
   const fur = furnitureLayout(W, H, style, o);
   if (fur.scale) {

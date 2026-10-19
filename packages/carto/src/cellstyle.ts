@@ -38,14 +38,22 @@ export function landmassColor(id: string): [number, number, number] {
 export interface CellStyleOptions {
   meshId?: string;
   /** Climate mode: the colour of a Köppen class at a raw elevation (linear light), and the raw elevation layer's id. */
-  biome?: { color: (koppen: number, rawElevation: number) => ArrayLike<number>; rawElevation: string };
+  biome?: { color: (koppen: number, rawElevation: number) => ArrayLike<number>; rawElevation: string | ((world: World) => string) };
+  /** The per-cell hillshade (fractions of 255) for the style's hillshade settings, when the caller has it cached. */
+  shade?: Float32Array;
+}
+
+/** The per-cell hillshade of a world for a style (the part of cellStyle worth caching across relief-strength changes). */
+export function shadeFor(world: World, style: Style, meshId = 'global'): Float32Array {
+  const mesh = world.meshes.get(meshId)!.mesh, elev = world.layers.get(meshId, 'elevation');
+  return cellHillshade(mesh, elev, (world.planet['radius_m'] as number | undefined) ?? EARTH_RADIUS_M, style.relief.hillshade);
 }
 
 export function cellStyle(world: World, style: Style, data: CartoData, opts: CellStyleOptions = {}): CellStyle {
   const meshId = opts.meshId ?? 'global';
   const mesh = world.meshes.get(meshId)!.mesh, elev = world.layers.get(meshId, 'elevation');
   const radius = (world.planet['radius_m'] as number | undefined) ?? EARTH_RADIUS_M;
-  const shade = cellHillshade(mesh, elev, radius, style.relief.hillshade);
+  const shade = opts.shade ?? cellHillshade(mesh, elev, radius, style.relief.hillshade);
   const factor = reliefFactors(shade, elev, style);
   const n = mesh.numRegions;
   if (style.landMode === 'elevation') return { factor, colors: null };
@@ -59,7 +67,8 @@ export function cellStyle(world: World, style: Style, data: CartoData, opts: Cel
     }
   } else {
     if (!opts.biome) throw new Error('the climate colour mode needs opts.biome');
-    const kop = world.layers.get(meshId, 'koppen'), raw = world.layers.get(meshId, opts.biome.rawElevation);
+    const rawId = typeof opts.biome.rawElevation === 'function' ? opts.biome.rawElevation(world) : opts.biome.rawElevation;
+    const kop = world.layers.get(meshId, 'koppen'), raw = world.layers.get(meshId, rawId);
     for (let i = 0; i < n; i++) {
       if (elev[i]! <= 0) continue;
       const c = opts.biome.color(kop[i]!, raw[i]!);
