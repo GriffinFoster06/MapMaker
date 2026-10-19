@@ -67,6 +67,17 @@ export const SETTING_GROUPS: SettingGroup[] = [
 
 export const SETTINGS: Setting[] = SETTING_GROUPS.flatMap((g) => g.settings);
 
+/** A named set of slider values. Presets never change the defaults (world hashes depend on them); they only fill the sliders. */
+export interface Preset { id: string; label: string; tip: string; values: Record<string, number> }
+
+export const PRESETS: Preset[] = [
+  {
+    id: 'earthlike', label: 'Earth-like',
+    tip: 'Found by a sweep of the 14 sliders against Earth statistics (docs/earth-tests/DEFAULTS_SWEEP.md, configuration L612). Compared with the defaults it gives Earth-like land fraction, hypsometry, continent sizes, climate-zone shares and river density. Preview-tier evidence only.',
+    values: { jitter: 0.75, P: 81, numContinents: 4, nMag: 0.23, continentSizeVariety: 0.1, landCoverage: 0.36, terrainWarp: 0, smoothing: 0.15, glacialErosion: 0.75, hydraulicErosion: 0.4, thermalErosion: 0.25, ridgeSharpening: 0.95, temperatureOffset: -2, precipitationOffset: -0.5 },
+  },
+];
+
 const clamp = (s: Setting, v: number): number => Math.min(s.max, Math.max(s.min, v));
 
 /** Only the values that differ from the defaults (what the world needs; defaults reproduce existing worlds exactly). */

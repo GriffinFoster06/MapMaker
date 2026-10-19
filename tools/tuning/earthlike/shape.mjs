@@ -36,7 +36,18 @@ export function rasterise(mesh, isLand, W = 1440, H = 720) {
 }
 
 /** Landmasses (4-connected, wrapping in longitude): area (km2) and bounding-box fill. */
-export function landmasses({ grid, W, H }, minAreaKm2 = 2e5) {
+export function landmasses(ras, minAreaKm2 = 2e5, erode = 0) {
+  let { grid } = ras;
+  const { W, H } = ras;
+  // Optional erosion (4-neighbour, `erode` passes) so that isthmuses and straits of a few hundred km do not join landmasses.
+  for (let it = 0; it < erode; it++) {
+    const g2 = new Uint8Array(W * H);
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+      const q = j * W + i;
+      g2[q] = grid[q] && grid[j * W + (i + 1) % W] && grid[j * W + (i + W - 1) % W] && (j === 0 || grid[q - W]) && (j === H - 1 || grid[q + W]) ? 1 : 0;
+    }
+    grid = g2;
+  }
   const seen = new Uint8Array(W * H), out = [];
   const dl = 2 * Math.PI / W, dphi = Math.PI / H;
   const rowArea = new Float64Array(H);

@@ -7,7 +7,7 @@ import type { HeightmapArgs } from '@mapmaker/projection/exact/kernels';
 import { type MapUi, startMapUi } from './flat/map-ui';
 import { type DebugMode, ProjectionView, type ViewOptions } from '@mapmaker/projection';
 import { RAW_ELEVATION, makeLayers } from './globe/colors';
-import { SETTING_GROUPS, SETTINGS, changedParams, decodeState, encodeState } from './settings';
+import { PRESETS, SETTING_GROUPS, SETTINGS, changedParams, decodeState, encodeState } from './settings';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -50,7 +50,7 @@ export interface FlatHook {
 declare global { interface Window { __globe?: GlobeHook; __flat?: FlatHook } }
 
 /** Builds the World settings panel and returns a reader of the current slider values. */
-function buildSettings(initial: Record<string, number>, onChange: () => void): { values(): Record<string, number>; reset(): void } {
+function buildSettings(initial: Record<string, number>, onChange: () => void): { values(): Record<string, number>; reset(): void; apply(values: Record<string, number>): void } {
   const inputs = new Map<string, HTMLInputElement>();
   const host = $('settingGroups');
   for (const g of SETTING_GROUPS) {
@@ -93,6 +93,8 @@ function buildSettings(initial: Record<string, number>, onChange: () => void): {
   return {
     values: () => Object.fromEntries(SETTINGS.map((st) => [st.key, Number(inputs.get(st.key)!.value)])),
     reset: () => { for (const st of SETTINGS) { const i = inputs.get(st.key)!; i.value = String(st.def); i.dispatchEvent(new Event('input')); } },
+    /** Sets every slider to `values[key]` (the default where a key is missing). */
+    apply: (values) => { for (const st of SETTINGS) { const i = inputs.get(st.key)!; i.value = String(values[st.key] ?? st.def); i.dispatchEvent(new Event('input')); } },
   };
 }
 
@@ -130,7 +132,10 @@ export function startApp(): void {
   const syncUrl = () => { const q = pageState(); history.replaceState(null, '', q ? `?${q}` : location.pathname); };
   const settings = buildSettings(init.params, syncUrl);
   for (const el of [seedInput, tier, pipelineSel]) el.addEventListener('change', syncUrl);
-  $('resetSettings').addEventListener('click', () => settings.reset());
+  $('resetSettings').addEventListener('click', () => { settings.reset(); presetSel.value = ''; });
+  const presetSel = $<HTMLSelectElement>('preset');
+  for (const p of PRESETS) presetSel.add(Object.assign(new Option(p.label, p.id), { title: p.tip }));
+  presetSel.addEventListener('change', () => { const p = PRESETS.find((x) => x.id === presetSel.value); if (p) settings.apply(p.values); });
   $('copyLink').addEventListener('click', () => {
     syncUrl();
     navigator.clipboard.writeText(location.href).then(() => { $('linkStatus').textContent = 'link copied'; },
