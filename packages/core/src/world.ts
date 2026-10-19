@@ -1,4 +1,5 @@
 // The World object (ARCHITECTURE §3): everything the app knows about a world. Original shell code.
+import { EditLog, type SystemMode } from './edits';
 import { EntityTable } from './entities/table';
 import { LayerRegistry, LayerStore } from './layers/registry';
 import type { TimeVaryingLayer } from './layers/time-varying';
@@ -68,6 +69,10 @@ export class World {
   timeline: Timeline;
   timeVarying = new Map<string, TimeVaryingLayer>();
   events = new EventLog();
+  /** User edits (§3.8): inputs to the stages that produce their targets. */
+  edits = new EditLog();
+  /** Per-stage switches; a stage not listed simulates. */
+  systems: Record<string, SystemMode> = {};
   pipeline: PipelineState = { variant: 'default', completed: [] };
   checkpoint?: Checkpoint;
   ui?: unknown;

@@ -1,4 +1,5 @@
-import { type EntityTable, type World, bytesOf, canonicalJson, hashString, sha256 } from '@mapmaker/core';
+import { type EntityTable, type World, bytesOf, canonicalJson, editContent, hashString, sha256 } from '@mapmaker/core';
+import { stageEdits, systemMode } from './edits';
 import { splitRead } from './stage';
 
 export async function hashTable(t: EntityTable): Promise<string> {
@@ -9,6 +10,8 @@ export async function hashTable(t: EntityTable): Promise<string> {
 }
 
 /** `layers/<mesh>/<arrayId>` and `table:<name>` -> hash, for every layer array and table in the world. */
+const editsHash = (edits: Parameters<typeof editContent>[0][]): unknown => edits.map(editContent);
+
 export async function snapshotHashes(world: World, exclude: (key: string) => boolean = () => false): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
   for (const key of world.layers.keys()) {
@@ -20,7 +23,7 @@ export async function snapshotHashes(world: World, exclude: (key: string) => boo
   return out;
 }
 
-export async function hashInputs(world: World, stage: { id: string; version: string; reads: string[]; params?: string[]; mesh?: string }): Promise<string> {
+export async function hashInputs(world: World, stage: { id: string; version: string; reads: string[]; writes?: string[]; params?: string[]; mesh?: string }): Promise<string> {
   const mesh = stage.mesh ?? 'global';
   const reads: Record<string, string> = {};
   for (const r of [...stage.reads].sort()) {
@@ -36,5 +39,11 @@ export async function hashInputs(world: World, stage: { id: string; version: str
   }
   const params: Record<string, unknown> = { masterSeed: world.params.masterSeed };
   for (const k of stage.params ?? []) params[k] = world.params[k] ?? null;
-  return hashString(canonicalJson({ id: stage.id, version: stage.version, variant: world.pipeline.variant, reads, params }));
+  const key: Record<string, unknown> = { id: stage.id, version: stage.version, variant: world.pipeline.variant, reads, params };
+  // Only present when used, so the input hashes of stages without edits or switches are unchanged.
+  const edits = stageEdits(world, { id: stage.id, writes: stage.writes ?? [], ...(stage.params ? { params: stage.params } : {}), ...(stage.mesh ? { mesh: stage.mesh } : {}) });
+  if (edits.length) key['edits'] = editsHash(edits);
+  const mode = systemMode(world, stage);
+  if (mode !== 'simulate') key['system'] = mode;
+  return hashString(canonicalJson(key));
 }

@@ -36,6 +36,13 @@ Do in this order; milestones commit and push separately.
 - **5c Prerequisite:** audit mapgen4 and mewo2/terrain with prompt 2 in that README. Then Phase 5c: label placement by porting Azgaar's `label-spread.ts` first (own font metrics), QGIS hillshade formula, no third-party symbols (decision W4).
 - After the 5c checkpoint report: Q4 (optional Electron wrapper, decision P4) only if the user has added "Electron: go" to "Waiting on the user"; otherwise stop at the limit.
 
+## Phase 5b plan (branch `phase-5b`; reconciliation done: `docs/reconciliation/group-5b.md`)
+
+1. **M1 engine:** `World.edits` (EditLog with cursor, gesture-based undo; saved only when used so old hashes stay), per-stage edit hashing, `World.systems` switches, stale-stage analysis, run-from-stage. Tests: replay, undo hash, invalidation.
+2. **M2 terrain edits** (`packages/gen-orogen/src/edits/`): brush region rasteriser, raise/lower/smooth/flatten/terrace/noise, land/sea paint, categorical paint, hotspot and ridge (plate-boundary) seeds, parameter edits; applied in the structured detail pass before climate. Tests: pin survival, local stages, undo.
+3. **M3 app:** engine ops, edit tools on globe and flat map, registry-generated parameter panel (simple/advanced) with presets, system switches, stale-stage list with re-run, cancel; e2e.
+4. **M4:** checkpoint report, STATUS, PR ready.
+
 ## Waiting on the user
 
 - **Scope W7 feature-level candidates** (no feature removed; your call): (1) globe pinch/touch zoom, README.md:55: keep, it costs nothing and mouse wheel still works; (2) WebGPU "where available" preview paths (ARCHITECTURE.md §6.3, note 18, note 38): drop the cross-vendor testing, keep the option; Electron's Chromium makes it viable later; (3) offline/service worker and the PWA/OPFS next steps in Q18 (REQUIREMENTS.md:31): drop the PWA, keep OPFS or file storage as an Electron concern; (4) the Diagnostics determinism panel in the app: keep, it is cheap; (5) the URL-held settings (shareable links): keep, it doubles as presets. Full list: decision W7.

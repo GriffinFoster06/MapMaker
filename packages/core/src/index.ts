@@ -10,5 +10,6 @@ export * from './typed';
 export * from './layers';
 export * from './entities';
 export * from './timeline';
+export * from './edits';
 export * from './world';
 export * from './save';

@@ -6,3 +6,5 @@ export * from './protocol';
 export * from './host';
 export * from './client';
 export * from './pool';
+export * from './edits';
+export * from './stale';

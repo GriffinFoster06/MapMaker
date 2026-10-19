@@ -1,6 +1,7 @@
 // Stage runner (ARCHITECTURE §4): variants, the one-producer check, input hashing, skipping, invalidation,
 // mid-stage checkpoints and cooperative cancellation. Original shell code.
 import { type EntityTable, type TableSpec, type TypedArray, type World, EntityTable as Table, arrayIds, hashString, canonicalJson, dmath } from '@mapmaker/core';
+import { stageEdits, systemMode } from './edits';
 import { hashInputs, hashTable, snapshotHashes } from './hash-state';
 import { CancelledError, type CancelFlag, type Stage, type StageContext, splitRead } from './stage';
 
@@ -12,6 +13,8 @@ export interface RunOptions {
   strict?: boolean;
   /** Run only these stages (and skip the rest). Default all. */
   only?: string[];
+  /** Re-run this stage and every later one even where their inputs are unchanged ("re-run from stage X"). */
+  from?: string;
 }
 
 export interface RunResult {
@@ -75,6 +78,13 @@ export async function runPipeline(world: World, allStages: Stage[], opts: RunOpt
   const strict = opts.strict ?? true;
   const only = opts.only ? new Set(opts.only) : undefined;
   const result: RunResult = { ran: [], skipped: [] };
+  if (opts.from) {
+    const i = stages.findIndex((s) => s.id === opts.from);
+    if (i < 0) throw new Error(`unknown stage to re-run from: ${opts.from}`);
+    const later = new Set(stages.slice(i).map((s) => s.id));
+    world.pipeline.completed = world.pipeline.completed.filter((r) => !later.has(r.stageId));
+  }
+  for (const s of stages) if (systemMode(world, s) !== 'simulate' && s.switchable === false) throw new Error(`${s.id} is structure, not a system: it cannot be switched to ${systemMode(world, s)}`);
 
   for (const stage of stages) {
     if (only && !only.has(stage.id)) continue;
@@ -105,7 +115,13 @@ export async function runPipeline(world: World, allStages: Stage[], opts: RunOpt
     if (dmath.mode !== 'fdlibm') throw new Error(`stage ${stage.id} started with dmath mode '${dmath.mode}'; canonical stages run in 'fdlibm'`);
     const nativeBefore = dmath.nativeEntries;
     try {
-      await stage.run(ctx);
+      const mode = systemMode(world, stage);
+      if (mode === 'simulate') await stage.run(ctx);
+      else {
+        // Switched off or authored by hand: the outputs start zeroed; `manual` then applies the edit log to them.
+        for (const w of stage.writes) if (!w.startsWith('table:')) for (const a of ctx.writeLayer(w)) (a as unknown as { fill(v: number): void }).fill(0);
+        if (mode === 'manual' && stage.manual) await stage.manual(ctx);
+      }
     } catch (e) {
       if (e instanceof CancelledError) {
         world.pipeline.current = { stageId: stage.id };
@@ -155,6 +171,7 @@ function makeContext(world: World, stage: Stage, meshId: string, signal: CancelF
   };
   return {
     world, stage, meshId, signal, resume,
+    edits: stageEdits(world, stage),
     progress: (fraction, message) => opts.onProgress?.({ stageId: stage.id, fraction, ...(message !== undefined ? { message } : {}) }),
     checkpoint: (meta, chunks = {}) => {
       world.pipeline.current = { stageId: stage.id };
