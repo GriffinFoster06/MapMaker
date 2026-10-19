@@ -6,7 +6,7 @@ import process from 'node:process';
 import console from 'node:console';
 
 const dir = resolve(process.cwd(), 'docs/benchmarks');
-const files = readdirSync(dir).filter((f) => /^phase4a-.*\.json$/.test(f)).sort();
+const files = readdirSync(dir).filter((f) => /^phase4a-(?!worker-).*\.json$/.test(f)).sort();
 const runs = files.map((f) => ({ f, ...JSON.parse(readFileSync(resolve(dir, f), 'utf8')) }));
 const tiers = ['50k', '200k', '500k', '1M', '2.56M'];
 const sec = (ms) => (ms === undefined ? '—' : (ms / 1000).toFixed(1));

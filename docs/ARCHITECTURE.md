@@ -398,6 +398,7 @@ The cube maps are a lookup acceleration built from the sphere, not a resampled c
      - NaN is never produced.
    - **Excluded** (Mercator, with |φ| clipped at about 85.05°; and the gnomonic outside its hemisphere): the domain check in step 2 of the raster path rejects the pixel, and the distortion is "outside domain".
 3. **Projections with no closed form** (some of the d3-geo-projection set): the limit is a **one-sided Richardson extrapolation** from φ = ±(90° − δ), ±(90° − δ/2) and ±(90° − δ/4), with δ = 1e-3 rad. The result is classed as divergent if the sequence grows by more than 2× per halving.
+   **Correction (Phase 5 M1):** the implementation uses Aitken's Δ² on the same three samples (Richardson with the order estimated from them, exact for L + C·δ^p) and classes the limit divergent when successive differences grow, because fixed-order Richardson and the 2× test missed Mollweide's slow k ∝ δ^(−1/3) divergence (k = 19.46 reported instead of +∞; `packages/projection/src/distortion.ts`).
 4. **Overlays** draw `singular` pixels with a dedicated colour, not by clamping the ramp.
 - **Tissot indicatrix overlay**: at graticule nodes, generate a true geodesic small circle of fixed angular radius on the sphere and forward-project it through the vector path. This is exact rather than linearised, so it stays correct where distortion is extreme.
 - **Analytic tests**:

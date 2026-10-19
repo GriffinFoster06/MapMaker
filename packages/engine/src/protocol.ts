@@ -16,6 +16,8 @@ export type Request =
   | { id: number; op: 'snapshot' }
   | { id: number; op: 'hash' }
   | { id: number; op: 'kernel'; name: string; args: unknown }
+  /** A host-registered function of the loaded World (read-only views and exports, §3.7). A typed-array result is transferred. */
+  | { id: number; op: 'worldKernel'; name: string; args: unknown }
   | { op: 'cancel' };
 
 export type Response =

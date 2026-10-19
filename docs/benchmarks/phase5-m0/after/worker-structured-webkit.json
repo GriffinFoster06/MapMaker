@@ -1,0 +1,31 @@
+{
+ "meta": {
+  "browser": "webkit",
+  "variant": "structured",
+  "mode": "worker",
+  "platform": "darwin arm64",
+  "cpu": "Apple M5 Pro",
+  "cores": 18,
+  "ramGB": 64,
+  "date": "2026-10-18T23:10:05.517Z"
+ },
+ "results": [
+  {
+   "tier": "2.56M",
+   "cells": 2560000,
+   "ok": true,
+   "mode": "worker",
+   "totalMs": 29982,
+   "workingSetMB": 552,
+   "layerArrays": 75,
+   "baselineRssMB": 321,
+   "peakRssMB": 5975,
+   "peakRssByKindMB": {
+    "browser": 116,
+    "network": 63,
+    "gpu": 92,
+    "content": 5703
+   }
+  }
+ ]
+}

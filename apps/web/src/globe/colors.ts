@@ -1,10 +1,20 @@
 // Per-layer colour mapping for the globe. Original shell code, using orogen's palettes (vendored color-map.js).
 import { biomeColor, elevationToColor } from '@mapmaker/gen-orogen/palettes';
 import type { TypedArray } from '@mapmaker/core';
+import type { GpuLayer } from '../flat/gpu-map';
 
-export interface LayerChoice { id: string; label: string; /** layer ids the worker must send */ need: string[]; paint(data: Record<string, TypedArray[]>, out: Float32Array): void }
+export interface LayerChoice {
+  id: string; label: string; /** layer ids the worker must send */ need: string[];
+  /** Per-cell colours for the globe (linear RGB). */
+  paint(data: Record<string, TypedArray[]>, out: Float32Array): void;
+  /**
+   * The layer as the flat map samples it (§3.7 step 3): barycentric values through a palette, or nearest-cell colours
+   * for categorical layers (Köppen, plates).
+   */
+  flat(data: Record<string, TypedArray[]>): GpuLayer;
+}
 
-const ramp = (t: number): [number, number, number] => {
+export const ramp = (t: number): [number, number, number] => {
   // blue → teal → yellow → red, readable on a dark background
   const x = Math.max(0, Math.min(1, t));
   const stops: [number, number, number][] = [[0.1, 0.15, 0.55], [0.1, 0.55, 0.6], [0.95, 0.9, 0.3], [0.8, 0.15, 0.1]];
@@ -28,6 +38,11 @@ function scalar(id: string, label: string, layer: string, pick: (d: TypedArray[]
       const v = pick(data[layer]!);
       const lo = percentile(v, 0.02), hi = percentile(v, 0.98), span = hi - lo || 1;
       for (let i = 0; i < v.length; i++) { const c = ramp((v[i]! - lo) / span); out[3 * i] = c[0]; out[3 * i + 1] = c[1]; out[3 * i + 2] = c[2]; }
+    },
+    flat(data) {
+      const v = pick(data[layer]!);
+      const lo = percentile(v, 0.02), hi = percentile(v, 0.98);
+      return { rule: 'barycentric', values: Float32Array.from(v), palette: 'ramp', lo, hi: hi - lo ? hi : lo + 1 };
     },
   };
 }
@@ -57,6 +72,7 @@ export function makeLayers(rawId: string): LayerChoice[] {
       const e = data[rawId]![0]!;
       for (let i = 0; i < e.length; i++) { const c = elevationToColor(e[i]!) as number[]; out[3 * i] = c[0]!; out[3 * i + 1] = c[1]!; out[3 * i + 2] = c[2]!; }
     },
+    flat: (data) => ({ rule: 'barycentric', values: Float32Array.from(data[rawId]![0]!), palette: 'elevation' }),
   },
   {
     id: 'koppen', label: 'Köppen climate', need: ['koppen', rawId],
@@ -64,6 +80,7 @@ export function makeLayers(rawId: string): LayerChoice[] {
       const k = data['koppen']![0]!, e = data[rawId]![0]!;
       for (let i = 0; i < k.length; i++) { const c = biomeColor(k[i]!, e[i]!) as number[]; out[3 * i] = c[0]!; out[3 * i + 1] = c[1]!; out[3 * i + 2] = c[2]!; }
     },
+    flat(data) { const c = new Float32Array(3 * data['koppen']![0]!.length); this.paint(data, c); return { rule: 'nearest', colors: c }; },
   },
   {
     id: 'plate', label: 'Plates', need: ['plate'],
@@ -71,6 +88,7 @@ export function makeLayers(rawId: string): LayerChoice[] {
       const p = data['plate']![0]!;
       for (let i = 0; i < p.length; i++) { const c = idColor(p[i]!); out[3 * i] = c[0]; out[3 * i + 1] = c[1]; out[3 * i + 2] = c[2]; }
     },
+    flat(data) { const c = new Float32Array(3 * data['plate']![0]!.length); this.paint(data, c); return { rule: 'nearest', colors: c }; },
   },
   scalar('stress', 'Tectonic stress', 'stress'),
   scalar('temp.summer', 'Temperature, summer', 'temp.summer'),

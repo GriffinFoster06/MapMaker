@@ -1,0 +1,39 @@
+{
+ "meta": {
+  "browser": "firefox",
+  "variant": "parity",
+  "mode": "app",
+  "platform": "darwin arm64",
+  "cpu": "Apple M5 Pro",
+  "cores": 18,
+  "ramGB": 64,
+  "date": "2026-10-18T23:37:55.730Z"
+ },
+ "results": [
+  {
+   "tier": "2.56M",
+   "cells": 2560000,
+   "ok": true,
+   "mode": "app",
+   "totalMs": 100052,
+   "stagesMs": {
+    "mesh": 5847,
+    "orogen.tectonics": 5606,
+    "orogen.elevation": 10799,
+    "orogen.erosion": 8458,
+    "orogen.climate": 69197,
+    "orogen.koppen": 41
+   },
+   "generationMs": 99948,
+   "workingSetMB": 607,
+   "layerArrays": 29,
+   "baselineRssMB": 571,
+   "peakRssMB": 2198,
+   "peakRssByKindMB": {
+    "browser": 461,
+    "other": 43,
+    "content": 1755
+   }
+  }
+ ]
+}

@@ -11,6 +11,11 @@ export interface HostOptions {
   engine: string;
   /** Data-parallel kernels callable through the pool. Must be pure functions of their arguments. */
   kernels?: Record<string, (args: never) => unknown>;
+  /**
+   * Functions of the loaded World, callable with the `worldKernel` op. They must not modify the World (views and
+   * exports: a World hash guard test covers the projection kernels).
+   */
+  worldKernels?: Record<string, (world: World, args: never) => unknown>;
   /** Builds a fresh world from request params (the `create` op). */
   create?: (params: unknown) => World;
 }
@@ -108,6 +113,19 @@ export function attachHost(port: PortLike, opts: HostOptions): void {
         const k = opts.kernels?.[req.name];
         if (!k) throw new Error(`unknown kernel: ${req.name}`);
         send({ id: req.id, op: 'result', value: await k(req.args as never) });
+        return;
+      }
+      case 'worldKernel': {
+        if (!world) throw new Error('no world loaded');
+        const k = opts.worldKernels?.[req.name];
+        if (!k) throw new Error(`unknown world kernel: ${req.name}`);
+        const value = await k(world, req.args as never);
+        // Typed arrays in the result (top level, or one level down in a plain object) are transferred.
+        const transfer: Transferable[] = [];
+        const take = (v: unknown) => { if (ArrayBuffer.isView(v) && !transfer.includes(v.buffer as ArrayBuffer)) transfer.push(v.buffer as ArrayBuffer); };
+        if (ArrayBuffer.isView(value)) take(value);
+        else if (value && typeof value === 'object') for (const v of Object.values(value)) take(v);
+        send({ id: req.id, op: 'result', value }, transfer.length ? transfer : undefined);
         return;
       }
     }

@@ -1,0 +1,36 @@
+{
+ "meta": {
+  "browser": "firefox",
+  "variant": "structured",
+  "mode": "app",
+  "platform": "darwin arm64",
+  "cpu": "Apple M5 Pro",
+  "cores": 18,
+  "ramGB": 64,
+  "date": "2026-10-18T23:04:35.879Z"
+ },
+ "results": [
+  {
+   "tier": "2.56M",
+   "cells": 2560000,
+   "ok": true,
+   "mode": "app",
+   "totalMs": 37419,
+   "stagesMs": {
+    "mesh": 5861,
+    "ref.pass": 749,
+    "detail.pass": 30701
+   },
+   "generationMs": 37311,
+   "workingSetMB": 552,
+   "layerArrays": 75,
+   "baselineRssMB": 614,
+   "peakRssMB": 2468,
+   "peakRssByKindMB": {
+    "browser": 480,
+    "other": 132,
+    "content": 1935
+   }
+  }
+ ]
+}

@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 // Per-browser memory and timing benchmarks (Phase 4a, 4b). Not part of `npm run e2e`: run `npm run bench`.
 // BENCH_TIERS=50k,200k limits the tiers; BENCH_VARIANT=parity|structured (default structured) picks the pipeline; BENCH_PROJECT picks the browser (default: all three).
+// BENCH_MODE=worker runs the engine worker alone (no globe); every run records peak RSS per process kind.
 const PORT = 4174;
 
 export default defineConfig({

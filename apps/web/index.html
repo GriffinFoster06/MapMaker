@@ -11,6 +11,15 @@
     #controls { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; margin: .5rem 0; }
     #controls input { width: 7rem; }
     #globe { width: 100%; height: min(70vh, 640px); background: #05060d; border-radius: 6px; display: block; touch-action: none; }
+    #map { position: relative; width: 100%; height: min(70vh, 640px); background: #05060d; border-radius: 6px; overflow: hidden; touch-action: none; }
+    #map > canvas, #map > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #map > svg { pointer-events: none; }
+    #mapDist { opacity: .7; image-rendering: pixelated; }
+    [hidden] { display: none !important; }
+    #mapControls { display: flex; flex-wrap: wrap; gap: .4rem 1rem; align-items: center; margin: .5rem 0; }
+    #mapControls fieldset { border: 1px solid #ddd; border-radius: 6px; display: flex; flex-wrap: wrap; gap: .3rem .8rem; align-items: center; padding: .2rem .6rem .4rem; }
+    #mapControls input[type=range] { width: 8rem; }
+    #mapControls input[type=number] { width: 5.5rem; }
     #timing { max-height: 10rem; }
     #settings > summary { cursor: pointer; font-weight: 600; margin: .25rem 0; }
     .sgroup { border: 1px solid #ddd; border-radius: 6px; padding: .25rem .75rem .5rem; margin: .5rem 0; }
@@ -32,6 +41,7 @@
     <label><input id="preview" type="checkbox" checked /> preview first</label>
     <button id="generate">Generate</button>
     <label>Layer <select id="layer"></select></label>
+    <label>View <select id="viewMode"><option value="globe">globe</option><option value="flat">flat map</option></select></label>
     <span id="status">idle</span>
   </div>
   <details id="settings" open>
@@ -42,6 +52,33 @@
     <span id="linkStatus"></span>
   </details>
   <canvas id="globe"></canvas>
+  <div id="mapControls" hidden>
+    <fieldset><legend>Projection</legend>
+      <select id="projection"></select>
+      <label>λ <input id="rotLambda" type="range" min="-180" max="180" step="1" value="0" /></label>
+      <label>φ <input id="rotPhi" type="range" min="-90" max="90" step="1" value="0" /></label>
+      <label>γ <input id="rotGamma" type="range" min="-180" max="180" step="1" value="0" /></label>
+      <span>rotate <span id="rotValue">0, 0, 0</span>; zoom <span id="zoomValue">1.00×</span></span>
+      <button id="mapReset" type="button">Reset view</button>
+    </fieldset>
+    <fieldset><legend>Overlays</legend>
+      <label><input id="ovGraticule" type="checkbox" checked /> graticule</label>
+      <label><input id="ovCoast" type="checkbox" /> coastlines</label>
+      <label><input id="ovTissot" type="checkbox" /> Tissot indicatrices</label>
+      <label>distortion <select id="ovDistortion"><option value="">none</option><option value="areal">areal scale</option><option value="omega">max angular (ω)</option><option value="h">meridian scale h</option><option value="k">parallel scale k</option></select></label>
+    </fieldset>
+    <fieldset><legend>Export (whole map, exact path)</legend>
+      <label>width <input id="exportWidth" type="number" min="16" max="16384" step="1" value="2048" /></label> <span id="exportSize"></span>
+      <label>heights <select id="exportMapping"><option value="absolute">absolute (−5 to +6 km)</option><option value="land">land (ocean 0, land 0 to 6 km)</option><option value="custom">custom range</option></select></label>
+      <span id="customRange" hidden><input id="rangeMin" type="number" value="-1000" /> to <input id="rangeMax" type="number" value="5000" /> m</span>
+      <label><input id="exportTransparent" type="checkbox" /> transparent outside</label>
+      <button id="exportHeightmap" type="button">Export heightmap (16-bit PNG)</button>
+      <button id="exportSvg" type="button">Export SVG</button>
+      <span id="exportStatus"></span>
+    </fieldset>
+    <span id="mapStatus"></span>
+  </div>
+  <div id="map" hidden><canvas id="mapGpu"></canvas><canvas id="mapCpu" hidden></canvas><canvas id="mapDist" hidden></canvas><svg id="mapSvg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"></svg></div>
   <pre id="timing"></pre>
   <details>
   <summary>Diagnostics: determinism probe and cross-origin isolation</summary>

@@ -2,5 +2,7 @@
 // runs a stage.
 import type { PortLike } from '@mapmaker/engine';
 import { startOrogenHost } from '@mapmaker/gen-orogen';
+import { projectionKernels } from '@mapmaker/projection/exact/kernels';
 
-startOrogenHost(self as unknown as PortLike, navigator.userAgent);
+// The exact projection path (sampler, heightmap export) runs here, next to the World (§3.7).
+startOrogenHost(self as unknown as PortLike, navigator.userAgent, { worldKernels: projectionKernels });

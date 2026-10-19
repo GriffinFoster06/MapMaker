@@ -1,0 +1,37 @@
+{
+ "meta": {
+  "browser": "webkit",
+  "variant": "structured",
+  "mode": "app",
+  "platform": "darwin arm64",
+  "cpu": "Apple M5 Pro",
+  "cores": 18,
+  "ramGB": 64,
+  "date": "2026-10-18T23:03:19.988Z"
+ },
+ "results": [
+  {
+   "tier": "2.56M",
+   "cells": 2560000,
+   "ok": true,
+   "mode": "app",
+   "totalMs": 30114,
+   "stagesMs": {
+    "mesh": 3356,
+    "ref.pass": 627,
+    "detail.pass": 26013
+   },
+   "generationMs": 29996,
+   "workingSetMB": 552,
+   "layerArrays": 75,
+   "baselineRssMB": 322,
+   "peakRssMB": 6120,
+   "peakRssByKindMB": {
+    "browser": 117,
+    "network": 64,
+    "gpu": 92,
+    "content": 5847
+   }
+  }
+ ]
+}

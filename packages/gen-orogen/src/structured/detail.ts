@@ -57,16 +57,17 @@ export interface ElevationDetail {
   omesh: OMesh;
   r_xyz: Float32Array;
   tect: Tectonics;
-  /** orogen's own world at N (raw units), before the reference-scale part is replaced. */
-  native: Float64Array;
-  /** The sub-reference detail D (raw units), R(D) = 0. */
-  detail: Float64Array;
+  /** orogen's own world at N (raw units), before the reference-scale part is replaced. Absent unless kept. */
+  native?: Float64Array;
+  /** The sub-reference detail D (raw units), R(D) = 0. Absent unless kept. */
+  detail?: Float64Array;
   /** Final elevation, raw units (Float64 and the Float32 layer value) and metres. */
   elevation: Float64Array;
   elevRaw: Float32Array;
   elevation_m: Float32Array;
   stress: Float32Array;
-  debug: Record<string, Float32Array>;
+  /** orogen's elevation debug fields at N. Absent unless kept. */
+  debug?: Record<string, Float32Array>;
   /** Cells whose sign disagrees with a firmly signed reference parent after the last round (diagnostic). */
   signViolations: number;
 }
@@ -134,29 +135,46 @@ export function prolongStageFields(ml: MultiLevel, ref: StageFields, atN: StageF
   };
 }
 
-export function runElevationDetail(L1: SphereMesh, ref: ReferenceState, p: OrogenParams): ElevationDetail {
+export interface ElevationDetailOptions {
+  /**
+   * Keep `native`, `detail` and `debug` in the result (default true). The detail stage passes false, so these arrays
+   * (≈ 270 MB at 2.56M) and orogen's scratch at N are released before the sign-lock rounds (Phase 5 M0).
+   */
+  keepIntermediates?: boolean;
+}
+
+export function runElevationDetail(L1: SphereMesh, ref: ReferenceState, p: OrogenParams, opts: ElevationDetailOptions = {}): ElevationDetail {
+  const keep = opts.keepIntermediates ?? true;
   const omesh = new port.VendorSphereMesh(L1.triangles, L1.halfedges, L1.numRegions) as OMesh;
   const r_xyz = L1.orogenPoints() as Float32Array;
-  const s: Scratch = { mesh: omesh, r_xyz, neighborDist: port.computeNeighborDist(omesh, r_xyz) };
-
   const ml = new MultiLevel(ref.mesh, L1);
   const n1 = L1.numRegions;
-  const tect = computeTectonics(s, p, lib);
-  const noise = new port.SimplexNoise(p.seed);
-  const res = port.assignElevation(omesh, r_xyz, tect.plateIsOcean, tect.r_plate, tect.plateVec, tect.plateSeeds, noise, p.nMag, p.seed, 5,
-    tect.plateDensity, tect.superPlateData, tect.r_mantleField, {
-      phasorKernels: ref.structure.phasorKernels,
-      fields: (atN: StageFields) => prolongStageFields(ml, ref.fields, atN, r_xyz),
-    });
-  const debug = res.debugLayers as Record<string, Float32Array>;
-  const F = new Float32Array(res.r_elevation as Float32Array);
-  runPostProcessing(omesh, r_xyz, F, p, s.neighborDist, p.seed, debug['hotspot'],
-    computeDetailDampenField(debug['cratonWeight'], debug['basinWeight']), computeOrogenicField(debug['orogenicPower']), lib);
+
+  // orogen's elevation and erosion at N. Its scratch (neighbour distances, the stage 1–3 fields at N, the result
+  // object) is local to this block and unreachable once it returns.
+  const atN = (() => {
+    const s: Scratch = { mesh: omesh, r_xyz, neighborDist: port.computeNeighborDist(omesh, r_xyz) };
+    const tect = computeTectonics(s, p, lib);
+    const noise = new port.SimplexNoise(p.seed);
+    const res = port.assignElevation(omesh, r_xyz, tect.plateIsOcean, tect.r_plate, tect.plateVec, tect.plateSeeds, noise, p.nMag, p.seed, 5,
+      tect.plateDensity, tect.superPlateData, tect.r_mantleField, {
+        phasorKernels: ref.structure.phasorKernels,
+        fields: (f: StageFields) => prolongStageFields(ml, ref.fields, f, r_xyz),
+      });
+    const debug = res.debugLayers as Record<string, Float32Array>;
+    const F = new Float32Array(res.r_elevation as Float32Array);
+    runPostProcessing(omesh, r_xyz, F, p, s.neighborDist, p.seed, debug['hotspot'],
+      computeDetailDampenField(debug['cratonWeight'], debug['basinWeight']), computeOrogenicField(debug['orogenicPower']), lib);
+    return { tect, native: Float64Array.from(F) as Float64Array | undefined, stress: res.r_stress as Float32Array, debug: keep ? debug : undefined };
+  })();
+  const { tect, stress, debug } = atN;
+  let native: Float64Array | undefined = atN.native!;
+  atN.native = undefined;
 
   const n0 = ref.mesh.numRegions;
-  const native = Float64Array.from(F);
   const refE = Float64Array.from(ref.elevRaw);
-  const detail = ml.zeroMeanPerParent(native);
+  let detail: Float64Array | undefined = ml.zeroMeanPerParent(native);
+  if (!keep) native = undefined;
 
   // Sign lock margin per L0 cell: the largest detail excursion among its children. Where the reference is further
   // from sea level than that, detail alone cannot legitimately flip land and sea (note 14 §3.5).
@@ -164,8 +182,9 @@ export function runElevationDetail(L1: SphereMesh, ref: ReferenceState, p: Oroge
   for (let i = 0; i < n1; i++) { const c = ml.parentOf[i]!; margin[c] = Math.max(margin[c]!, Math.abs(detail[i]!)); }
   const locked = (c: number) => ml.childCount[c]! > 0 && Math.abs(refE[c]!) > SIGN_LOCK_MARGIN * margin[c]!;
 
-  let e = ml.prolong(refE);
+  const e = ml.prolong(refE);
   for (let i = 0; i < n1; i++) e[i]! += detail[i]!;
+  if (!keep) detail = undefined;
   let signViolations = 0;
   for (let round = 0; round < SIGN_LOCK_ROUNDS; round++) {
     for (let i = 0; i < n1; i++) {
@@ -174,7 +193,7 @@ export function runElevationDetail(L1: SphereMesh, ref: ReferenceState, p: Oroge
       if (refE[c]! > 0 && e[i]! <= 0) e[i] = SIGN_LOCK_FLOOR;
       else if (refE[c]! <= 0 && e[i]! > 0) e[i] = -SIGN_LOCK_FLOOR;
     }
-    e = ml.anchorAdditive(e, refE);
+    ml.anchorAdditiveInPlace(e, refE);
   }
   // Lock once more, then remove the remaining residual exactly with a step that cannot cross sea level in locked
   // cells: each parent's residual goes to its children in proportion to how far they can move before reaching the
@@ -215,15 +234,19 @@ export function runElevationDetail(L1: SphereMesh, ref: ReferenceState, p: Oroge
 
   const elevRaw = Float32Array.from(e);
   const elevation_m = Float32Array.from(elevRaw, rawToMetres);
-  return { ml, omesh, r_xyz, tect, native, detail, elevation: e, elevRaw, elevation_m, stress: res.r_stress as Float32Array, debug, signViolations };
+  return { ml, omesh, r_xyz, tect, native, detail, elevation: e, elevRaw, elevation_m, stress, debug, signViolations };
 }
 
 // ─────────────────────────────────────────────────────────────────────────
 //  Climate downscaling (design note 14 §3.6)
 // ─────────────────────────────────────────────────────────────────────────
 
-/** orogen's east and north unit vectors at an orogen-frame point (wind.ts: east = norm(z, 0, −x), north = p × east). */
-function basis(x: number, y: number, z: number): [number, number, number, number, number, number] {
+/**
+ * orogen's east and north unit vectors at an orogen-frame point (wind.ts: east = norm(z, 0, −x), north = p × east),
+ * written into `out` as [ex, ey, ez, nx, ny, nz]. A reused Float64Array instead of a new array per cell (Phase 5 M0
+ * R7: ~10 million short-lived arrays per 2.56M run, which WebKit kept resident); the stored doubles are exact.
+ */
+function basis(x: number, y: number, z: number, out: Float64Array): Float64Array {
   let ex = z, ez = -x;
   let elen = Math.sqrt(ex * ex + ez * ez);
   if (elen < 1e-10) { ex = 1; ez = 0; elen = 1; }
@@ -231,8 +254,12 @@ function basis(x: number, y: number, z: number): [number, number, number, number
   let nx = -y * ez, ny = z * ex - x * ez, nz = y * ex;
   const nlen = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
   nx /= nlen; ny /= nlen; nz /= nlen;
-  return [ex, 0, ez, nx, ny, nz];
+  out[0] = ex; out[1] = 0; out[2] = ez; out[3] = nx; out[4] = ny; out[5] = nz;
+  return out;
 }
+
+/** L1 cells per chunk of prolongEastNorth. */
+const VECTOR_CHUNK = 1 << 16;
 
 /**
  * Tangent vector field given by east/north components on L0 → east/north components on L1: rebuilt in 3D, prolonged
@@ -241,16 +268,22 @@ function basis(x: number, y: number, z: number): [number, number, number, number
 export function prolongEastNorth(ml: MultiLevel, ref_xyz: ArrayLike<number>, fine_xyz: ArrayLike<number>, east: ArrayLike<number>, north: ArrayLike<number>): [Float32Array, Float32Array] {
   const n0 = ml.n0, n1 = ml.n1;
   const v0 = new Float64Array(3 * n0);
+  const b = new Float64Array(6);
   for (let c = 0; c < n0; c++) {
-    const [ex, ey, ez, nx, ny, nz] = basis(ref_xyz[3 * c]!, ref_xyz[3 * c + 1]!, ref_xyz[3 * c + 2]!);
+    basis(ref_xyz[3 * c]!, ref_xyz[3 * c + 1]!, ref_xyz[3 * c + 2]!, b);
+    const ex = b[0]!, ey = b[1]!, ez = b[2]!, nx = b[3]!, ny = b[4]!, nz = b[5]!;
     const vx = east[c]! * ex + north[c]! * nx, vy = east[c]! * ey + north[c]! * ny, vz = east[c]! * ez + north[c]! * nz;
     v0[3 * c] = vz; v0[3 * c + 1] = vx; v0[3 * c + 2] = vy;
   }
-  const v1 = ml.prolongVector(v0);
   const outE = new Float32Array(n1), outN = new Float32Array(n1);
+  // Prolonged in chunks through one small buffer instead of a 3·N Float64 array (Phase 5 M0); same values.
+  const v1 = new Float64Array(3 * VECTOR_CHUNK);
   for (let i = 0; i < n1; i++) {
-    const vx = v1[3 * i + 1]!, vy = v1[3 * i + 2]!, vz = v1[3 * i]!;
-    const [ex, ey, ez, nx, ny, nz] = basis(fine_xyz[3 * i]!, fine_xyz[3 * i + 1]!, fine_xyz[3 * i + 2]!);
+    const j = i % VECTOR_CHUNK;
+    if (j === 0) ml.prolongVector(v0, i, Math.min(n1, i + VECTOR_CHUNK), v1);
+    const vx = v1[3 * j + 1]!, vy = v1[3 * j + 2]!, vz = v1[3 * j]!;
+    basis(fine_xyz[3 * i]!, fine_xyz[3 * i + 1]!, fine_xyz[3 * i + 2]!, b);
+    const ex = b[0]!, ey = b[1]!, ez = b[2]!, nx = b[3]!, ny = b[4]!, nz = b[5]!;
     outE[i] = vx * ex + vy * ey + vz * ez;
     outN[i] = vx * nx + vy * ny + vz * nz;
   }
@@ -282,22 +315,23 @@ export interface ClimateDetail {
  *   The sub-reference orographic term (Smith–Barstad 2004) is not applied yet: Phase 4b M9 decides on it.
  * - Köppen: orogen's classifier per L1 cell from the downscaled fields.
  */
-export function runClimateDetail(ref: ReferenceState, d: ElevationDetail): ClimateDetail {
+export function runClimateDetail(ref: ReferenceState, d: Pick<ElevationDetail, 'ml' | 'omesh' | 'r_xyz' | 'elevRaw'>): ClimateDetail {
   const { ml } = d;
   const { wind, ocean, precip, temp } = ref.climate;
+  // One Float64 buffer for the scalar prolongations that are immediately rounded or copied (Phase 5 M0).
+  const buf = new Float64Array(ml.n1);
   const season = (name: 'summer' | 'winter'): SeasonClimate => {
     const [windEast, windNorth] = prolongEastNorth(ml, ref.r_xyz, d.r_xyz, wind[`r_wind_east_${name}`], wind[`r_wind_north_${name}`]);
     const [currentEast, currentNorth] = prolongEastNorth(ml, ref.r_xyz, d.r_xyz, ocean[`r_ocean_current_east_${name}`], ocean[`r_ocean_current_north_${name}`]);
-    const pressure = Float32Array.from(ml.prolong(wind[`r_pressure_${name}`]));
+    const pressure = Float32Array.from(ml.prolongInto(wind[`r_pressure_${name}`], buf));
     const pRef = precip[`r_precip_${name}`];
-    const precipN = Float32Array.from(ml.anchorMultiplicative(ml.prolong(pRef), pRef));
+    const precipN = Float32Array.from(ml.anchorMultiplicative(ml.prolongInto(pRef, buf), pRef));
     const tRef = temp[`r_temperature_${name}`];
-    const t = ml.prolong(tRef);
-    const tempN = Float32Array.from(ml.anchorAdditive(t, tRef));
+    const tempN = Float32Array.from(ml.anchorAdditiveInPlace(ml.prolong(tRef), tRef));
     return { windEast, windNorth, currentEast, currentNorth, pressure, temp: tempN, precip: precipN };
   };
   const summer = season('summer'), winter = season('winter');
-  const westness = Float32Array.from(ml.prolong(precip.r_westness));
+  const westness = Float32Array.from(ml.prolongInto(precip.r_westness, buf));
   const koppen = port.classifyKoppen(d.omesh, d.elevRaw,
     { r_temperature_summer: summer.temp, r_temperature_winter: winter.temp },
     { r_precip_summer: summer.precip, r_precip_winter: winter.precip, r_westness: westness }) as Uint8Array;
@@ -318,7 +352,7 @@ export interface DrainageDetail extends Drainage {
  * parent; it may enter a cell only if that cell's parent belongs to the same major basin, to no major basin, or to
  * the L0 divide band. Land the constrained flood cannot reach (rare) is then flooded without the constraint.
  */
-export function runDrainageDetail(ref: ReferenceState, d: ElevationDetail, L1: SphereMesh): DrainageDetail {
+export function runDrainageDetail(ref: ReferenceState, d: Pick<ElevationDetail, 'ml' | 'elevRaw'>, L1: SphereMesh): DrainageDetail {
   const { ml, elevRaw: elev } = d;
   const { adjOffset, adjList } = L1;
   const n = elev.length;
@@ -328,7 +362,9 @@ export function runDrainageDetail(ref: ReferenceState, d: ElevationDetail, L1: S
   const seen = new Uint8Array(n);
   const order = new Int32Array(n);
   let m = 0;
-  const heap = new MinHeap(adjList.length + n);
+  // Every push below marks its cell seen first, so each cell is pushed at most once and n slots suffice (Phase 5 M0;
+  // was adjList.length + n ≈ 7n). The heap's order does not depend on its capacity.
+  const heap = new MinHeap(n);
   for (let r = 0; r < n; r++) if (elev[r]! <= 0) seen[r] = 1;
   for (let r = 0; r < n; r++) {
     if (elev[r]! <= 0) continue;
