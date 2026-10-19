@@ -74,6 +74,11 @@ export const projectionKernels = {
     const m = rec.mesh, { R, cube } = buildCubeLookup(m);
     return { R, cube, adjOffset: m.adjOffset.slice(), adjList: m.adjList.slice() };
   },
+  /** Coastline loops of `elevation` (land: > 0 m) as GeoJSON coordinates (degrees), for the interactive overlay. */
+  'projection.coastlines': (world: World, a: { mesh?: string }) => {
+    const meshId = a.mesh ?? 'global', elev = world.layers.get(meshId, 'elevation');
+    return coastlines(world.meshes.get(meshId)!.mesh, (i) => elev[i]! > 0);
+  },
   /** A distortion overlay band through a stock view (display; exports use exportDistortionPng). */
   'projection.distortion': (_world: World, a: DistortionArgs) => {
     const r = distortionRaster(new ProjectionView(a.view), a.quantity, { ...(a.y0 !== undefined ? { y0: a.y0 } : {}), ...(a.y1 !== undefined ? { y1: a.y1 } : {}) });

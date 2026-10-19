@@ -3,6 +3,8 @@ import { type TypedArray, bytesOf, sha256 } from '@mapmaker/core';
 import { EngineClient, type PortLike, type WorldStats } from '@mapmaker/engine';
 import { Globe } from './globe/globe';
 import { FlatMap, type MapState } from './flat/flat-map';
+import type { HeightmapArgs } from '@mapmaker/projection/exact/kernels';
+import { type MapUi, startMapUi } from './flat/map-ui';
 import { type DebugMode, ProjectionView, type ViewOptions } from '@mapmaker/projection';
 import { RAW_ELEVATION, makeLayers } from './globe/colors';
 import { SETTING_GROUPS, SETTINGS, changedParams, decodeState, encodeState } from './settings';
@@ -41,6 +43,8 @@ export interface FlatHook {
   debug(view: ViewOptions, mode: DebugMode): Promise<string>;
   render(st: MapState): Promise<string>;
   worldHash(): Promise<string>;
+  /** The map UI: its state, a wait for the current draw, and the export buttons' actions (sha256 of the file). */
+  ui: Pick<MapUi, 'state' | 'rendered'> & { exportHeightmap(): Promise<{ sha256: string; args: HeightmapArgs }>; exportSvg(): Promise<string>; overlayPaths(): number };
 }
 
 declare global { interface Window { __globe?: GlobeHook; __flat?: FlatHook } }
@@ -97,6 +101,7 @@ export function startApp(): void {
   const client = new EngineClient(worker as unknown as PortLike);
   const globe = new Globe($<HTMLCanvasElement>('globe'));
   const flat = new FlatMap(client, $<HTMLCanvasElement>('mapGpu'), $<HTMLCanvasElement>('mapCpu'));
+  const ui = startMapUi(client, flat, $<HTMLCanvasElement>('globe'));
 
   const sel = $<HTMLSelectElement>('layer');
   let variant: Variant = 'structured';
@@ -133,6 +138,7 @@ export function startApp(): void {
     layer.paint(data, globe.colors);
     globe.colorsChanged();
     flat.setLayer(layer.flat(data));
+    ui.layerChanged();
   }
 
   async function generate(opts: GenerateOpts, label = '') {
@@ -161,6 +167,7 @@ export function startApp(): void {
       const mesh = await client.meshData();
       globe.setMesh(mesh);
       flat.setWorld(mesh);
+      ui.worldChanged();
       await paint(sel.value);
       const stats = await client.stats();
       const totalMs = performance.now() - t0;
@@ -215,6 +222,13 @@ export function startApp(): void {
     },
     render: (st) => flat.render(st),
     worldHash: () => client.hash(),
+    ui: {
+      state: () => ui.state(),
+      rendered: () => ui.rendered(),
+      exportHeightmap: async () => { const r = await ui.exportHeightmap(); return { sha256: await sha256(r.png), args: r.args }; },
+      exportSvg: async () => sha256(new TextEncoder().encode(await ui.exportSvg())),
+      overlayPaths: () => document.querySelectorAll('#mapSvg path').length,
+    },
   };
 
   window.__globe = {

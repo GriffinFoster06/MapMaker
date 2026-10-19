@@ -2,7 +2,7 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-19, by the local agent (Claude Code), after M3 and the M2 ruling.
+- **Last updated:** 2026-10-19, by the local agent (Claude Code), at Checkpoint 5 (M5 done; PR #8 ready for review).
 - **Authorized through: Checkpoint 5 (end of Phase 5).** Edit this line to extend or shorten; the agent never goes past it. The autonomous run through Phase 5c (the items below Phase 5) starts only after the user confirms Phase 5 and extends this line.
 - **Suggested model/effort for the next batch:** Sonnet 5.5 medium for M3 and M5; Opus 5.5 medium for M4 (GLSL and cross-browser float32), high only after a failed attempt.
 
@@ -21,8 +21,8 @@ Do in this order; milestones commit and push separately.
 1. ~~**Rulings first**~~ **done** (`ca50aae`; §3.7 rule 3 corrected in `2e77a5a`). Was (decision 5-4): plain 16-bit greyscale PNG by default, outside pixels = 0 recorded in the text chunk, transparent-outside as an option; say in the commit that the `fd.projection` probe hashes are re-recorded because they are new in this phase and that no pre-Phase-5 hash changed. Correct `docs/ARCHITECTURE.md` §3.7 rule 3 (decision 5-6).
 2. ~~**M3, vector path**~~ **done** (`2e77a5a`). Was: graticule, exact coastlines traced along land/sea cell edges, the Tissot overlay (true indicatrix shapes from `geoCircle`, plus the ellipse axes), distortion overlays; all through `geoPath`. Interactive display may use stock d3; anything exported (SVG or PNG) goes through the exact path. Tests: pole (±90°) and antimeridian cases, the World-hash guard.
 3. ~~**M4, GPU shaders**~~ **done** (decisions 5-9 to 5-14). Was (Opus medium): GLSL ports of the inverse formulas for the set in decision 5-5 (using three); data lookup through a triangle-id cube map plus a bounded walk across neighbouring triangles, matching the CPU path except where float32 precision falls exactly on a triangle edge; other projections fall back to the CPU path at reduced resolution. Tests: each GLSL inverse against d3 `invert`, shader-versus-d3 pixel difference, in Chromium, Firefox and WebKit.
-4. **M5, app and checkpoint — next:** globe/flat-map switch, projection and rotation controls, distortion and Tissot overlays, Export heightmap button; end-to-end tests; `docs/checkpoints/CHECKPOINT_5.md` (template in the guide §9, including the M0 memory outcome and R8 as a Phase 7 item). Phase 5 tests (ARCHITECTURE §7): analytic distortion values, distortion at ±90°, pole and antimeridian pixel tests, shader versus d3 `invert`, projection switching leaves every World hash unchanged.
-5. Open the PR `phase-5` → `main` (ready for review) and continue; do not wait for the merge.
+4. ~~**M5, app and checkpoint**~~ **done** (decision 5-15; `docs/checkpoints/CHECKPOINT_5.md`). Was: globe/flat-map switch, projection and rotation controls, distortion and Tissot overlays, Export heightmap button; end-to-end tests; `docs/checkpoints/CHECKPOINT_5.md` (template in the guide §9, including the M0 memory outcome and R8 as a Phase 7 item). Phase 5 tests (ARCHITECTURE §7): analytic distortion values, distortion at ±90°, pole and antimeridian pixel tests, shader versus d3 `invert`, projection switching leaves every World hash unchanged.
+5. ~~Open the PR~~ **done**: PR #8 `phase-5` → `main`, ready for review. **Stopped here: Checkpoint 5 is the authorization limit.**
 
 ### Between Phase 5 and 5b (small, in this order)
 
@@ -38,13 +38,14 @@ Do in this order; milestones commit and push separately.
 
 ## Waiting on the user
 
-(none)
+- Review Checkpoint 5 (`docs/checkpoints/CHECKPOINT_5.md`) and merge PR #8.
+- Confirm Phase 5 and extend **Authorized through** to start Q1 to Q3, 5b and 5c.
 
 User-only actions, whenever convenient and never blocking: merge the PRs the agent opens; enable branch protection on `main`; extend **Authorized through**.
 
 ## Known issues and watch list
 
-- Remote CI for `phase-5` had not been observed when this was written (the cloud session could not see it). Check the Actions tab first; the probe job runs on Ubuntu, macOS and Windows and the new `npm run probe` script uses a Node loader hook (`packages/projection/alias/register.mjs`), so a Windows path problem would show there.
+- Remote CI on PR #8 (2026-10-19, after `3f17fb3`): lint/types/unit tests/build/provenance, the Q7 A/B gate and smoke passed; the three determinism jobs (Ubuntu, macOS, Windows; the probe uses the Node loader hook `packages/projection/alias/register.mjs`) were still queued when the checkpoint was written. Check them first.
 - Pending reconciliation items and deferred upstreams: `docs/reconciliation/README.md` and the Prerequisite lines in ARCHITECTURE §7.
 - STATUS.md's long handoff text is historical; this file and the checkpoint table are current.
 
@@ -55,6 +56,8 @@ You are continuing MapMaker autonomously. Read AGENTS.md, docs/OPERATING_GUIDE.m
 ```
 
 ## Work log (newest first; 2 to 4 lines per milestone)
+
+- 2026-10-19: M5: flat-map UI (`apps/web/src/flat/map-ui.ts`): globe/flat switch, 16 projections (GPU for 10), rotation, zoom 1–16× and pan, graticule/coastline/Tissot/distortion overlays, heightmap and SVG export through the exact path; `map.spec.ts` checks the exported PNG's bytes against Node in three browsers. Checkpoint 5 written; PR #8 marked ready. Stopped at the limit.
 
 - 2026-10-19: M4: GLSL inverse/forward of the ten shader projections with float32 Cephes elementary functions (GPU built-ins were visibly inaccurate), cube-map + bounded walk lookup, three.js host and CPU fallback (`apps/web/src/flat/`), `gpu.spec.ts` in three browsers (≤ 0.0066 px at 1×, ≤ 0.0012 px at 16×; all lookup differences explained by float32 at edges). Draft PR #8 opened (CI runs only on PRs). Next: M5.
 

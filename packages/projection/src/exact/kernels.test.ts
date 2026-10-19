@@ -28,6 +28,7 @@ describe('projection world kernels', () => {
       const elev = w.layers.get('global', 'elevation');
       const svg = await client.worldKernel<string>('projection.svg', { view, layers: { graticule: 30, tissot: { step: 45 } } });
       expect(svg).toBe(exportSvg(view, { graticule: 30, tissot: { step: 45 }, coastlines: coastlines(w.meshes.get('global')!.mesh, (i) => elev[i]! > 0) }));
+      expect(await client.worldKernel('projection.coastlines', {})).toEqual(coastlines(w.meshes.get('global')!.mesh, (i) => elev[i]! > 0));
       const loc = await client.worldKernel<{ tri: Int32Array; cell: Int32Array }>('projection.locate', { view, y0: 5, y1: 9 });
       const located = locateRaster(new ProjectionView(view), sampler, { y0: 5, y1: 9 });
       expect([...loc.tri]).toEqual([...located.tri]);

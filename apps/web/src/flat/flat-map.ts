@@ -44,6 +44,9 @@ export class FlatMap {
     this.layerUploaded = false;
   }
 
+  /** Whether a world and a layer are set. */
+  get ready(): boolean { return !!this.mesh && !!this.layer; }
+
   /** Device-pixel size of the map area. */
   size(): [number, number] {
     const r = this.gpuCanvas.parentElement!.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
