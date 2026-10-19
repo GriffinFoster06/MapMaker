@@ -1,6 +1,6 @@
 // 16-bit PNG heightmap export (png.ts). The encoder against orogen's own (run from upstream/, unmodified), a decode
 // that equals the sampler's raster under each mapping, the recorded text, and a golden hash of a fixed export.
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { unzlibSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
@@ -44,9 +44,11 @@ function decode(png: Uint8Array): Decoded {
   return { width, height, colourType, grey, alpha, texts, chunks };
 }
 
+const PLANET_MESH = resolve(__dirname, '../../../upstream/orogen/js/planet-mesh.js');
+
 /** orogen's encoder, evaluated from upstream/orogen/js/planet-mesh.js @ cc2662b as written (CompressionStream zlib). */
 function orogenEncoder(): (w: number, h: number, d: Uint16Array) => Promise<Blob> {
-  const src = readFileSync(resolve(__dirname, '../../../upstream/orogen/js/planet-mesh.js'), 'utf8');
+  const src = readFileSync(PLANET_MESH, 'utf8');
   const a = src.indexOf('const _crc32Table'), b = src.indexOf('// ────', src.indexOf('async function encode16BitGrayscalePNG'));
   expect(a).toBeGreaterThan(0); expect(b).toBeGreaterThan(a);
   return new Function(`${src.slice(a, b)}\nreturn encode16BitGrayscalePNG;`)() as (w: number, h: number, d: Uint16Array) => Promise<Blob>;
@@ -62,11 +64,24 @@ const ELEV = (() => {
   return v;
 })();
 
+const TEST_W = 37, TEST_H = 11, TEST_DATA = Uint16Array.from({ length: TEST_W * TEST_H }, (_, i) => (i * 7919) & 0xffff);
+/** orogen's signature + IHDR chunk and IEND chunk for TEST_DATA, recorded from the upstream encoder (CI has no upstream/). */
+const OROGEN_PREFIX = '89504e470d0a1a0a0000000d49484452000000250000000b10000000008dc3c7da';
+const OROGEN_IEND = '0000000049454e44ae426082';
+
 describe('encodePng16 (orogen encode16BitGrayscalePNG port)', () => {
-  it("matches orogen's encoder: identical signature, IHDR and IEND chunks, identical scanlines after inflate", async () => {
-    const w = 37, h = 11, d = Uint16Array.from({ length: w * h }, (_, i) => (i * 7919) & 0xffff);
+  it("gives orogen's recorded signature, IHDR and IEND bytes and the scanlines back after inflate", () => {
+    const ours = encodePng16(TEST_W, TEST_H, TEST_DATA, null);
+    expect(Buffer.from(ours.subarray(0, 33)).toString('hex')).toBe(OROGEN_PREFIX);
+    expect(Buffer.from(ours.subarray(-12)).toString('hex')).toBe(OROGEN_IEND);
+    expect([...decode(ours).grey]).toEqual([...TEST_DATA]);
+  });
+
+  it.skipIf(!existsSync(PLANET_MESH))("matches orogen's encoder run from upstream/: identical signature, IHDR and IEND chunks, identical scanlines after inflate", async () => {
+    const w = TEST_W, h = TEST_H, d = TEST_DATA;
     const ours = encodePng16(w, h, d, null);
     const theirs = new Uint8Array(await (await orogenEncoder()(w, h, d)).arrayBuffer());
+    expect(Buffer.from(theirs.subarray(0, 33)).toString('hex')).toBe(OROGEN_PREFIX);
     const prefix = 8 + 25; // signature + IHDR chunk
     expect([...ours.subarray(0, prefix)]).toEqual([...theirs.subarray(0, prefix)]);
     expect([...ours.subarray(-12)]).toEqual([...theirs.subarray(-12)]);
