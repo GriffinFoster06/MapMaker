@@ -108,6 +108,8 @@ Written for MapMaker. Where a published algorithm was implemented from its refer
 | `packages/core/src/mesh/spatial-index.ts` | Cube-map buckets plus a greedy Delaunay-graph walk (standard technique). Tested against brute force. | n/a |
 | `tools/tuning/ab/sphere.mjs` | Moved unchanged from `spikes/lib/sphere.mjs` (Phase 1 spike code, original to this project): CSR adjacency, dual areas, Delaunay-walk locator, 1° grid sampling, point sets, priority-flood basins. Phase 4a: the locator walk now fixes each pass's neighbour range (re-reading it after a move swept unrelated cells); identical results on 600k real queries, ~20x faster; spike 1c test still exact. | n/a |
 | `tools/tuning/ab/ab.mjs` | Ported from `spikes/1c/ab.mjs` (original to this project) to run on the shell pipeline. Adds the three Checkpoint 2 metrics (hypsometry KS on native preview land cells, river-mouth distance for the top-10 basins; Köppen on the 1° grid was already measured). Test: `tools/tuning/ab/ab.test.ts` reproduces spike 1c's committed numbers exactly. River-mouth distance uses `greatCircleKm` (atan2 of cross and dot products; Phase 4a fix for the acos-on-Float32 error of ~0.8 km at zero separation), tested on golden angles and a run compared with itself. | n/a |
+| `packages/projection/src/distortion.ts` | Phase 5 M1, ARCHITECTURE §3.7. Tissot-indicatrix quantities (areal scale, maximum angular deformation, h, k) from the Jacobian, after Snyder, *Map Projections: A Working Manual* (USGS PP 1395, 1987), §4. Jacobian by five-point central differences of d3's raw projections in the geographic east/north frame; singular values in closed form from the conformal and anticonformal parts of the 2×2 Jacobian (standard); pole limits by extrapolation with estimated order (Aitken's Δ² process). Tests: `packages/projection/src/distortion.test.ts` (closed forms for equirectangular, Mercator, transverse Mercator, sinusoidal, orthographic, stereographic, azimuthal equal-area and equidistant, gnomonic; equal-area and conformal sets; pole rules at ±90° for every projection; the extrapolation on L + C·δ^p). | n/a |
+| `packages/projection/src/registry.ts`, `view.ts`, `d3-geo-projection.d.ts` | Phase 5 M1: projection registry with pole classes and the scale factors that make d3's stereographic and Robinson raws true to their published definitions; `ProjectionView` (d3 projection fitted to an output size, inverse with the §3.7 domain check). Wrappers around d3-geo and d3-geo-projection, which are used unmodified. Test: `packages/projection/src/view.test.ts`. | n/a |
 | `packages/gen-orogen/src/**` (except `orchestration.ts`) | The orogen adapter (F1–F4): layer descriptors, per-world scratch, the six stages, the stock-shape view and the stock oracle runner. Defined as new work by ARCHITECTURE §3.6. | n/a |
 | `packages/core/src/**` (everything else), `packages/engine/src/**`, `tools/**`, `apps/web/src/**` | Shell infrastructure defined as new work by ARCHITECTURE §3–§6: frame, units, `dmath`, layer registry, entity tables, timeline, event log, `World`, save format, stage runner, worker protocol, probe, provenance checker. | n/a |
 
@@ -119,6 +121,8 @@ Written for MapMaker. Where a published algorithm was implemented from its refer
 | fflate | 0.8.2 | MIT | ZIP container for `.mapmaker` |
 | three | 0.160.0 | MIT | Globe rendering (WebGL2). Same version orogen loads |
 | pngjs | 7.0.0 | MIT | PNG decode for the Earth heightmap in the tuning harness (`tools/tuning`) |
+| d3-geo | 3.1.1 | ISC | Phase 5: the projection set, `invert`, rotation, `geoPath` (`packages/projection`). The only projection source (reconciliation group 6a flag 1). Brings d3-array 3.2.4 (ISC) and internmap 2.0.3 (ISC) |
+| d3-geo-projection | 4.0.0 | ISC | Phase 5: Mollweide, Robinson, Winkel tripel, Eckert IV, sinusoidal, Hammer (`packages/projection`). Brings commander 7.2.0 (MIT), used only by its command-line tools, which MapMaker does not run |
 
 ## Development dependencies (Phase 3)
 
@@ -138,6 +142,8 @@ Written for MapMaker. Where a published algorithm was implemented from its refer
 | @types/delaunator | 5.0.3 | MIT | Types |
 | alea | 1.0.1 | MIT | Reference implementation for the Alea parity test |
 | coi-serviceworker | 0.1.7 | MIT | Source of the copied COOP/COEP shim |
+| @types/d3-geo | 3.1.1 | MIT | Types for d3-geo (Phase 5). d3-geo-projection has no types package; `packages/projection/src/d3-geo-projection.d.ts` declares the parts used |
+| @types/geojson | 7946.0.16 | MIT | GeoJSON types used by @types/d3-geo (Phase 5) |
 
 ## CI deployment tools (not npm dependencies)
 

@@ -1,0 +1,20 @@
+{
+  "name": "@mapmaker/projection",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@mapmaker/core": "*",
+    "d3-geo": "3.1.1",
+    "d3-geo-projection": "4.0.0"
+  },
+  "devDependencies": {
+    "@types/d3-geo": "3.1.1",
+    "@types/geojson": "7946.0.16"
+  }
+}

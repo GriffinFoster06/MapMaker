@@ -12,6 +12,7 @@
     "packages/core",
     "packages/engine",
     "packages/gen-orogen",
+    "packages/projection",
     "tools/*"
   ],
   "scripts": {
