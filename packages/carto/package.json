@@ -1,0 +1,22 @@
+{
+  "name": "@mapmaker/carto",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "exports": {
+    ".": "./src/index.ts",
+    "./kernels": "./src/kernels.ts",
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "@mapmaker/core": "*",
+    "@mapmaker/projection": "*",
+    "fflate": "0.8.2"
+  },
+  "devDependencies": {
+    "@mapmaker/engine": "*",
+    "@mapmaker/gen-orogen": "*",
+    "@types/geojson": "7946.0.16"
+  }
+}

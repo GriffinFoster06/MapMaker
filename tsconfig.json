@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "packages/carto" },
     { "path": "packages/core" },
     { "path": "packages/engine" },
     { "path": "packages/gen-orogen" },
