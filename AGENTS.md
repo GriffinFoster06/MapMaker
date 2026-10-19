@@ -8,14 +8,14 @@ Personal, non-commercial project. The product vision is in `docs/REQUIREMENTS.md
 
 These instructions apply repository-wide to Codex, Claude Code, and other coding agents. Keep shared rules here; `CLAUDE.md` imports this file.
 
-1. Read `STATUS.md` for the current phase, latest validation, and next work.
+1. Read `docs/OPERATING_GUIDE.md` (how to work without the user in the loop: authorization, decision rules, hard stops, usage budget) and `docs/RESUME.md` (where to continue now). Then `STATUS.md` for the checkpoint table and history, and `docs/DECISIONS_LOG.md` for decisions made outside the architecture document.
 2. Read `docs/ARCHITECTURE.md`, especially its resolved decisions and §7, then the design notes relevant to the task. `docs/REQUIREMENTS.md` defines product intent.
 3. Inspect `git status --short --branch` and recent commits. Preserve existing edits, including work left by the other agent. A change of agent is not authorization to discard or redo work.
 4. Use `docs/DEVELOPMENT.md` for the code map and local workflow.
 
 Update the current handoff section of `STATUS.md` **only when the user says they are switching agents** (or explicitly asks for it); do not spend time on handoff notes otherwise. Until then, the record lives in commit messages, the PR description and the files the work itself produces. When a handoff is requested, write one complete section covering everything since the last handoff: what changed, checks actually run and their results, remaining failures, and the next concrete step. Label historical results and unverified claims. Keep durable decisions in the architecture/design documents and extraction records in `PROVENANCE.md`, rather than relying on chat history or private agent memory.
 
-Default to one agent editing a checkout at a time. If the user requests simultaneous work, use separate branches/worktrees and agree on ownership; do not switch or reset a checkout another session is using. Do not commit or push merely to hand off unless requested.
+Default to one agent editing a checkout at a time. If the user requests simultaneous work, use separate branches/worktrees and agree on ownership; do not switch or reset a checkout another session is using. Do not commit or push merely to hand off unless requested; commits and pushes at milestones follow `docs/OPERATING_GUIDE.md` §7.
 
 ## Rules
 
@@ -23,8 +23,8 @@ Default to one agent editing a checkout at a time. If the user requests simultan
 - **Extract instead of writing original code.** Copy or port from `upstream/` where a usable implementation exists. Write original code only for what the architecture defines as new, or where no upstream has it.
 - **Log every extraction in `PROVENANCE.md`**: source path, commit, license, destination, test. Original code from a published algorithm is logged too.
 - **Each extraction needs a test** that checks it against the upstream behaviour or a golden value.
-- **Update `STATUS.md` when the user announces an agent switch** (see Session start and handoff), not at every checkpoint.
-- **Stop at each phase boundary and wait for the user.** Do not start the next phase. Routine work within an authorized phase does not need a new approval at each step.
+- **Keep the record current, cheaply.** At every milestone update `docs/RESUME.md` (a few lines) and, for non-obvious choices, `docs/DECISIONS_LOG.md`. At every checkpoint add one line to the `STATUS.md` checkpoint table. Write a full `STATUS.md` handoff section only when the user announces an agent switch (see Session start and handoff).
+- **Phases and authorization.** `docs/RESUME.md` names the checkpoint the user has authorized work through. Finish each phase's checkpoint report and continue into the next phase until that limit; stop and wait at the limit, and never start a phase beyond it. Within the authorized range decide rather than ask; the only reasons to wait are the hard stops in `docs/OPERATING_GUIDE.md` §4.
 - No `Math.random` in `packages/**`. Simulation math goes through `dmath`. **Exception:** `packages/gen-orogen/vendor/` is verbatim upstream code (lint-ignored). It calls `Math.*` and `Math.random` directly (the latter only in `planet-worker.js`, a test-only oracle), so it runs only in stages flagged `parity`, inside `dmath.withMode('native')`. Tests make `Math.random` throw during pipeline runs.
 - `dmath` defaults to `'fdlibm'` in every realm. The stage runner fails any non-parity stage that enters `'native'`.
 - Keep `packages/gen-orogen/vendor/` verbatim. Put changes in adapters or adjacent TypeScript ports.
