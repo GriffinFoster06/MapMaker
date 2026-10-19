@@ -2,59 +2,32 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-19, by the local agent (Claude Code), on `phase-5b`: Checkpoint 5b reached (`docs/checkpoints/CHECKPOINT_5B.md`); PR #9 ready. Stopped; 5c not started.
+- **Last updated:** 2026-10-19, by the local agent (Claude Code), on `phase-5c`: housekeeping done; 5c starting.
 - **Authorized through: Checkpoint 5c and Q4** (end of Phase 5c, Cartography v1, then the Electron desktop app for macOS and Windows). Edit this line to extend or shorten; the agent never goes past it.
-- **Suggested model/effort for the next batch:** Sonnet 5.5 medium for M3 and M5; Opus 5.5 medium for M4 (GLSL and float32 in Chromium and Firefox), high only after a failed attempt.
 
 ## Branches
 
-- `main` = `b51bd40`: Phase 4b, the settings panel, reconciliation of 16 upstreams, all pending decisions applied. This operating guide arrives by a PR from `claude/bold-dijkstra-k0fgj1`; merge it first.
-- `phase-5` (origin): Phase 5 M0 (memory work R1 to R7), M1 (registry, `ProjectionView`, distortion), M2 (exact CPU sampler, d3-dmath alias, 16-bit PNG export, probe v5), the M2 ruling (`ca50aae`) and M3 (`2e77a5a`: vector path, Tissot, distortion overlays). `claude/bold-dijkstra-k0fgj1` (this guide) is merged into `phase-5`. Not merged to `main`.
-- Whatever `git log phase-5` shows is the truth. Skip to the first unfinished item.
+- `main` includes Phase 5 (PR #8) and Phase 5b (PR #9), both merged. Current work: `phase-5c`.
+
+## Done (one line each)
+
+- **Phase 5** (projection and distortion; `docs/checkpoints/CHECKPOINT_5.md`): merged, PR #8.
+- **Q1 to Q3** (docs P1/P4, rectangular-continents study, Earth-like preset sweep) and **Phase 5b** (editor core; `docs/checkpoints/CHECKPOINT_5B.md`): merged, PR #9.
 
 ## Next
 
-### Phase 5 remaining (branch `phase-5`)
-
-Do in this order; milestones commit and push separately.
-
-1. ~~**Rulings first**~~ **done** (`ca50aae`; §3.7 rule 3 corrected in `2e77a5a`). Was (decision 5-4): plain 16-bit greyscale PNG by default, outside pixels = 0 recorded in the text chunk, transparent-outside as an option; say in the commit that the `fd.projection` probe hashes are re-recorded because they are new in this phase and that no pre-Phase-5 hash changed. Correct `docs/ARCHITECTURE.md` §3.7 rule 3 (decision 5-6).
-2. ~~**M3, vector path**~~ **done** (`2e77a5a`). Was: graticule, exact coastlines traced along land/sea cell edges, the Tissot overlay (true indicatrix shapes from `geoCircle`, plus the ellipse axes), distortion overlays; all through `geoPath`. Interactive display may use stock d3; anything exported (SVG or PNG) goes through the exact path. Tests: pole (±90°) and antimeridian cases, the World-hash guard.
-3. ~~**M4, GPU shaders**~~ **done** (decisions 5-9 to 5-14). Was (Opus medium): GLSL ports of the inverse formulas for the set in decision 5-5 (using three); data lookup through a triangle-id cube map plus a bounded walk across neighbouring triangles, matching the CPU path except where float32 precision falls exactly on a triangle edge; other projections fall back to the CPU path at reduced resolution. Tests: each GLSL inverse against d3 `invert`, shader-versus-d3 pixel difference, in Chromium and Firefox (WebKit dropped, W7).
-4. ~~**M5, app and checkpoint**~~ **done** (decision 5-15; `docs/checkpoints/CHECKPOINT_5.md`). Was: globe/flat-map switch, projection and rotation controls, distortion and Tissot overlays, Export heightmap button; end-to-end tests; `docs/checkpoints/CHECKPOINT_5.md` (template in the guide §9, including the M0 memory outcome and R8 as a Phase 7 item). Phase 5 tests (ARCHITECTURE §7): analytic distortion values, distortion at ±90°, pole and antimeridian pixel tests, shader versus d3 `invert`, projection switching leaves every World hash unchanged.
-5. ~~Open the PR~~ **done**: PR #8 `phase-5` → `main`, ready for review. **Stopped here: Checkpoint 5 is the authorization limit.**
-
-### Between Phase 5 and 5b (small, in this order)
-
-- ~~**Q1.**~~ **done** (commit on `phase-5b`). Docs: state decisions P1 and P4 in `docs/REQUIREMENTS.md`, `docs/design/15-earth-test-suite.md` and `docs/ARCHITECTURE.md` (Earth-like preset as an early deliverable; Electron wrapper after 5c; no seed reproduces Earth); add the rectangular-continent defect (P3) to the Phase 6 section.
-- ~~**Q2.**~~ **done** (`docs/checkpoints/RECT_CONTINENTS.md`; no rectangular case reproduced; generated continents are blobby and compact, fix proposed not applied). Investigate the rectangular continents (P3). No user link needed: sweep several seeds at default and "most organic" settings, measure, find the origin; write `docs/checkpoints/RECT_CONTINENTS.md`; fix it only if small and clearly safe, else propose.
-- ~~**Q3.**~~ **done** (`docs/earth-tests/DEFAULTS_SWEEP.md`; Earth-like preset L612, 0.735 against 0.889 held-out; defaults unchanged). Earth-likeness sweep (decision P2): `tools/tuning/earthlike/` and `docs/earth-tests/DEFAULTS_SWEEP.md`. Tools only; do not touch `packages/`, `OROGEN_DEFAULTS`, goldens or baselines. Objective: weighted Earth-distance from metrics computable from data in the repo (the Earth heightmap and Kottek data used by `tools/tuning/climate/`): land fraction; hypsometric curve (Wasserstein); slope distribution; continent count and landmass-area distribution; Köppen shares by area and latitude band; river density and Hack's law (`tools/tuning/realism/`); and two shape metrics for P3 (share of coastline in long near-straight segments; fit of each landmass to an axis-aligned box). List any missing Earth dataset (for example plate sizes from PB2002) as a missing input; invent no numbers. Search: Latin hypercube over the 14 sliders (ranges in `apps/web/src/settings.ts`) at a preview tier, at least 5 seeds per configuration; pilot of about 30 configurations first, report time per configuration, size the full run to a few hours, make it resumable and chunked, refine the best with more seeds, validate on held-out seeds, report slider sensitivities. Then add the best configuration as an "Earth-like" preset in the settings panel (tests: preset values, URL round trip) without changing any default. The compute is local and cheap in tokens: start it in the background, work on the next item, check once.
-
-### Phase 5b, then 5c (then stop)
-
-- **5b Prerequisite:** reconcile Godot, orogen, Azgaar (editors and options UI) and MESSAGEix with prompt 1 in `docs/reconciliation/README.md` (documentation only; Sonnet subagents; one group file, e.g. `group-5b.md`). Then Phase 5b per `docs/ARCHITECTURE.md` §7.
-- **5c Prerequisite:** audit mapgen4 and mewo2/terrain with prompt 2 in that README. Then Phase 5c: label placement by porting Azgaar's `label-spread.ts` first (own font metrics), QGIS hillshade formula, no third-party symbols (decision W4).
-- After the 5c checkpoint report: Q4 (optional Electron wrapper, decision P4) only if the user has added "Electron: go" to "Waiting on the user"; otherwise stop at the limit.
-
-## Phase 5b plan (branch `phase-5b`; reconciliation done: `docs/reconciliation/group-5b.md`)
-
-1. **M1 engine:** `World.edits` (EditLog with cursor, gesture-based undo; saved only when used so old hashes stay), per-stage edit hashing, `World.systems` switches, stale-stage analysis, run-from-stage. Tests: replay, undo hash, invalidation.
-2. **M2 terrain edits** (`packages/gen-orogen/src/edits/`): brush region rasteriser, raise/lower/smooth/flatten/terrace/noise, land/sea paint, categorical paint, hotspot and ridge (plate-boundary) seeds, parameter edits; applied in the structured detail pass before climate. Tests: pin survival, local stages, undo.
-3. **M3 app:** engine ops, edit tools on globe and flat map, registry-generated parameter panel (simple/advanced) with presets, system switches, stale-stage list with re-run, cancel; e2e.
-4. **M4:** checkpoint report, STATUS, PR ready.
+- **5c Prerequisite:** audit mapgen4 and mewo2/terrain with prompt 2 in `docs/reconciliation/README.md`.
+- **Phase 5c** per `docs/ARCHITECTURE.md` §7, plus conic projections, a brush cursor and the end-to-end usability check (including save/load of `.mapmaker`). Then stop at Checkpoint 5c.
+- Q4 (Electron wrapper, decision P4) only when the user sends the next prompt.
 
 ## Waiting on the user
 
-- Review Checkpoint 5b (`docs/checkpoints/CHECKPOINT_5B.md`) and merge PR #9 (after PR #8). The next phase, 5c, starts when you tell the agent to continue.
-- **Scope W7 feature-level candidates** (no feature removed; your call): (1) globe pinch/touch zoom, README.md:55: keep, it costs nothing and mouse wheel still works; (2) WebGPU "where available" preview paths (ARCHITECTURE.md §6.3, note 18, note 38): drop the cross-vendor testing, keep the option; Electron's Chromium makes it viable later; (3) offline/service worker and the PWA/OPFS next steps in Q18 (REQUIREMENTS.md:31): drop the PWA, keep OPFS or file storage as an Electron concern; (4) the Diagnostics determinism panel in the app: keep, it is cheap; (5) the URL-held settings (shareable links): keep, it doubles as presets. Full list: decision W7.
-- Review Checkpoint 5 (`docs/checkpoints/CHECKPOINT_5.md`) and merge PR #8.
-- Confirm Phase 5 and extend **Authorized through** to start Q1 to Q3, 5b and 5c.
+- Nothing. (W7 feature-level candidates were ruled on as decision W8.)
 
 User-only actions, whenever convenient and never blocking: merge the PRs the agent opens; enable branch protection on `main`; extend **Authorized through**.
 
 ## Known issues and watch list
 
-- Remote CI on PR #8 (2026-10-19, after `3f17fb3`): lint/types/unit tests/build/provenance, the Q7 A/B gate and smoke passed; the three determinism jobs (Ubuntu, macOS, Windows; the probe uses the Node loader hook `packages/projection/alias/register.mjs`) were still queued when the checkpoint was written. Check them first.
 - Pending reconciliation items and deferred upstreams: `docs/reconciliation/README.md` and the Prerequisite lines in ARCHITECTURE §7.
 - STATUS.md's long handoff text is historical; this file and the checkpoint table are current.
 
