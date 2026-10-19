@@ -1,4 +1,9 @@
+import { register } from 'node:module';
 import { defineConfig, devices } from '@playwright/test';
+
+// The determinism spec re-runs the probe in Node on a mismatch; the probe's exact projection path needs the d3-dmath
+// alias (packages/projection/build/d3-dmath.mjs).
+register('./packages/projection/build/d3-dmath.mjs', import.meta.url);
 
 const PORT = 4173;
 // E2E_BASE_URL points the same specs at a deployed site (GitHub Pages smoke test); otherwise a local preview is built.

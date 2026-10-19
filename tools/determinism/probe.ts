@@ -4,6 +4,8 @@
 // yet its Float32 output was identical on every OS, CPU and engine in CI (Checkpoint 4a), so these keys are strict.
 // Phase 4b (v4) adds the structured pipeline (`structured.<N>.*`): every reference-pass layer on L0 and every detail-pass
 // layer at N. The stages run in fdlibm only, so the keys are strict; the L0 keys are identical at both N (I2).
+// Phase 5 (v5) adds the exact projection path (`fd.projection.<N>.*`): elevation of the 20k structured world sampled
+// through the dmath-backed d3 copy and exported as 16-bit PNG heightmaps. Every key existing in v4 is unchanged.
 //
 // The probe runs twice. Keys without a prefix are computed with dmath.mode = 'native' (orogen parity): their
 // libm-dependent values are report-only. Keys prefixed `fd.` are computed with dmath.mode = 'fdlibm' and are ALL
@@ -12,8 +14,10 @@ import { Alea, OrogenLcg, RngService, Sfc32, SphereMesh, bytesOf, dmath, hashArr
 import { dummyHistoryStage, registerDummyHistoryLayers, runPipeline } from '@mapmaker/engine';
 import { Timeline, World } from '@mapmaker/core';
 import { REF_MESH, STRUCTURED, createOrogenWorld, orogenStages, orogenView, structuredStages } from '@mapmaker/gen-orogen';
+import { MeshSampler } from '@mapmaker/projection';
+import { exportHeightmap } from '@mapmaker/projection/exact';
 
-export const PROBE_VERSION = 4;
+export const PROBE_VERSION = 5;
 
 export interface ProbeResult {
   version: number;
@@ -97,6 +101,25 @@ async function structuredArrays(N: number): Promise<Record<string, TypedArray>> 
     if (mesh === REF_MESH || mesh === 'global') out[`structured.${N}.${mesh}.${id}`] = w.layers.get(mesh, id);
   }
   out[`structured.${N}.reference.points`] = w.meshes.get(REF_MESH)!.mesh.points;
+  if (N === OROGEN_SIZES[0]) Object.assign(out, projectionArrays(N, w.meshes.get('global')!.mesh, w.layers.get('global', 'elevation')));
+  return out;
+}
+
+/** Exact projection path (Phase 5): sampled metres and the PNG bytes, for projections of each pole class. */
+const PROBE_VIEWS: { projection: string; rotate: [number, number, number] }[] = [
+  { projection: 'equirectangular', rotate: [0, 0, 0] }, { projection: 'mollweide', rotate: [30, 0, 0] },
+  { projection: 'robinson', rotate: [-60, 0, 0] }, { projection: 'hammer', rotate: [0, 0, 0] },
+  { projection: 'orthographic', rotate: [-20, -50, 0] }, { projection: 'azimuthalEqualArea', rotate: [0, -90, 0] },
+];
+
+function projectionArrays(N: number, mesh: SphereMesh, elevation: TypedArray): Record<string, TypedArray> {
+  const out: Record<string, TypedArray> = {};
+  const sampler = new MeshSampler(mesh);
+  for (const v of PROBE_VIEWS) {
+    const r = exportHeightmap({ ...v, width: 128, height: 64 }, sampler, elevation, { kind: 'absolute' });
+    out[`fd.projection.${N}.${v.projection}.metres`] = r.metres;
+    out[`fd.projection.${N}.${v.projection}.png`] = r.png;
+  }
   return out;
 }
 

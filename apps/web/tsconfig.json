@@ -2,5 +2,5 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "outDir": "dist-types", "rootDir": ".", "tsBuildInfoFile": "dist-types/.tsbuildinfo", "types": ["vite/client"] },
   "include": ["src", "vite.config.ts"],
-  "references": [{ "path": "../../packages/core" }, { "path": "../../packages/engine" }, { "path": "../../tools/determinism" }]
+  "references": [{ "path": "../../packages/core" }, { "path": "../../packages/engine" }, { "path": "../../tools/determinism" }, { "path": "../../packages/projection" }]
 }

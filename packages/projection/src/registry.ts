@@ -8,24 +8,24 @@
 //   cusp      the pole maps to a point at which meridians arrive at different angles (Mollweide, sinusoidal, Hammer);
 //   excluded  the pole is outside the domain (Mercator and transverse Mercator beyond |φ| ≈ 85.05°).
 // Unrotated, the raw poles are the geographic poles; rotation moves them, and the rules follow the raw poles.
-import {
-  type GeoProjection, type GeoRawProjection,
-  geoAzimuthalEqualArea, geoAzimuthalEqualAreaRaw, geoAzimuthalEquidistant, geoAzimuthalEquidistantRaw, geoEqualEarth,
-  geoEqualEarthRaw, geoEquirectangular, geoEquirectangularRaw, geoGnomonic, geoGnomonicRaw, geoMercator, geoMercatorRaw,
-  geoNaturalEarth1, geoNaturalEarth1Raw, geoOrthographic, geoOrthographicRaw, geoStereographic, geoStereographicRaw,
-  geoTransverseMercator, geoTransverseMercatorRaw,
-} from 'd3-geo';
-import {
-  geoEckert4, geoEckert4Raw, geoHammer, geoHammerRaw, geoMollweide, geoMollweideRaw, geoRobinson, geoRobinsonRaw,
-  geoSinusoidal, geoSinusoidalRaw, geoWinkel3, geoWinkel3Raw,
-} from 'd3-geo-projection';
+import type { GeoProjection, GeoRawProjection } from 'd3-geo';
+import * as d3geo from 'd3-geo';
+import * as d3proj from 'd3-geo-projection';
 import { dmath } from '@mapmaker/core';
 
 export type PoleClass = 'point' | 'line' | 'cusp' | 'excluded';
 
+/** The d3 modules a registry is built from: the stock packages, or the dmath-backed copies of the exact path (exact.ts). */
+export interface D3Modules {
+  geo: typeof d3geo;
+  proj: typeof d3proj;
+}
+
 export interface ProjectionSpec {
   id: string;
   label: string;
+  /** The d3 modules `create` and `raw` come from; the view takes its rotation and distance from the same ones. */
+  d3: D3Modules;
   /** A fresh d3 projection with d3's defaults (scale, clip angle, built-in rotation). */
   create: () => GeoProjection;
   /** The raw projection on the unit sphere, radians in, y up. */
@@ -57,32 +57,38 @@ export interface ProjectionSpec {
 /** Mercator's latitude limit, where its square map ends: atan(sinh π) ≈ 85.0511°. */
 export const MERCATOR_MAX_LAT = dmath.atan(dmath.sinh(Math.PI));
 
-const spec = (s: ProjectionSpec) => s;
+/** The registry over a set of d3 modules. */
+export function buildRegistry(d3: D3Modules): readonly ProjectionSpec[] {
+  const { geo: g, proj: q } = d3;
+  const spec = (s: Omit<ProjectionSpec, 'd3'>): ProjectionSpec => ({ ...s, d3 });
+  return [
+    spec({ id: 'equirectangular', label: 'Equirectangular', create: g.geoEquirectangular, raw: g.geoEquirectangularRaw, poleClass: 'line', poleLimit: { h: 1, k: Infinity }, gpu: true }),
+    spec({ id: 'mercator', label: 'Mercator', create: g.geoMercator, raw: g.geoMercatorRaw, poleClass: 'excluded', conformal: true, maxRawLat: MERCATOR_MAX_LAT, gpu: true }),
+    spec({
+      id: 'transverseMercator', label: 'Transverse Mercator', create: g.geoTransverseMercator, raw: g.geoTransverseMercatorRaw, poleClass: 'excluded',
+      conformal: true, maxRawLat: MERCATOR_MAX_LAT, rawRotation: ([a, b, c]) => [a, b, c + 90],
+    }),
+    spec({ id: 'equalEarth', label: 'Equal Earth', create: g.geoEqualEarth, raw: g.geoEqualEarthRaw, poleClass: 'line', equalArea: true, gpu: true }),
+    spec({ id: 'naturalEarth1', label: 'Natural Earth', create: g.geoNaturalEarth1, raw: g.geoNaturalEarth1Raw, poleClass: 'line', gpu: true }),
+    spec({ id: 'robinson', label: 'Robinson', create: q.geoRobinson, raw: q.geoRobinsonRaw, poleClass: 'line', rawScale: 0.8487, gpu: true }),
+    spec({ id: 'winkel3', label: 'Winkel tripel', create: q.geoWinkel3, raw: q.geoWinkel3Raw, poleClass: 'line' }),
+    spec({ id: 'eckert4', label: 'Eckert IV', create: q.geoEckert4, raw: q.geoEckert4Raw, poleClass: 'line', equalArea: true }),
+    spec({ id: 'mollweide', label: 'Mollweide', create: q.geoMollweide, raw: q.geoMollweideRaw, poleClass: 'cusp', equalArea: true, gpu: true }),
+    spec({ id: 'sinusoidal', label: 'Sinusoidal', create: q.geoSinusoidal, raw: q.geoSinusoidalRaw, poleClass: 'cusp', equalArea: true }),
+    spec({ id: 'hammer', label: 'Hammer', create: q.geoHammer, raw: q.geoHammerRaw(2), poleClass: 'cusp', equalArea: true }),
+    spec({ id: 'orthographic', label: 'Orthographic', create: g.geoOrthographic, raw: g.geoOrthographicRaw, poleClass: 'point', gpu: true }),
+    spec({ id: 'stereographic', label: 'Stereographic', create: g.geoStereographic, raw: g.geoStereographicRaw, poleClass: 'point', conformal: true, rawScale: 2, gpu: true }),
+    spec({ id: 'azimuthalEqualArea', label: 'Azimuthal equal-area', create: g.geoAzimuthalEqualArea, raw: g.geoAzimuthalEqualAreaRaw, poleClass: 'point', equalArea: true, gpu: true }),
+    spec({ id: 'azimuthalEquidistant', label: 'Azimuthal equidistant', create: g.geoAzimuthalEquidistant, raw: g.geoAzimuthalEquidistantRaw, poleClass: 'point', gpu: true }),
+    spec({ id: 'gnomonic', label: 'Gnomonic', create: g.geoGnomonic, raw: g.geoGnomonicRaw, poleClass: 'point' }),
+  ];
+}
 
-export const PROJECTIONS: readonly ProjectionSpec[] = [
-  spec({ id: 'equirectangular', label: 'Equirectangular', create: geoEquirectangular, raw: geoEquirectangularRaw, poleClass: 'line', poleLimit: { h: 1, k: Infinity }, gpu: true }),
-  spec({ id: 'mercator', label: 'Mercator', create: geoMercator, raw: geoMercatorRaw, poleClass: 'excluded', conformal: true, maxRawLat: MERCATOR_MAX_LAT, gpu: true }),
-  spec({
-    id: 'transverseMercator', label: 'Transverse Mercator', create: geoTransverseMercator, raw: geoTransverseMercatorRaw, poleClass: 'excluded',
-    conformal: true, maxRawLat: MERCATOR_MAX_LAT, rawRotation: ([a, b, c]) => [a, b, c + 90],
-  }),
-  spec({ id: 'equalEarth', label: 'Equal Earth', create: geoEqualEarth, raw: geoEqualEarthRaw, poleClass: 'line', equalArea: true, gpu: true }),
-  spec({ id: 'naturalEarth1', label: 'Natural Earth', create: geoNaturalEarth1, raw: geoNaturalEarth1Raw, poleClass: 'line', gpu: true }),
-  spec({ id: 'robinson', label: 'Robinson', create: geoRobinson, raw: geoRobinsonRaw, poleClass: 'line', rawScale: 0.8487, gpu: true }),
-  spec({ id: 'winkel3', label: 'Winkel tripel', create: geoWinkel3, raw: geoWinkel3Raw, poleClass: 'line' }),
-  spec({ id: 'eckert4', label: 'Eckert IV', create: geoEckert4, raw: geoEckert4Raw, poleClass: 'line', equalArea: true }),
-  spec({ id: 'mollweide', label: 'Mollweide', create: geoMollweide, raw: geoMollweideRaw, poleClass: 'cusp', equalArea: true, gpu: true }),
-  spec({ id: 'sinusoidal', label: 'Sinusoidal', create: geoSinusoidal, raw: geoSinusoidalRaw, poleClass: 'cusp', equalArea: true }),
-  spec({ id: 'hammer', label: 'Hammer', create: geoHammer, raw: geoHammerRaw(2), poleClass: 'cusp', equalArea: true }),
-  spec({ id: 'orthographic', label: 'Orthographic', create: geoOrthographic, raw: geoOrthographicRaw, poleClass: 'point', gpu: true }),
-  spec({ id: 'stereographic', label: 'Stereographic', create: geoStereographic, raw: geoStereographicRaw, poleClass: 'point', conformal: true, rawScale: 2, gpu: true }),
-  spec({ id: 'azimuthalEqualArea', label: 'Azimuthal equal-area', create: geoAzimuthalEqualArea, raw: geoAzimuthalEqualAreaRaw, poleClass: 'point', equalArea: true, gpu: true }),
-  spec({ id: 'azimuthalEquidistant', label: 'Azimuthal equidistant', create: geoAzimuthalEquidistant, raw: geoAzimuthalEquidistantRaw, poleClass: 'point', gpu: true }),
-  spec({ id: 'gnomonic', label: 'Gnomonic', create: geoGnomonic, raw: geoGnomonicRaw, poleClass: 'point' }),
-];
+/** The registry over the stock d3 modules (native math): interactive display. */
+export const PROJECTIONS: readonly ProjectionSpec[] = buildRegistry({ geo: d3geo, proj: d3proj });
 
-export function projectionSpec(id: string): ProjectionSpec {
-  const s = PROJECTIONS.find((p) => p.id === id);
+export function projectionSpec(id: string, registry: readonly ProjectionSpec[] = PROJECTIONS): ProjectionSpec {
+  const s = registry.find((p) => p.id === id);
   if (!s) throw new Error(`unknown projection: ${id}`);
   return s;
 }

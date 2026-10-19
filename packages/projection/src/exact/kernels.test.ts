@@ -1,0 +1,30 @@
+// The exact path in the engine worker: the `worldKernel` op serves the sampler and the heightmap export from the
+// World the worker owns, with results identical to calling the exact path directly.
+import { describe, expect, it } from 'vitest';
+import { EngineClient, type PortLike, runPipeline } from '@mapmaker/engine';
+import { STRUCTURED, createOrogenWorld, orogenStages, startOrogenHost, structuredStages } from '@mapmaker/gen-orogen';
+import { MeshSampler, sampleRaster } from '../index';
+import { exactView, exportHeightmap } from './index';
+import { projectionKernels } from './kernels';
+
+describe('projection world kernels', () => {
+  it('sample bands and the heightmap PNG match the direct exact path', async () => {
+    const { port1, port2 } = new MessageChannel();
+    startOrogenHost(port2 as unknown as PortLike, 'test', { worldKernels: projectionKernels });
+    const client = new EngineClient(port1 as unknown as PortLike);
+    try {
+      await client.create({ N: 20000, seed: 777 });
+      await client.run({ variant: STRUCTURED, strict: false });
+      const w = createOrogenWorld({ N: 20000, seed: 777 });
+      await runPipeline(w, [...orogenStages, ...structuredStages], { variant: STRUCTURED, strict: false });
+      const sampler = new MeshSampler(w.meshes.get('global')!.mesh);
+      const view = { projection: 'mollweide', width: 96, height: 48, rotate: [10, 0, 0] as [number, number, number] };
+      const band = await client.worldKernel<Float64Array>('projection.sample', { view, layer: 'elevation', y0: 10, y1: 20 });
+      const direct = sampleRaster(exactView(view), sampler, w.layers.get('global', 'elevation'), 'barycentric', { y0: 10, y1: 20 });
+      expect(Buffer.from(band.buffer).equals(Buffer.from(direct.buffer))).toBe(true);
+      const png = await client.worldKernel<Uint8Array>('projection.heightmap', { view, mapping: { kind: 'land' } });
+      expect(Buffer.from(png).equals(Buffer.from(exportHeightmap(view, sampler, w.layers.get('global', 'elevation'), { kind: 'land' }).png))).toBe(true);
+      await expect(client.worldKernel('projection.sample', { view, layer: 'wind.summer' })).rejects.toThrow();
+    } finally { port1.close(); port2.close(); }
+  });
+});

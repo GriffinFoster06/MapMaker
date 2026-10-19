@@ -11,6 +11,7 @@
 // per-cell bumps that vanish on the Voronoi boundary, so the result is exact, continuous and bounded.
 import { dmath } from '../dmath';
 import type { SphereMesh } from '../mesh/sphere-mesh';
+import { TriangleLocator } from '../mesh/locate';
 import { SpatialIndex } from '../mesh/spatial-index';
 
 export interface CorrectionOptions {
@@ -44,9 +45,6 @@ export function bumpShape(coarse: SphereMesh, c: number, x: number, y: number, z
   }
   return v;
 }
-
-const triple = (ax: number, ay: number, az: number, bx: number, by: number, bz: number, cx: number, cy: number, cz: number) =>
-  ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx);
 
 /**
  * Links a fine mesh to the reference mesh and provides R, P and C between them.
@@ -374,55 +372,17 @@ export class MultiLevel {
   }
 
   private buildInterpolation(): { cells: Int32Array; weights: Float64Array } {
-    const L0 = this.coarse, q = L0.points, T = L0.triangles, H = L0.halfedges;
-    const nt = L0.numTriangles;
-    // Orientation of each L0 triangle seen from outside the sphere; containment tests are sign-adjusted by it.
-    const orient = new Int8Array(nt);
-    for (let t = 0; t < nt; t++) {
-      const a = 3 * T[3 * t]!, b = 3 * T[3 * t + 1]!, c = 3 * T[3 * t + 2]!;
-      orient[t] = triple(q[a]!, q[a + 1]!, q[a + 2]!, q[b]!, q[b + 1]!, q[b + 2]!, q[c]!, q[c + 1]!, q[c + 2]!) < 0 ? -1 : 1;
-    }
-    // Barycentric (gnomonic) coordinates of x in triangle t; the smallest one is ≥ 0 iff x lies inside.
-    const bary = (t: number, x: number, y: number, z: number, w: Float64Array): number => {
-      const a = 3 * T[3 * t]!, b = 3 * T[3 * t + 1]!, c = 3 * T[3 * t + 2]!;
-      const s = orient[t]!;
-      w[0] = s * triple(x, y, z, q[b]!, q[b + 1]!, q[b + 2]!, q[c]!, q[c + 1]!, q[c + 2]!);
-      w[1] = s * triple(q[a]!, q[a + 1]!, q[a + 2]!, x, y, z, q[c]!, q[c + 1]!, q[c + 2]!);
-      w[2] = s * triple(q[a]!, q[a + 1]!, q[a + 2]!, q[b]!, q[b + 1]!, q[b + 2]!, x, y, z);
-      const sum = w[0]! + w[1]! + w[2]!;
-      return Math.min(w[0]!, w[1]!, w[2]!) / (sum > 0 ? sum : 1);
-    };
+    const T = this.coarse.triangles;
+    const locator = new TriangleLocator(this.coarse);
     const cells = new Int32Array(3 * this.n1);
     const weights = new Float64Array(3 * this.n1);
     const w = new Float64Array(3);
     const fp = this.fine.points;
-    const { adjOffset, adjTriList } = L0;
     for (let i = 0; i < this.n1; i++) {
-      const x = fp[3 * i]!, y = fp[3 * i + 1]!, z = fp[3 * i + 2]!;
-      const n = this.parentOf[i]!;
-      // The containing triangle is usually incident to the nearest L0 site; take the most interior candidate.
-      let best = -1, bestScore = -Infinity;
-      for (let k = adjOffset[n]!; k < adjOffset[n + 1]!; k++) {
-        const t = adjTriList[k]!;
-        const score = bary(t, x, y, z, w);
-        if (score > bestScore) { bestScore = score; best = t; }
-      }
-      // Otherwise walk across the edge the point lies outside of (visibility walk on the Delaunay triangulation).
-      for (let steps = 0; bestScore < 0 && steps < 4 * nt; steps++) {
-        bary(best, x, y, z, w);
-        let side = 0;
-        for (let j = 1; j < 3; j++) if (w[j]! < w[side]!) side = j;
-        // Weight j is opposite vertex j, i.e. edge from vertex j+1 to j+2, which is halfedge 3t + (j+1)%3.
-        const opp = H[3 * best + ((side + 1) % 3)]!;
-        best = (opp / 3) | 0;
-        bestScore = bary(best, x, y, z, w);
-      }
-      if (bestScore < -1e-12) throw new Error(`MultiLevel: no containing L0 triangle for L1 cell ${i}`);
-      bary(best, x, y, z, w);
-      const w0 = Math.max(0, w[0]!), w1 = Math.max(0, w[1]!), w2 = Math.max(0, w[2]!);
-      const s = w0 + w1 + w2;
+      const best = locator.locate(fp[3 * i]!, fp[3 * i + 1]!, fp[3 * i + 2]!, this.parentOf[i]!, w);
+      if (best < 0) throw new Error(`MultiLevel: no containing L0 triangle for L1 cell ${i}`);
       cells[3 * i] = T[3 * best]!; cells[3 * i + 1] = T[3 * best + 1]!; cells[3 * i + 2] = T[3 * best + 2]!;
-      weights[3 * i] = w0 / s; weights[3 * i + 1] = w1 / s; weights[3 * i + 2] = w2 / s;
+      weights[3 * i] = w[0]!; weights[3 * i + 1] = w[1]!; weights[3 * i + 2] = w[2]!;
     }
     return { cells, weights };
   }

@@ -14,7 +14,8 @@
     "@mapmaker/determinism": "*",
     "@mapmaker/engine": "*",
     "three": "0.160.0",
-    "@mapmaker/gen-orogen": "*"
+    "@mapmaker/gen-orogen": "*",
+    "@mapmaker/projection": "*"
   },
   "devDependencies": {
     "@types/three": "0.160.0",

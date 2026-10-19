@@ -3,7 +3,7 @@
 //
 // Coordinates: longitude and latitude in degrees (d3's convention, east and north positive); pixels with x right and
 // y down, the centre of pixel (i, j) at (i + 0.5, j + 0.5). `rotate` is d3's [λ, φ, γ] rotation in degrees.
-import { type GeoProjection, type GeoRotation, geoDistance, geoRotation } from 'd3-geo';
+import type { GeoProjection, GeoRotation } from 'd3-geo';
 import { dmath } from '@mapmaker/core';
 import { type ProjectionSpec, projectionSpec } from './registry';
 
@@ -12,6 +12,8 @@ export interface ViewOptions {
   width: number;
   height: number;
   rotate?: [number, number, number];
+  /** The registry to take the projection from: PROJECTIONS (stock d3, the default) or EXACT_PROJECTIONS (exact.ts). */
+  registry?: readonly ProjectionSpec[];
 }
 
 /** Round-trip tolerance of the domain check, in pixels (§3.7 raster path, step 2). */
@@ -35,7 +37,7 @@ export class ProjectionView {
   private readonly centre: [number, number];
 
   constructor(opts: ViewOptions) {
-    this.spec = projectionSpec(opts.projection);
+    this.spec = projectionSpec(opts.projection, opts.registry);
     this.width = opts.width;
     this.height = opts.height;
     const p = this.spec.create();
@@ -44,7 +46,7 @@ export class ProjectionView {
     this.projection = p;
     this.scale = p.scale();
     const reported = p.rotate() as [number, number, number];
-    this.toRaw = geoRotation(this.spec.rawRotation ? this.spec.rawRotation(reported) : reported);
+    this.toRaw = this.spec.d3.geo.geoRotation(this.spec.rawRotation ? this.spec.rawRotation(reported) : reported);
     const clip = p.clipAngle();
     this.clipAngle = clip ? clip : null;
     this.centre = this.toRaw.invert([0, 0]) as [number, number];
@@ -53,7 +55,7 @@ export class ProjectionView {
   /** Whether a geographic point lies in the projection's domain (clip circle, excluded latitudes). */
   inDomain(lon: number, lat: number): boolean {
     if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lat) > 90) return false;
-    if (this.clipAngle !== null && geoDistance([lon, lat], this.centre) > this.clipAngle * RAD) return false;
+    if (this.clipAngle !== null && this.spec.d3.geo.geoDistance([lon, lat], this.centre) > this.clipAngle * RAD) return false;
     if (this.spec.maxRawLat !== undefined) {
       const [, rlat] = this.toRaw([lon, lat]);
       if (Math.abs(rlat) * RAD > this.spec.maxRawLat) return false;

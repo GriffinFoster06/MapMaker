@@ -50,4 +50,5 @@ export class EngineClient {
   snapshot(): Promise<Uint8Array> { return this.call((id) => ({ id, op: 'snapshot' })); }
   hash(): Promise<string> { return this.call((id) => ({ id, op: 'hash' })); }
   kernel<T>(name: string, args: unknown): Promise<T> { return this.call((id) => ({ id, op: 'kernel', name, args })); }
+  worldKernel<T>(name: string, args: unknown): Promise<T> { return this.call((id) => ({ id, op: 'worldKernel', name, args })); }
 }

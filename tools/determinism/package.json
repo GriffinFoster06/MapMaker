@@ -11,6 +11,7 @@
   "dependencies": {
     "@mapmaker/core": "*",
     "@mapmaker/engine": "*",
-    "@mapmaker/gen-orogen": "*"
+    "@mapmaker/gen-orogen": "*",
+    "@mapmaker/projection": "*"
   }
 }
