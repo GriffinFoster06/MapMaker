@@ -226,6 +226,13 @@ Build script is `tsc && vite build && node scripts/pwa-precache.mjs`. Dockerfile
 - **Extractability: loosely coupled.** The geometry functions are pure apart from the `pack`/`options` globals and use a local Alea or no randomness. They port to TypeScript in a local tangent frame (pixels → metres). DOM-only drawers (`draw-*.ts`) are references.
 - **Requirements capabilities it could serve:** cartographic rendering (note 18).
 
+### 3.29 Editors and options UI (added 2026-10-19, group 5b)
+- **Where:** `src/controllers/*-editor.ts` (heightmap 2,211 lines, states 1,828, provinces 1,496, cultures 1,133, religions 1,001, burgs 883, regiments 613, biomes 522 and about a dozen more), `components/map-brush.ts`, `components/hotkeys.ts`, `components/options-schema.ts` (286), `components/options-model.ts` (298), `components/options/tabs/*`, `components/pins.ts` (106).
+- **What it does:** a DOM-and-jQuery UI of editors that mutate the globals `grid` and `pack` directly. The heightmap editor has Raise, Elevate, Lower, Depress, Align, Smooth and Disrupt brushes (radius 1 to 100, power 1 to 10, land/water filter) and template steps (Hill, Pit, Range, Trough, Strait, Mask, Invert, Add, Multiply, Smooth) over `generators/heightmap-generator.ts`. There is no general edit log or undo: only the heightmap editor (full `grid.cells.h` snapshots, limit 100, `:56`, Ctrl+Z and Ctrl+Y by clicking `#undo` and `#redo`, `hotkeys.ts:50-51`), `wrap-tool.ts` and `paint-editor.ts` have local undo. Options live in a zod schema with range types and persist to `localStorage["fmg-options"]`; `Pins` lock an option value across regeneration (unrelated to our pins). Editor randomness is the global `Math.random` (`heightmap-editor.ts:1395, 1465`), so strokes are not replayable.
+- **Quality & realism rating: 3/5** as a UX reference for breadth of tools; nothing to extract.
+- **Extractability: tightly coupled** (DOM, jQuery UI, globals). The reusable ideas are the brush vocabulary, the template steps and the zod option schema pattern.
+- **Requirements capabilities it could serve:** notes 16 and 17 (behaviour reference only).
+
 ## 4. Internal data representation
 
 **Grid / mesh type:** Regular jittered square grid with Voronoi diagram. ~1,000–100,000 cells configurable. Voronoi cells are the atomic unit (stored as adjacency lists and polygons).

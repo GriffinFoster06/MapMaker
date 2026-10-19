@@ -35,7 +35,7 @@ MESSAGEix is a mature, production-grade Python framework for integrated assessme
   - Dynamic constraint enforcement
 - **Quality & realism rating: 4/5**. This is reference-grade for energy systems planning; well-tested, published in 100+ peer-reviewed studies, calibrated to real-world energy data. However, trade modeling is simplified (cost-based commodity flows, not game-theoretic or geopolitically nuanced), and the model operates at annual/decadal timescales for strategic planning, not high-frequency market or tactical scales.
 - **Extractability: tangled**. The MESSAGE logic is split across GAMS formulation (hard to interpret without GAMS knowledge) and Python API wrapper. Extraction would require:
-  - Reproducing the GAMS LP formulation in Python/JavaScript (6K lines) or finding/adapting an LP solver binding (JSPF, scipy.optimize).
+  - Reproducing the GAMS LP formulation in Python/JavaScript (6K lines) or finding/adapting an LP solver binding (scipy.optimize; "JSPF" in the earlier text is unexplained speculation).
   - Replicating the ixmp data warehouse (scenario indexing, commit/checkout workflows, multi-version management).
   - Estimated extractable core: ~2–3K lines of Python API logic; but solve layer (~6K GAMS) is not portable.
   - Effort: high (6–12 months for a functional port).
@@ -55,15 +55,15 @@ MESSAGEix is a mature, production-grade Python framework for integrated assessme
 - **Where**: `message_ix/core.py` (Scenario class extending ixmp.Scenario); `message_ix/util/scenario_data.py` (parameter/set definitions); `message_ix/util/scenario_setup.py` (template builders).
 - **What it does**: Wrapper around ixmp platform for managing model scenarios (versions, time-indexed data, multi-dimensional parameters indexed by region, technology, fuel, time-period, etc.). Provides Python API for reading/writing model data, checking out/committing versions, querying solutions.
 - **Quality & realism rating: 4/5**. Well-designed data model for tabular scientific scenarios; clear separation of sets/parameters. Limitation: no spatial indexing beyond regions (no grid, mesh, coordinates); optimized for aggregate-region modeling.
-- **Extractability: loosely coupled**. The Scenario class logic is ~1K lines of Python (message_ix/core.py). Could be extracted as a standalone scenario/versioning framework (similar to Neptune or MLflow), but would require adapting ixmp backend (JDBCBackend or ixmp4) for browser (likely infeasible). The parameter definitions in scenario_data.py (~57K lines) are energy-specific; reuse would mean wholesale replacement.
+- **Extractability: loosely coupled**. The Scenario class logic is 906 lines of Python (message_ix/core.py). Parameter schema: `message_ix/common.py:78` `Item`, `message.py:256-259` (110 parameters, 46 sets), `util/scenario_data.py:199,237` (`ParameterInfo`; the file is 1,780 lines, not ~57K), units a flat 24-string list at `scenario_data.py:1755`. No ranges, per-parameter defaults or presets. Could be extracted as a standalone scenario/versioning framework (similar to Neptune or MLflow), but would require adapting ixmp backend (JDBCBackend or ixmp4) for browser (likely infeasible). The parameter definitions in scenario_data.py (~57K lines) are energy-specific; reuse would mean wholesale replacement.
 - **Requirements capabilities it could serve**: None directly for MapMaker (versioning/provenance system could be useful, but not worth extracting from here).
 
 ### 3.4 Utilities (GAMS I/O, reporting)
 
-- **Where**: `message_ix/util/gams_io.py` (GAMS input/output file formatting); `message_ix/report/` (Sankey, tables); `message_ix/tools/` (helpers: year interpolation, add_year).
+- **Where**: `message_ix/util/gams_io.py` (GAMS input/output file formatting); `message_ix/report/` (`operator.py`, `pyam.py`; the Sankey code is `message_ix/tools/sankey.py`, 51 lines); `message_ix/tools/` (helpers: year interpolation, add_year).
 - **What it does**: Bridge between Python pandas DataFrames and GAMS/Excel data formats; plotting/reporting of scenario results.
 - **Quality & realism rating: 2/5** for MapMaker context. The reporting is useful for energy results but not applicable to world simulation. GAMS I/O logic is specific to GAMS syntax.
-- **Extractability: loosely coupled**. gams_io.py (~450 lines) is a self-contained formatter; tools are standalone helpers. However, without the MESSAGE model context, they have no purpose.
+- **Extractability: loosely coupled**. gams_io.py (362 lines) is a self-contained formatter; tools are standalone helpers. However, without the MESSAGE model context, they have no purpose.
 - **Requirements capabilities it could serve**: Potentially, file I/O format design lessons (though GAMS-specific format would not transfer).
 
 ### 3.5 Testing & tutorials
@@ -71,7 +71,7 @@ MESSAGEix is a mature, production-grade Python framework for integrated assessme
 - **Where**: `message_ix/tests/` (pytest suite, 30+ test files); `message_ix/testing/` (fixtures, test data); `tutorial/` (Jupyter notebooks and example scenarios: Austrian energy system, Westeros stylized model).
 - **What it does**: Unit/integration tests for API and model solve; tutorial notebooks demonstrating scenario creation, solving, and results analysis.
 - **Quality & realism rating: 4/5** for software engineering practices; limited value for MapMaker.
-- **Extractability: standalone** (tests are self-contained). Westeros tutorial (~50 nodes, simplified energy system) is a useful educational reference for scenario design but not a data source or algorithm.
+- **Extractability: standalone** (tests are self-contained). Westeros tutorial (the baseline has a single node, `westeros_baseline.ipynb:217`; the multinode notebook adds more; simplified energy system) is a useful educational reference for scenario design but not a data source or algorithm.
 - **Requirements capabilities it could serve**: Example of modular scenario structure and parameterization (useful for design reference, not code).
 
 ## 4. Internal data representation
@@ -117,7 +117,7 @@ MESSAGEix is a mature, production-grade Python framework for integrated assessme
 | Cities & towns | no | — | — | — | — |
 | Languages & names | no | — | — | — | — |
 | Political borders | no | — | — | — | — |
-| Trade | partial | 3 | tangled | `message_ix/model/MESSAGE_master.gms:~500 lines` | Commodity cost-minimization trade flows; no geopolitics/alliance/conflict logic |
+| Trade | partial | 3 | tangled | `message_ix/model/MESSAGE_master.gms` (87 lines; the model core is `MESSAGE/model_core.gms`, 2,383 lines) | Commodity cost-minimization trade flows; no geopolitics/alliance/conflict logic |
 | Long-run history/war/economics/politics sim | partial | 2 | tangled | `message_ix/model/MESSAGE*.gms`, `message_ix/message.py` | Multi-decadal economic optimization only; no war, politics, history, demographic dynamics |
 | Planet-scale + regional patches (multi-resolution/zoom consistency) | no | — | — | — | Regional aggregation only; no hierarchical mesh or zoom |
 | Globe view | no | — | — | — | — |

@@ -9,7 +9,7 @@
 
 ## 1. Problem
 
-"Every parameter exposed" means hundreds of values across every domain. Without structure the user drowns, values drift out of sync with the code, and nothing says what a value does. orogen has a handful of sliders; Azgaar has dozens of options; the full scope has an order of magnitude more.
+"Every parameter exposed" means hundreds of values across every domain. Without structure the user drowns, values drift out of sync with the code, and nothing says what a value does. orogen has 15 generation sliders (`index.html:168-258`; `readSliders` returns N plus 14) and about 446 exported tuning constants (97 in `CLIMATE_DEFAULTS`, 349 `export const` in `terrain-config.js`); Azgaar has dozens of options; the full scope has an order of magnitude more.
 
 ## 2. Canonical inputs and outputs
 
@@ -53,8 +53,8 @@ Physical parameters (radius, gravity, obliquity) feed note 10's mapping, which d
 ## 4. Upstream references (algorithm level)
 
 - **MARBL** `src/marbl_settings_mod.F90` and `defaults/settings_*.yaml`: a parameter registry with datatype, units, long name, subcategory, per-configuration defaults and optional enumerated `valid_values`, set in four ordered categories (`settings_latest.yaml:9–39`). It has no numeric ranges and no generated documentation, and each parameter is declared twice (a Fortran `add_var` call plus default, and a YAML entry), which §3.1's single declaration avoids. A model for the metadata, not the mechanism.
-- **orogen** `js/climate-config.js` and `js/terrain-config.js` (defaults and constants; there is no `js/config.js`). The sliders themselves are DOM inputs read by `readSliders` in `js/generate.js:18` (`docs/reconciliation/review.md` M2); **Azgaar** options UI: the simple-level reference.
-- **MESSAGEix**/ixmp scenario parameters: scenario management.
+- **orogen** `js/climate-config.js` and `js/terrain-config.js` (defaults and constants; there is no `js/config.js`). The sliders themselves are DOM inputs read by `readSliders` in `js/generate.js:18` (`docs/reconciliation/review.md` M2); **Azgaar** `components/options-schema.ts` (a zod schema with range types, 286 lines), `components/options-model.ts` (defaults, `localStorage` persistence) and `components/options/tabs/*` (a hand-written tabbed UI): the closest Azgaar analogue to a registry, reference only. It has no simple, advanced or expert levels, no units or documentation metadata and no generated panel. orogen re-runs at three scopes (full rebuild: N, P, jitter, roughness, continents, size variety, land coverage; sculpting only: warp, smoothing and the three erosions, ridge; climate only: temperature and precipitation offsets; `js/generate.js:910, 950`), a model for the registry's re-run scope tags.
+- **MESSAGEix** `message_ix/common.py:78` `Item` (name, type, coords, dims), `message_ix/message.py:256-259` (`par`, `_set`, `equ`, `var` declarations: 110 parameters, 46 sets) and `message_ix/util/scenario_data.py:199,237` (`ParameterInfo`, `PARAMETERS`): index-set structure only. Units are a flat 24-string list (`scenario_data.py:1755`) with a `???` default (`core.py` `add_par`); there are no ranges, per-parameter defaults, scopes, presets or validation beyond `message.py:24-62`. Versioning lives in the external `ixmp` package (not vendored). Python and GAMS; reference only.
 
 ## 5. Validation
 

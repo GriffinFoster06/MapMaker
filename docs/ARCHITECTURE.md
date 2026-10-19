@@ -961,7 +961,7 @@ Added at Checkpoint 1 (D5):
 
 ### Phase 5b: Editor core v1 (Q14, Q16; notes 16, 17)
 
-**Prerequisite:** reconcile first: Godot (its undo-redo and plugin system, the references for notes 16 and 37; `audit/Godot.md`); orogen (every claim in the design notes that cites it, especially notes 17 and 21; `audit/orogen.md`); Azgaar beyond Phases 5 and 5c (its editors and options UI, cited by notes 16 and 17); and MESSAGEix (cited by note 17; `audit/MESSAGEix.md`). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
+**Prerequisite:** reconcile first: Godot (its undo-redo and plugin system, the references for notes 16 and 37; `audit/Godot.md`); orogen (every claim in the design notes that cites it, especially notes 17 and 21; `audit/orogen.md`); Azgaar beyond Phases 5 and 5c (its editors and options UI, cited by notes 16 and 17); and MESSAGEix (cited by note 17; `audit/MESSAGEix.md`). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`. **Done 2026-10-19: `docs/reconciliation/group-5b.md`.**
 
 - The edit log, pins, soft constraints and seeds (§3.8), wired into stage invalidation, with undo and redo.
 - Editing tools on the globe and flat views: elevation sculpt and paint (raise, lower, smooth, flatten, noise), land/sea paint, plate-boundary and hotspot seeds, and a categorical paint for any enum layer.

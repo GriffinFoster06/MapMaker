@@ -81,9 +81,9 @@ Q16, §3.8, `World.edits`, §5 `edits/`.
 
 ## 4. Upstream references (algorithm level)
 
-- **Azgaar** editors (its heightmap, burg, state, province, culture and religion editors in the UI modules; exact files located when Phase 5b starts): the breadth of edit tools a worldbuilder expects, and their UX. Behaviour reference; its edits mutate state directly, which this design avoids.
+- **Azgaar** editors (`src/controllers/*-editor.ts`: heightmap, burg, state, province, culture, religion, biome, route, marker, zone, river, lake, regiment, relief and others; sizes in `docs/reconciliation/group-5b.md` E1, with `components/map-brush.ts`): the breadth of edit tools a worldbuilder expects, and their UX. Behaviour reference only. Its brushes are Raise, Elevate, Lower, Depress, Align (set to a cell's height), Smooth and Disrupt (random), with a land/water filter and radius and power sliders (`controllers/heightmap-editor.ts`), and it has no terrace tool. Its edits mutate state directly (`grid.cells.h`), use the global `Math.random` and are not replayable. It has **no general edit log or undo**: only the heightmap editor (full `grid.cells.h` snapshots, limit 100, Ctrl+Z and Ctrl+Y) and the wrap and paint tools have local undo. Its `Pins` (`components/pins.ts`) lock an option value across regeneration, an unrelated concept to this note's pins.
 - **orogen**: the interactive heightmap import and the planet code as a recipe.
-- **Godot** `editor/` undo-redo manager (`core/object/undo_redo.*`): an action-log pattern.
+- **Godot** `core/object/undo_redo.{h,cpp}` (the in-memory do/undo stack, 151 + 562 lines) and `editor/editor_undo_redo_manager.{h,cpp}` (per-object histories, 153 + 595 lines): the only undo reference. It is closure-based with no serialisation and merges actions inside a wall-clock window (`undo_redo.cpp:95`), so it is a concept reference only (separate histories per target, a saved-version marker, discarding the redo tail on a new action) and not the replayable edit log. Merging here keys on explicit gesture ids, never on time.
 - **Literature:** constrained optimisation with penalty terms; Barnes et al. (2020) for pinned drainage.
 
 ## 5. Validation
