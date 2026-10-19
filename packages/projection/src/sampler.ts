@@ -65,6 +65,43 @@ export function sampleRaster(view: ProjectionView, sampler: MeshSampler, values:
   return out;
 }
 
+export interface LocatedRaster {
+  width: number;
+  y0: number;
+  /** Containing triangle per pixel, −1 outside the domain. */
+  tri: Int32Array;
+  /** Barycentric weights per pixel (3 each, clamped and normalised as sampleRaster uses them), for triangles[3t..3t+2]. */
+  w: Float64Array;
+  /** Nearest cell per pixel, −1 outside. */
+  cell: Int32Array;
+}
+
+/**
+ * The per-pixel lookup of sampleRaster without a layer: containing triangle, weights and nearest cell, so any layer
+ * can be drawn from it by either rule with sampleRaster's arithmetic (w0·v[a] + w1·v[b] + w2·v[c], or v[cell]).
+ */
+export function locateRaster(view: ProjectionView, sampler: MeshSampler, rows: SampleRows = {}): LocatedRaster {
+  const { width } = view, y0 = rows.y0 ?? 0, y1 = rows.y1 ?? view.height, n = width * (y1 - y0);
+  const tri = new Int32Array(n).fill(-1), cell = new Int32Array(n).fill(-1), w = new Float64Array(3 * n);
+  const p = new Float64Array(3), ww = new Float64Array(3);
+  for (let j = y0, o = 0; j < y1; j++) {
+    let hint = -1;
+    for (let i = 0; i < width; i++, o++) {
+      const ll = view.invert(i + 0.5, j + 0.5);
+      if (!ll) continue;
+      unitVector(ll[0], ll[1], p);
+      const near = sampler.index.nearestCell(p[0]!, p[1]!, p[2]!, hint);
+      hint = near;
+      cell[o] = near;
+      const t = sampler.locator.locate(p[0]!, p[1]!, p[2]!, near, ww);
+      if (t < 0) throw new Error(`locateRaster: no containing triangle at pixel ${i},${j}`);
+      tri[o] = t;
+      w[3 * o] = ww[0]!; w[3 * o + 1] = ww[1]!; w[3 * o + 2] = ww[2]!;
+    }
+  }
+  return { width, y0, tri, w, cell };
+}
+
 /** Row bands of at most `rows` rows covering [0, height): the tiling the worker pool uses. */
 export function rowBands(height: number, rows: number): { y0: number; y1: number }[] {
   const out: { y0: number; y1: number }[] = [];

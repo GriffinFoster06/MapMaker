@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { EngineClient, type PortLike, runPipeline } from '@mapmaker/engine';
 import { STRUCTURED, createOrogenWorld, orogenStages, startOrogenHost, structuredStages } from '@mapmaker/gen-orogen';
-import { MeshSampler, sampleRaster } from '../index';
+import { MeshSampler, ProjectionView, buildCubeLookup, locateRaster, sampleRaster } from '../index';
 import { coastlines } from '../vector';
 import { exactView, exportHeightmap, exportSvg } from './index';
 import { projectionKernels } from './kernels';
@@ -28,6 +28,15 @@ describe('projection world kernels', () => {
       const elev = w.layers.get('global', 'elevation');
       const svg = await client.worldKernel<string>('projection.svg', { view, layers: { graticule: 30, tissot: { step: 45 } } });
       expect(svg).toBe(exportSvg(view, { graticule: 30, tissot: { step: 45 }, coastlines: coastlines(w.meshes.get('global')!.mesh, (i) => elev[i]! > 0) }));
+      const loc = await client.worldKernel<{ tri: Int32Array; cell: Int32Array }>('projection.locate', { view, y0: 5, y1: 9 });
+      const located = locateRaster(new ProjectionView(view), sampler, { y0: 5, y1: 9 });
+      expect([...loc.tri]).toEqual([...located.tri]);
+      expect([...loc.cell]).toEqual([...located.cell]);
+      const lk = await client.worldKernel<{ R: number; cube: Uint32Array; adjOffset: Int32Array; adjList: Int32Array }>('projection.gpuLookup', {});
+      const want = buildCubeLookup(w.meshes.get('global')!.mesh);
+      expect(lk.R).toBe(want.R);
+      expect(Buffer.from(lk.cube.buffer).equals(Buffer.from(want.cube.buffer))).toBe(true);
+      expect(lk.adjList.length).toBe(w.meshes.get('global')!.mesh.adjList.length);
       await expect(client.worldKernel('projection.sample', { view, layer: 'wind.summer' })).rejects.toThrow();
     } finally { port1.close(); port2.close(); }
   });

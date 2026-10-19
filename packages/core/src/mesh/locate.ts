@@ -63,4 +63,20 @@ export class TriangleLocator {
     w[0] = w0 / s; w[1] = w1 / s; w[2] = w2 / s;
     return best;
   }
+
+  /**
+   * Visibility walk from triangle `start` to the triangle containing (x, y, z), with at most `maxSteps` steps (the
+   * walk of `locate` without its start search). Returns −1 when the bound is reached. Weights in w are raw.
+   */
+  walk(x: number, y: number, z: number, start: number, w: Float64Array, maxSteps = 4 * this.mesh.numTriangles): number {
+    const H = this.mesh.halfedges;
+    let t = start;
+    for (let steps = 0; steps <= maxSteps; steps++) {
+      if (this.bary(t, x, y, z, w) >= 0) return t;
+      let side = 0;
+      for (let j = 1; j < 3; j++) if (w[j]! < w[side]!) side = j;
+      t = (H[3 * t + ((side + 1) % 3)]! / 3) | 0;
+    }
+    return -1;
+  }
 }

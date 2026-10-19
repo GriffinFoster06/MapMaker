@@ -2,7 +2,7 @@
 // with brute force, tiling does not change a bit, and pixels at the poles and the antimeridian need no special case.
 import { describe, expect, it } from 'vitest';
 import { MultiLevel, OrogenLcg, SphereMesh, TriangleLocator, dmath } from '@mapmaker/core';
-import { MeshSampler, ProjectionView, rowBands, sampleRaster, unitVector } from './index';
+import { MeshSampler, ProjectionView, locateRaster, rowBands, sampleRaster, unitVector } from './index';
 import { exactView } from './exact';
 
 const mesh = (N: number, seed: number) => {
@@ -72,6 +72,21 @@ describe('sampleRaster', () => {
         expect(bary[o]!).toBeCloseTo(bruteBary(p[0]!, p[1]!, p[2]!, F), 9);
       }
     }
+  });
+
+  it('locateRaster reproduces sampleRaster bit for bit by either rule (the CPU path of the flat map)', () => {
+    const v = exactView({ projection: 'mollweide', width: W, height: H, rotate: [40, 10, 0] });
+    const r = locateRaster(v, S), T = M.triangles;
+    const bary = sampleRaster(v, S, F, 'barycentric'), near = sampleRaster(v, S, ids, 'nearest');
+    for (let o = 0; o < W * H; o++) {
+      const t = r.tri[o]!;
+      if (t < 0) { expect(bary[o]).toBeNaN(); expect(r.cell[o]).toBe(-1); continue; }
+      const val = r.w[3 * o]! * F[T[3 * t]!]! + r.w[3 * o + 1]! * F[T[3 * t + 1]!]! + r.w[3 * o + 2]! * F[T[3 * t + 2]!]!;
+      expect(Object.is(val, bary[o])).toBe(true);
+      expect(r.cell[o]).toBe(near[o]);
+    }
+    const band = locateRaster(v, S, { y0: 20, y1: 30 });
+    expect([...band.tri]).toEqual([...r.tri.subarray(20 * W, 30 * W)]);
   });
 
   it('is bit-identical however it is tiled in row bands', () => {

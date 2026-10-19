@@ -13,4 +13,6 @@ Projection and distortion layer (Phase 5; ARCHITECTURE §3.7). Projection is a v
 
 Exports (`exportHeightmap`, `exportSvg`, `exportDistortionPng`) always use the exact path; interactive display may use the stock registry.
 
-Planned in Phase 5: GPU shaders (M4), UI (M5).
+- `gpu/`: the interactive GPU path for the ten shader projections (decision 5-5): GLSL inverse and forward formulas with the domain check, float32 elementary functions, the triangle-id cube map and bounded walk (`glsl.ts`, `lookup.ts`, `uniforms.ts`); the three.js host is `apps/web/src/flat/`.
+
+Planned in Phase 5: UI (M5).

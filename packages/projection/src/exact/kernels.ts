@@ -2,7 +2,10 @@
 // run where the World lives, through the `worldKernel` op. They only read the World.
 import { type SphereMesh, type World } from '@mapmaker/core';
 import { type HeightMapping, type HeightmapOptions, heightmapPngFromRaster } from '../png';
-import { MeshSampler, rowBands, sampleRaster } from '../sampler';
+import { buildCubeLookup } from '../gpu/lookup';
+import { distortionRaster, type DistortionQuantity } from '../overlay';
+import { MeshSampler, locateRaster, rowBands, sampleRaster } from '../sampler';
+import { ProjectionView } from '../view';
 import type { ViewOptions } from '../view';
 import { type SvgLayers } from '../svg';
 import { coastlines } from '../vector';
@@ -12,6 +15,8 @@ export type ViewSpec = Omit<ViewOptions, 'registry'>;
 
 export interface SampleArgs { view: ViewSpec; layer: string; mesh?: string; y0?: number; y1?: number }
 export interface SvgArgs { view: ViewSpec; layers?: Omit<SvgLayers, 'coastlines'>; coastlines?: boolean; mesh?: string }
+export interface LocateArgs { view: ViewSpec; mesh?: string; y0?: number; y1?: number }
+export interface DistortionArgs { view: ViewSpec; quantity: DistortionQuantity; y0?: number; y1?: number }
 export interface HeightmapArgs { view: ViewSpec; mapping: HeightMapping; mesh?: string; png?: HeightmapOptions }
 
 const samplers = new WeakMap<SphereMesh, MeshSampler>();
@@ -52,5 +57,26 @@ export const projectionKernels = {
       layers.coastlines = coastlines(world.meshes.get(meshId)!.mesh, (i) => elev[i]! > 0);
     }
     return exportSvg(a.view, layers);
+  },
+  /**
+   * Interactive CPU path (projections without a shader): per-pixel triangle, weights and nearest cell of a row band,
+   * through a stock view (native math; display only, never exported).
+   */
+  'projection.locate': (world: World, a: LocateArgs) => {
+    const rec = world.meshes.get(a.mesh ?? 'global');
+    if (!rec) throw new Error(`no such mesh: ${a.mesh}`);
+    return locateRaster(new ProjectionView(a.view), samplerFor(rec.mesh), { ...(a.y0 !== undefined ? { y0: a.y0 } : {}), ...(a.y1 !== undefined ? { y1: a.y1 } : {}) });
+  },
+  /** Lookup data of the GPU path: the triangle-id cube map and the Delaunay adjacency (gpu/lookup.ts). */
+  'projection.gpuLookup': (world: World, a: { mesh?: string }) => {
+    const rec = world.meshes.get(a.mesh ?? 'global');
+    if (!rec) throw new Error(`no such mesh: ${a.mesh}`);
+    const m = rec.mesh, { R, cube } = buildCubeLookup(m);
+    return { R, cube, adjOffset: m.adjOffset.slice(), adjList: m.adjList.slice() };
+  },
+  /** A distortion overlay band through a stock view (display; exports use exportDistortionPng). */
+  'projection.distortion': (_world: World, a: DistortionArgs) => {
+    const r = distortionRaster(new ProjectionView(a.view), a.quantity, { ...(a.y0 !== undefined ? { y0: a.y0 } : {}), ...(a.y1 !== undefined ? { y1: a.y1 } : {}) });
+    return { values: r.values, singular: r.singular, outside: r.outside };
   },
 } satisfies Record<string, (world: World, args: never) => unknown>;

@@ -19,6 +19,12 @@ export interface ViewOptions {
    * Exact views use EXPORT_PRECISION_PX. It affects only drawn geometry, never invert or a projected point.
    */
   precision?: number;
+  /**
+   * Zoom about the image centre after fitting (default 1), then a pan in pixels (default [0, 0]): scale k·zoom and
+   * translate c + (t − c)·zoom + pan, with c the image centre. The interactive map's zoom and drag.
+   */
+  zoom?: number;
+  pan?: [number, number];
 }
 
 /** Round-trip tolerance of the domain check, in pixels (§3.7 raster path, step 2). */
@@ -49,6 +55,10 @@ export class ProjectionView {
     if (opts.rotate) p.rotate(opts.rotate);
     if (opts.precision !== undefined) p.precision(opts.precision);
     p.fitExtent([[0, 0], [opts.width, opts.height]], { type: 'Sphere' });
+    if ((opts.zoom ?? 1) !== 1 || opts.pan) {
+      const z = opts.zoom ?? 1, [px, py] = opts.pan ?? [0, 0], [tx, ty] = p.translate(), cx = opts.width / 2, cy = opts.height / 2;
+      p.scale(p.scale() * z).translate([cx + (tx - cx) * z + px, cy + (ty - cy) * z + py]);
+    }
     this.projection = p;
     this.scale = p.scale();
     const reported = p.rotate() as [number, number, number];

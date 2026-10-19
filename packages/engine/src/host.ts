@@ -120,7 +120,12 @@ export function attachHost(port: PortLike, opts: HostOptions): void {
         const k = opts.worldKernels?.[req.name];
         if (!k) throw new Error(`unknown world kernel: ${req.name}`);
         const value = await k(world, req.args as never);
-        send({ id: req.id, op: 'result', value }, ArrayBuffer.isView(value) ? [value.buffer as ArrayBuffer] : undefined);
+        // Typed arrays in the result (top level, or one level down in a plain object) are transferred.
+        const transfer: Transferable[] = [];
+        const take = (v: unknown) => { if (ArrayBuffer.isView(v) && !transfer.includes(v.buffer as ArrayBuffer)) transfer.push(v.buffer as ArrayBuffer); };
+        if (ArrayBuffer.isView(value)) take(value);
+        else if (value && typeof value === 'object') for (const v of Object.values(value)) take(v);
+        send({ id: req.id, op: 'result', value }, transfer.length ? transfer : undefined);
         return;
       }
     }

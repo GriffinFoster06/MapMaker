@@ -2,6 +2,8 @@
 import { type TypedArray, bytesOf, sha256 } from '@mapmaker/core';
 import { EngineClient, type PortLike, type WorldStats } from '@mapmaker/engine';
 import { Globe } from './globe/globe';
+import { FlatMap, type MapState } from './flat/flat-map';
+import { type DebugMode, ProjectionView, type ViewOptions } from '@mapmaker/projection';
 import { RAW_ELEVATION, makeLayers } from './globe/colors';
 import { SETTING_GROUPS, SETTINGS, changedParams, decodeState, encodeState } from './settings';
 
@@ -31,7 +33,17 @@ export interface GlobeHook {
 /** `params`: orogen generation settings that differ from the defaults (World settings panel). */
 export interface GenerateOpts { N: number; seed: number; variant?: Variant; params?: Record<string, number> }
 
-declare global { interface Window { __globe?: GlobeHook } }
+/** Test hook of the flat map (Phase 5 M4/M5). */
+export interface FlatHook {
+  /** Uploads the current world and layer to the GPU path. */
+  ready(layer?: string): Promise<{ gpu: boolean; maxTextureSize: number }>;
+  /** Debug render of a stock view (DebugMode 1 or 2) on the GPU; base64 of the RGBA32UI pixels, rows top to bottom. */
+  debug(view: ViewOptions, mode: DebugMode): Promise<string>;
+  render(st: MapState): Promise<string>;
+  worldHash(): Promise<string>;
+}
+
+declare global { interface Window { __globe?: GlobeHook; __flat?: FlatHook } }
 
 /** Builds the World settings panel and returns a reader of the current slider values. */
 function buildSettings(initial: Record<string, number>, onChange: () => void): { values(): Record<string, number>; reset(): void } {
@@ -84,6 +96,7 @@ export function startApp(): void {
   const worker = new Worker(new URL('./engine-worker.ts', import.meta.url), { type: 'module' });
   const client = new EngineClient(worker as unknown as PortLike);
   const globe = new Globe($<HTMLCanvasElement>('globe'));
+  const flat = new FlatMap(client, $<HTMLCanvasElement>('mapGpu'), $<HTMLCanvasElement>('mapCpu'));
 
   const sel = $<HTMLSelectElement>('layer');
   let variant: Variant = 'structured';
@@ -119,6 +132,7 @@ export function startApp(): void {
     const data = await client.layers(layer.need);
     layer.paint(data, globe.colors);
     globe.colorsChanged();
+    flat.setLayer(layer.flat(data));
   }
 
   async function generate(opts: GenerateOpts, label = '') {
@@ -144,7 +158,9 @@ export function startApp(): void {
       });
       const tEnd = performance.now();
       close(tEnd);
-      globe.setMesh(await client.meshData());
+      const mesh = await client.meshData();
+      globe.setMesh(mesh);
+      flat.setWorld(mesh);
       await paint(sel.value);
       const stats = await client.stats();
       const totalMs = performance.now() - t0;
@@ -182,6 +198,24 @@ export function startApp(): void {
       return { totalMs: performance.now() - t0, stats };
     } finally { w.terminate(); }
   }
+
+  window.__flat = {
+    ready: async (layer) => {
+      if (layer) { sel.value = layer; await paint(layer); }
+      const gpu = flat.gpu ? await flat.ensureGpu().then(() => true, (e: unknown) => { console.error(e); return false; }) : false;
+      return { gpu, maxTextureSize: flat.gpu?.maxTextureSize ?? 0 };
+    },
+    debug: async (view, mode) => {
+      const gpu = await flat.ensureGpu();
+      const px = gpu.debug(new ProjectionView(view), mode);
+      const bytes = new Uint8Array(px.buffer);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      return btoa(bin);
+    },
+    render: (st) => flat.render(st),
+    worldHash: () => client.hash(),
+  };
 
   window.__globe = {
     generate,
