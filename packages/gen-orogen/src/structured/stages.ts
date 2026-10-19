@@ -6,6 +6,7 @@ import { STAGE_PARAMS, readParams } from '../params';
 import { PLATES_SPEC } from '../plates-spec';
 import { elevToHeightKm } from '../port';
 import { DETAIL_STAGE, REF_DEBUG_FIELDS, REF_MESH, REF_STAGE, REF_WRITES, STRUCTURED, detailLayerSpecs } from './layers';
+import { applyCategoricalEdits, applyTerrainEdits, lapseAdjustment } from '../edits';
 import { runClimateDetail, runDrainageDetail, runElevationDetail } from './detail';
 import { type ReferenceState, runReferencePass } from './reference';
 
@@ -36,6 +37,7 @@ const refStage: Stage = {
   version: STRUCTURED_STAGE_VERSION,
   variants: [STRUCTURED],
   pass: 'R',
+  switchable: false,
   mesh: REF_MESH,
   reads: [],
   writes: REF_WRITES(),
@@ -112,17 +114,21 @@ const detailStage: Stage = {
     ctx.progress(0, 'Detail: elevation at full resolution');
     // The elevation result is written at once and only what climate and drainage read is kept, so the tectonics at N
     // and the Float64 elevation are released before them (Phase 5 M0). Layer values do not depend on write order.
+    let applied: ReturnType<typeof applyTerrainEdits> | undefined;
     const { ml, omesh, r_xyz, elevRaw } = (() => {
       const d = runElevationDetail(L1, ref, p, { keepIntermediates: false });
+      // User edits (note 16): applied to the elevation before climate and drainage read it, so the world re-simulates around them.
+      applied = applyTerrainEdits(L1, p.seed, d.elevation_m, d.elevRaw, ctx.edits);
       put(ctx, 'elevation', d.elevation_m);
       put(ctx, 'detail.elevRaw', d.elevRaw);
+      applyCategoricalEdits(L1, 'plate', d.tect.r_plate, ctx.edits);
       put(ctx, 'plate', d.tect.r_plate);
       put(ctx, 'stress', d.stress);
       return d;
     })();
     const d = { ml, omesh, r_xyz, elevRaw };
     ctx.progress(0.6, 'Detail: climate');
-    const c = runClimateDetail(ref, d);
+    const c = runClimateDetail(ref, d, applied?.cells.length ? lapseAdjustment(applied, d.elevRaw) : undefined);
     ctx.progress(0.9, 'Detail: drainage');
     const dr = runDrainageDetail(ref, d, L1);
 
@@ -132,12 +138,20 @@ const detailStage: Stage = {
       put(ctx, `current.${season}`, sc.currentEast, 0); put(ctx, `current.${season}`, sc.currentNorth, 1);
       put(ctx, `temp.${season}`, sc.temp); put(ctx, `precip.${season}`, sc.precip); put(ctx, `pressure.${season}`, sc.pressure);
     }
+    applyCategoricalEdits(L1, 'koppen', c.koppen, ctx.edits);
     put(ctx, 'koppen', c.koppen);
     put(ctx, 'receiver', dr.receiver);
     put(ctx, 'basin', dr.basin);
     const area = ctx.writeLayer('drainageArea')[0] as Float64Array;
     for (let i = 0; i < area.length; i++) area[i] = dr.drainageArea[i]! * 1e6; // km² → m²
     ctx.progress(1);
+  },
+  /** Hand-authored terrain: the outputs start flat at sea level and the edit log paints them. */
+  manual(ctx) {
+    const L1 = ctx.world.meshes.get('global')!.mesh, p = readParams(ctx.world);
+    applyTerrainEdits(L1, p.seed, ctx.writeLayer('elevation')[0] as Float32Array, ctx.writeLayer('detail.elevRaw')[0] as Float32Array, ctx.edits);
+    applyCategoricalEdits(L1, 'plate', ctx.writeLayer('plate')[0] as Int32Array, ctx.edits);
+    applyCategoricalEdits(L1, 'koppen', ctx.writeLayer('koppen')[0] as Uint8Array, ctx.edits);
   },
 };
 

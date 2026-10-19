@@ -8,6 +8,7 @@ import type { Stage, StageContext } from '@mapmaker/engine';
 import { DEBUG_FIELDS, STAGE, debugId, isRequiredDebug, registerOrogenLayers, writesOf } from './layers';
 import { STAGE_PARAMS, readParams } from './params';
 import { PLATES_SPEC } from './plates-spec';
+import { applyCategoricalEdits, applyTerrainEdits } from './edits';
 import { computeDetailDampenField, computeOrogenicField, runPostProcessing } from './orchestration';
 import { computeTectonics, dropScratch, getScratch, newNoise, peekScratch } from './scratch';
 import {
@@ -38,6 +39,7 @@ function putDebug(ctx: StageContext, p: { debugLayers: boolean }, name: string, 
 const meshStage: Stage = {
   id: STAGE.mesh,
   version: OROGEN_STAGE_VERSION,
+  switchable: false,
   mesh: MESH_ID,
   reads: [],
   writes: [],
@@ -134,6 +136,8 @@ const erosionStage: Stage = {
     // F2: canonical metres. elevToHeightKm is pure arithmetic (no libm), so this is exact in any dmath mode.
     const m = ctx.writeLayer('elevation')[0] as Float32Array;
     for (let i = 0; i < m.length; i++) m[i] = elevToHeightKm(r_elevation[i]!) * 1000;
+    // User edits (note 16): applied to what this stage produced, before climate reads orogen.elevRaw.
+    applyTerrainEdits(ctx.world.meshes.get(MESH_ID)!.mesh, p.seed, m, ctx.writeLayer('orogen.elevRaw')[0] as Float32Array, ctx.edits);
     putDebug(ctx, p, 'erosionDelta', delta);
   },
 };
@@ -203,6 +207,7 @@ const koppenStage: Stage = {
       { r_precip_summer: read(ctx, 'precip.summer'), r_precip_winter: read(ctx, 'precip.winter'), r_westness: read(ctx, 'orogen.westness') },
     ));
     put(ctx, 'koppen', r_koppen);
+    applyCategoricalEdits(ctx.world.meshes.get(MESH_ID)!.mesh, 'koppen', ctx.writeLayer('koppen')[0] as Uint8Array, ctx.edits);
   },
 };
 
