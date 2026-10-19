@@ -9,7 +9,7 @@ import {
 import type { MultiLineString } from 'geojson';
 import type { HeightmapArgs } from '@mapmaker/projection/exact/kernels';
 import { CPU_REDUCTION, FlatMap, type MapState } from './flat-map';
-import { lonLatDegToUnit } from '../editor/editing';
+import { lonLatDegToUnit, unitToLonLatDeg } from '../editor/editing';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -31,6 +31,10 @@ export interface MapUi {
   pick(clientX: number, clientY: number): [number, number, number] | null;
   /** The element that receives the pointer events of the flat map. */
   readonly element: HTMLElement;
+  /** The brush ring (Phase 5c): the small circle of `points` (unit vectors, xyz interleaved) projected under the current view; null hides it. */
+  setRing(points: ArrayLike<number> | null): void;
+  /** The ring's SVG path data (test hook), '' when hidden. */
+  ringPath(): string;
   /** Resolves when the map and its overlays are drawn for the current state. */
   rendered(): Promise<void>;
   /** Exports with the current controls; resolves with the file's bytes (also offered for download) and the kernel args. */
@@ -213,6 +217,20 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
   $('exportHeightmap').addEventListener('click', () => { void exportHeightmap().catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
   $('exportSvg').addEventListener('click', () => { void exportSvg().catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
 
+  // Brush ring: one SVG path in its own element above the map, redrawn on pointer moves (not with the map draw).
+  const ringSvg = $<HTMLElement>('mapRing'), ringEl = ringSvg.querySelector('path')!;
+  let ringView: { key: string; view: ProjectionView } | undefined;
+  function setRing(points: ArrayLike<number> | null): void {
+    if (!points || !flat.ready) { ringEl.setAttribute('d', ''); return; }
+    const [W, H] = flat.size(), st = state(), key = `${W}x${H} ${JSON.stringify(st)}`;
+    if (ringView?.key !== key) ringView = { key, view: FlatMap.view(st, W, H) };
+    const n = points.length / 3, coords: [number, number][] = [];
+    for (let i = 0; i <= n; i++) { const k = i % n; coords.push(unitToLonLatDeg(points[3 * k]!, points[3 * k + 1]!, points[3 * k + 2]!)); }
+    ringSvg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    ringEl.setAttribute('stroke-width', String(Math.max(1.5, W / 500)));
+    ringEl.setAttribute('d', pathFor(ringView.view)({ type: 'LineString', coordinates: coords }) ?? '');
+  }
+
   syncParallels(true);
   show();
   return {
@@ -238,5 +256,7 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
     },
     exportHeightmap,
     exportSvg,
+    setRing,
+    ringPath: () => ringEl.getAttribute('d') ?? '',
   };
 }

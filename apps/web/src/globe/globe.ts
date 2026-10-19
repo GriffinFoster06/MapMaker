@@ -16,6 +16,7 @@ export class Globe {
   private mesh: THREE.Mesh | undefined;
   private color: Float32Array | undefined;
   private frame = 0;
+  private ring: THREE.LineLoop | undefined;
 
   constructor(readonly canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
@@ -85,6 +86,38 @@ export class Globe {
     (this.mesh.material as THREE.Material).dispose();
     this.mesh = undefined;
   }
+
+  /**
+   * The brush ring (Phase 5c): a closed line through `points` (canonical unit vectors, xyz interleaved), lifted 0.2% above
+   * the surface; null hides it. One small buffer, redrawn with the globe; no change to the world geometry.
+   */
+  setRing(points: ArrayLike<number> | null): void {
+    if (!points) {
+      if (this.ring) this.ring.visible = false;
+      this.render();
+      return;
+    }
+    const n = points.length / 3, lift = 1.002;
+    if (!this.ring || (this.ring.geometry.getAttribute('position') as THREE.BufferAttribute).count !== n) {
+      this.ring?.geometry.dispose();
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(3 * n), 3));
+      if (this.ring) this.ring.geometry = g;
+      else {
+        this.ring = new THREE.LineLoop(g, new THREE.LineBasicMaterial({ color: 0xffffff }));
+        this.ring.frustumCulled = false;
+        this.scene.add(this.ring);
+      }
+    }
+    const a = this.ring.geometry.getAttribute('position') as THREE.BufferAttribute;
+    for (let i = 0; i < n; i++) a.setXYZ(i, points[3 * i]! * lift, points[3 * i + 2]! * lift, -points[3 * i + 1]! * lift);
+    a.needsUpdate = true;
+    this.ring.visible = true;
+    this.render();
+  }
+
+  /** Number of points of the visible brush ring (test hook), 0 when hidden. */
+  ringPoints(): number { return this.ring?.visible ? (this.ring.geometry.getAttribute('position') as THREE.BufferAttribute).count : 0; }
 
   /** Turns the orbit controls off while an editing tool is active (a drag then paints instead of rotating). */
   setControlsEnabled(on: boolean): void { this.controls.enabled = on; }
