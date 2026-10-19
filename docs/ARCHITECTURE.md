@@ -975,7 +975,7 @@ Added at Checkpoint 1 (D5):
 
 ### Phase 5c: Cartography v1 (Q14; note 18)
 
-**Prerequisite:** audit the candidate upstreams mapgen4 and mewo2/terrain first (`audit/CAPABILITY_MATRIX.md`, Candidate upstreams to audit). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
+**Prerequisite:** audit the candidate upstreams mapgen4 and mewo2/terrain first (`audit/CAPABILITY_MATRIX.md`, Candidate upstreams to audit). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`. **Done 2026-10-19: `audit/mapgen4.md`, `audit/mewo2-terrain.md`; no pick changes.**
 
 - A style system (`styles/`, note 18): layer-to-symbol rules, palettes, hillshade and relief shading, coastline and river rendering, graticules, scale bars, legends and labels (with collision handling), for the globe and every projection.
 - **Label placement:** port Azgaar's `src/controllers/label-spread.ts` (MIT TypeScript, seeded) first, replacing its SVG DOM text measurement with our own font metrics and adapting its screen-space solver to a run keyed by style and viewport (note 18 §3.3). QGIS PAL is a later, richer option (polygon, line and curved placement), not part of this phase.

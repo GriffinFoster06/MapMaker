@@ -410,8 +410,8 @@ These are not in `upstream-manifest.json` yet. Each needs an audit in `audit/` (
 | Candidate | Why | Note | Audit before |
 |---|---|---|---|
 | watabou TownGeneratorOS (Medieval Fantasy City Generator) | Town layouts: wards, walls, streets | 34 | Phase 11b |
-| redblobgames mapgen4 | Painterly terrain rendering, fast interactive maps | 18 | Phase 5c |
-| mewo2/terrain (Martin O'Leary) | Fantasy map style and label placement | 18 | Phase 5c |
+| redblobgames mapgen4 | Painterly terrain rendering, fast interactive maps | 18 | **Audited 2026-10-19 (Phase 5c): `audit/mapgen4.md`.** Apache-2.0, in the manifest; reference only, no pick displaced; depth-edge relief outline is the idea to borrow |
+| mewo2/terrain (Martin O'Leary) | Fantasy map style and label placement | 18 | **Audited 2026-10-19 (Phase 5c): `audit/mewo2-terrain.md`.** MIT, in the manifest; greedy placement does not beat Azgaar `label-spread.ts`; style reference only |
 | gen3sis | Eco-evolutionary simulation on paleo-landscapes | 27 | Phase 9d |
 | GISS ModelE / ROCKE-3D, ExoCAM | Exoplanet and paleoclimate GCMs | 24 | Phase 8b |
 | FastScape | Fast landscape evolution (couples with ASPECT) | erosion, 21 | Phase 7 |

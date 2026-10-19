@@ -65,8 +65,8 @@ Totals: 16 done, 3 partly done, 11 deferred (30).
 
 | Candidate | State | Audit before |
 |---|---|---|
-| redblobgames mapgen4 | Deferred | Phase 5c |
-| mewo2/terrain | Deferred | Phase 5c |
+| redblobgames mapgen4 | Done (`audit/mapgen4.md`, 2026-10-19) | — |
+| mewo2/terrain | Done (`audit/mewo2-terrain.md`, 2026-10-19) | — |
 | FastScape | Deferred | Phase 7 |
 | GISS ModelE / ROCKE-3D, ExoCAM | Deferred | Phase 8b |
 | gen3sis | Deferred | Phase 9d |
