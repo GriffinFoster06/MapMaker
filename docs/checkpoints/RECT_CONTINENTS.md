@@ -2,6 +2,8 @@
 
 Investigation, 2026-10-19. Tools: `tools/tuning/earthlike/shape.mjs` (metrics), `rect-probe.mjs` (final worlds), `rect-stages.mjs` (per stage). No code under `packages/` was changed.
 
+**User clarification (2026-10-19):** the defect is "blobby", with shapes that never occur on Earth, not literally rectangular. This matches finding 2 (compactness). The user expects Phase 6b (forward plate evolution) to improve it; Phase 6b's checkpoint should therefore include box fill and straight-coast share against the Earth bands as an explicit check, not an assumption.
+
 ## Method
 
 The land mask of a world is rasterised to a 0.25° equirectangular grid (exact nearest cell). Per landmass of at least 2×10⁵ km²: **box fill** = area / area of its axis-aligned lat/lon bounding box (1 for a rectangle). For the coastline (|lat| < 75°): **straight** = share of length in stretches of 24 consecutive coast edges (about 480 to 670 km) that stay within 1.5 px of their chord, and **axisStraight** = the subset running along a parallel or meridian. Earth is measured the same way from the repo's Earth heightmap (`vendor/assets/earth.png`, imported at N = 200k). Earth is one sample, so only large differences count.
