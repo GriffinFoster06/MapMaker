@@ -17,7 +17,7 @@ MapMaker is a personal, non-commercial project. The goal is the most complete re
 1. **Realistic core first.** The default world follows physics, ecology and history as closely as the models allow. Simplifications are documented, calibrated against Earth, and replaceable by better models later.
 2. **The sphere is the only truth.** Flat maps, regional maps, city maps and exports are views of one canonical world.
 3. **Everything is a parameter or an edit.** No hidden constants: every tunable value is a documented parameter, and every generated value can be overridden by a recorded edit.
-4. **Deterministic and exactly resumable.** The same seed, parameters, edits and modules give the same world, bit for bit, on every supported browser and OS. A save resumes exactly.
+4. **Deterministic and exactly resumable.** The same seed, parameters, edits and modules give the same world, bit for bit, on every supported browser (Firefox, Chromium) and OS (macOS, Windows). A save resumes exactly.
 5. **Fantasy is a layer, never a corruption.** Fantasy rules are switchable modules on top of the realistic core. With every module off, the world is the realistic world, unchanged.
 6. **Earth recovery is the acceptance bar.** A system is "done" when it passes its Earth test, not when it looks plausible.
 7. **Usable throughout.** The app is a usable tool from early on. Simulation depth is added phase by phase behind a working editor and map renderer (ARCHITECTURE.md Q14).
@@ -25,9 +25,7 @@ MapMaker is a personal, non-commercial project. The goal is the most complete re
 
 ## Deliverable
 
-- A browser app, deployable on GitHub Pages if feasible.
-- A desktop wrapper only where performance demands it. The browser build is the default target; desktop is a fallback, not a parallel product.
-- Must work on Windows and Mac.
+- Desktop software for macOS and Windows (decision W7). The app is developed in the browser (Firefox, plus Chromium because the planned Electron wrapper is Chromium) and packaged with Electron after Checkpoint 5c (Q4, P4). WebKit/Safari, Linux as a supported target, mobile and public web hosting are out of scope for good.
 - Offline support is not required. It is welcome if it comes cheaply, for example through a service worker once the app is large.
 - Open source, free and personal (non-commercial). Licences do not restrict which upstream code is used, but the licence of every extracted repo is still recorded (see `upstream-manifest.json` and `PROVENANCE.md`).
 

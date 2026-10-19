@@ -52,7 +52,7 @@ Phase 5 M0 spent most of its effort on a one-off measurement item (about 24 brow
   - Once per milestone, before the commit: `lint`, `typecheck`, full `test`, `provenance:check`.
   - `build` and `e2e` only when `apps/web`, the engine protocol, the probe or the build config changed, and at each phase checkpoint.
   - The nine-world bit-identity comparison (200k, 1M, 2.56M × seeds 1, 777, 12345) only when code under `packages/core/src/mesh`, `multilevel`, `packages/gen-orogen` or `packages/engine` changed; one run per milestone, not per edit.
-  - CI on GitHub covers Windows and macOS; do not try to reproduce other OSes locally.
+  - CI on GitHub covers macOS and Windows (Windows: Node checks only, no GPU) plus Ubuntu for main CI; Playwright e2e runs on macOS and Ubuntu in Chromium and Firefox (decision W7). Do not try to reproduce other OSes locally.
 - **Read narrowly.** `grep -n` and `sed -n 'a,bp'` instead of whole files; do not re-read a file already in context; pipe command output through `tail`/`grep`.
 - **Batch tool calls.** Independent reads and commands in one step.
 - **No polling.** No monitors, sleep loops or repeated status checks. Start a long job, do other work, check once.
@@ -107,5 +107,6 @@ Update the checkpoint table in `STATUS.md` (one line) and `docs/RESUME.md`.
 ## 10. Safety and permissions
 
 - `.claude/settings.json` allows routine development commands and denies force-push, pushes to `main`, `git reset --hard`, `git clean`, `rm -rf`, `sudo`, and edits to `upstream/` and `packages/gen-orogen/vendor/`. If a routine command prompts, run `/permissions` and allow it; do not work around a deny.
+- Scope (decision W7): personal project, desktop software for macOS and Windows; Firefox and Chromium only. No WebKit/Safari, no Linux support target, no public hosting. This supersedes any three-browser or web-hosting wording in earlier checkpoints.
 - The user should enable branch protection on `main` on GitHub (require a pull request) as the backstop.
 - Nothing here lets the agent contact other people, publish, or deploy.

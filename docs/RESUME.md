@@ -4,7 +4,7 @@ The living state of the project for any agent starting a session. **Update this 
 
 - **Last updated:** 2026-10-19, by the local agent (Claude Code), at Checkpoint 5 (M5 done; PR #8 ready for review).
 - **Authorized through: Checkpoint 5c and Q4** (end of Phase 5c, Cartography v1, then the Electron desktop app for macOS and Windows). Edit this line to extend or shorten; the agent never goes past it.
-- **Suggested model/effort for the next batch:** Sonnet 5.5 medium for M3 and M5; Opus 5.5 medium for M4 (GLSL and cross-browser float32), high only after a failed attempt.
+- **Suggested model/effort for the next batch:** Sonnet 5.5 medium for M3 and M5; Opus 5.5 medium for M4 (GLSL and float32 in Chromium and Firefox), high only after a failed attempt.
 
 ## Branches
 
@@ -20,7 +20,7 @@ Do in this order; milestones commit and push separately.
 
 1. ~~**Rulings first**~~ **done** (`ca50aae`; §3.7 rule 3 corrected in `2e77a5a`). Was (decision 5-4): plain 16-bit greyscale PNG by default, outside pixels = 0 recorded in the text chunk, transparent-outside as an option; say in the commit that the `fd.projection` probe hashes are re-recorded because they are new in this phase and that no pre-Phase-5 hash changed. Correct `docs/ARCHITECTURE.md` §3.7 rule 3 (decision 5-6).
 2. ~~**M3, vector path**~~ **done** (`2e77a5a`). Was: graticule, exact coastlines traced along land/sea cell edges, the Tissot overlay (true indicatrix shapes from `geoCircle`, plus the ellipse axes), distortion overlays; all through `geoPath`. Interactive display may use stock d3; anything exported (SVG or PNG) goes through the exact path. Tests: pole (±90°) and antimeridian cases, the World-hash guard.
-3. ~~**M4, GPU shaders**~~ **done** (decisions 5-9 to 5-14). Was (Opus medium): GLSL ports of the inverse formulas for the set in decision 5-5 (using three); data lookup through a triangle-id cube map plus a bounded walk across neighbouring triangles, matching the CPU path except where float32 precision falls exactly on a triangle edge; other projections fall back to the CPU path at reduced resolution. Tests: each GLSL inverse against d3 `invert`, shader-versus-d3 pixel difference, in Chromium, Firefox and WebKit.
+3. ~~**M4, GPU shaders**~~ **done** (decisions 5-9 to 5-14). Was (Opus medium): GLSL ports of the inverse formulas for the set in decision 5-5 (using three); data lookup through a triangle-id cube map plus a bounded walk across neighbouring triangles, matching the CPU path except where float32 precision falls exactly on a triangle edge; other projections fall back to the CPU path at reduced resolution. Tests: each GLSL inverse against d3 `invert`, shader-versus-d3 pixel difference, in Chromium and Firefox (WebKit dropped, W7).
 4. ~~**M5, app and checkpoint**~~ **done** (decision 5-15; `docs/checkpoints/CHECKPOINT_5.md`). Was: globe/flat-map switch, projection and rotation controls, distortion and Tissot overlays, Export heightmap button; end-to-end tests; `docs/checkpoints/CHECKPOINT_5.md` (template in the guide §9, including the M0 memory outcome and R8 as a Phase 7 item). Phase 5 tests (ARCHITECTURE §7): analytic distortion values, distortion at ±90°, pole and antimeridian pixel tests, shader versus d3 `invert`, projection switching leaves every World hash unchanged.
 5. ~~Open the PR~~ **done**: PR #8 `phase-5` → `main`, ready for review. **Stopped here: Checkpoint 5 is the authorization limit.**
 
@@ -38,6 +38,7 @@ Do in this order; milestones commit and push separately.
 
 ## Waiting on the user
 
+- **Scope W7 feature-level candidates** (no feature removed; your call): (1) globe pinch/touch zoom, README.md:55: keep, it costs nothing and mouse wheel still works; (2) WebGPU "where available" preview paths (ARCHITECTURE.md §6.3, note 18, note 38): drop the cross-vendor testing, keep the option; Electron's Chromium makes it viable later; (3) offline/service worker and the PWA/OPFS next steps in Q18 (REQUIREMENTS.md:31): drop the PWA, keep OPFS or file storage as an Electron concern; (4) the Diagnostics determinism panel in the app: keep, it is cheap; (5) the URL-held settings (shareable links): keep, it doubles as presets. Full list: decision W7.
 - Review Checkpoint 5 (`docs/checkpoints/CHECKPOINT_5.md`) and merge PR #8.
 - Confirm Phase 5 and extend **Authorized through** to start Q1 to Q3, 5b and 5c.
 

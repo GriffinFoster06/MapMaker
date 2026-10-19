@@ -18,10 +18,17 @@ export default defineConfig({
   use: { baseURL: remote ? (remote.endsWith('/') ? remote : remote + '/') : `http://127.0.0.1:${PORT}/` },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    // Headless Firefox on Linux has no WebGL (no GL context without a display), so the globe test cannot run there.
-    // FIREFOX_HEADED=1 runs it headed instead; CI sets it under xvfb-run on Linux (docs/benchmarks/NOTES.md).
-    { name: 'firefox', use: { ...devices['Desktop Firefox'], ...(process.env['FIREFOX_HEADED'] ? { headless: false } : {}) } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    // Supported browsers: Firefox (development) and Chromium (Electron's engine); decision W7. No WebKit.
+    // Headless Firefox on Linux has no hardware GL; FIREFOX_HEADED=1 runs it headed instead (CI: xvfb-run on Linux).
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+        ...(process.env['FIREFOX_HEADED'] ? { headless: false } : {}),
+        // Software WebGL2 on runners without a GPU (Firefox otherwise blocklists the driver).
+        launchOptions: { firefoxUserPrefs: { 'webgl.force-enabled': true, 'webgl.disabled': false, 'webgl.enable-webgl2': true, 'layers.acceleration.force-enabled': true } },
+      },
+    },
   ],
   ...(remote ? {} : {
     webServer: {

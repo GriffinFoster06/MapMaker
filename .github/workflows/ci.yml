@@ -53,9 +53,10 @@ jobs:
             tools/tuning/results/ab/
           retention-days: 30
 
-  # Q3: cross-engine bit-exactness is a CI-tested goal. The same probe runs in Node and in Chromium, Firefox and
-  # WebKit on Linux, macOS and Windows/x64 (the one platform spike 1a could not test), and is compared with
-  # tools/determinism/golden.json. Strict keys must match everywhere: RNG, topology, history, and every `fd.` key (the
+  # Q3: bit-exactness is a CI-tested goal (scope: decision W7). The probe runs in Node on Ubuntu, macOS and Windows/x64
+  # and in Chromium and Firefox on Ubuntu and macOS, and is compared with tools/determinism/golden.json. The Windows
+  # runner has no GPU, so it runs Node checks only (lint, typecheck, unit tests, the Node probe); no Playwright.
+  # Strict keys must match everywhere: RNG, topology, history, and every `fd.` key (the
   # whole probe re-run with dmath.mode = 'fdlibm', including Float64 points, areas, circumcentres, the dmath sweep and
   # a 1M-cell mesh). Native-mode libm-dependent keys are reported only.
   determinism:
@@ -72,16 +73,22 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - if: runner.os == 'Windows'
+        run: |
+          npm run lint
+          npm run typecheck
       - name: Unit tests (include the mesh and RNG golden hashes)
         run: npm test
       - name: Node probe
         shell: bash
         run: npm run probe 2>&1 | tee probe-node-${{ matrix.os }}.txt
       - name: Install browsers
+        if: runner.os != 'Windows'
         shell: bash
         run: |
-          if [ "${{ runner.os }}" = "Linux" ]; then npx playwright install --with-deps chromium firefox webkit; else npx playwright install chromium firefox webkit; fi
-      - name: Browser probes and COOP/COEP shim tests
+          if [ "${{ runner.os }}" = "Linux" ]; then npx playwright install --with-deps chromium firefox; else npx playwright install chromium firefox; fi
+      - name: Browser probes, flat-map and globe e2e (Chromium, Firefox)
+        if: runner.os != 'Windows'
         shell: bash
         # Headless Firefox on Linux has no WebGL, so on Linux Firefox runs headed on a virtual display (playwright.config.ts).
         run: |

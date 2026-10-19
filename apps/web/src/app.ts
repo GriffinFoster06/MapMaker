@@ -99,7 +99,15 @@ function buildSettings(initial: Record<string, number>, onChange: () => void): {
 export function startApp(): void {
   const worker = new Worker(new URL('./engine-worker.ts', import.meta.url), { type: 'module' });
   const client = new EngineClient(worker as unknown as PortLike);
-  const globe = new Globe($<HTMLCanvasElement>('globe'));
+  // Without WebGL2 there is no globe; the flat map still works on its CPU path, so say so and start in the flat view.
+  let globe: Globe | null = null;
+  try { globe = new Globe($<HTMLCanvasElement>('globe')); } catch (e) {
+    console.error(e);
+    const viewMode = $<HTMLSelectElement>('viewMode');
+    viewMode.value = 'flat';
+    viewMode.querySelector<HTMLOptionElement>('option[value="globe"]')!.disabled = true;
+    $('webglNotice').hidden = false;
+  }
   const flat = new FlatMap(client, $<HTMLCanvasElement>('mapGpu'), $<HTMLCanvasElement>('mapCpu'));
   const ui = startMapUi(client, flat, $<HTMLCanvasElement>('globe'));
 
@@ -135,8 +143,7 @@ export function startApp(): void {
   async function paint(id: string): Promise<void> {
     const layer = layers.find((l) => l.id === id)!;
     const data = await client.layers(layer.need);
-    layer.paint(data, globe.colors);
-    globe.colorsChanged();
+    if (globe) { layer.paint(data, globe.colors); globe.colorsChanged(); }
     flat.setLayer(layer.flat(data));
     ui.layerChanged();
   }
@@ -165,7 +172,7 @@ export function startApp(): void {
       const tEnd = performance.now();
       close(tEnd);
       const mesh = await client.meshData();
-      globe.setMesh(mesh);
+      globe?.setMesh(mesh);
       flat.setWorld(mesh);
       ui.worldChanged();
       await paint(sel.value);
@@ -241,8 +248,8 @@ export function startApp(): void {
       const arrays: TypedArray[] = layer.need.flatMap((n) => data[n]!);
       return sha256(arrays.map((a) => bytesOf(a)));
     },
-    litFraction: () => globe.litFraction(),
-    pixelSum: () => globe.pixelSum(),
+    litFraction: () => globe?.litFraction() ?? 0,
+    pixelSum: () => globe?.pixelSum() ?? 0,
     layers: layers.map((l) => l.id),
   };
 }
