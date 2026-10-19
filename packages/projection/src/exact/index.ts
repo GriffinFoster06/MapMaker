@@ -5,7 +5,7 @@
 import * as geo from 'virtual:d3-geo-dmath';
 import * as proj from 'virtual:d3-geo-projection-dmath';
 import { buildRegistry, type ProjectionSpec } from '../registry';
-import { type HeightMapping, type HeightmapExport, heightmapPng } from '../png';
+import { type HeightMapping, type HeightmapExport, type HeightmapOptions, heightmapPng } from '../png';
 import type { MeshSampler } from '../sampler';
 import { ProjectionView, type ViewOptions } from '../view';
 
@@ -15,6 +15,6 @@ export const EXACT_PROJECTIONS: readonly ProjectionSpec[] = buildRegistry({ geo,
 export const exactView = (opts: Omit<ViewOptions, 'registry'>) => new ProjectionView({ ...opts, registry: EXACT_PROJECTIONS });
 
 /** The 16-bit heightmap export (png.ts), always through an exact view. */
-export function exportHeightmap(opts: Omit<ViewOptions, 'registry'>, sampler: MeshSampler, elevationM: ArrayLike<number>, mapping: HeightMapping): HeightmapExport {
-  return heightmapPng(exactView(opts), sampler, elevationM, mapping);
+export function exportHeightmap(opts: Omit<ViewOptions, 'registry'>, sampler: MeshSampler, elevationM: ArrayLike<number>, mapping: HeightMapping, png: HeightmapOptions = {}): HeightmapExport {
+  return heightmapPng(exactView(opts), sampler, elevationM, mapping, png);
 }

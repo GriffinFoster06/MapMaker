@@ -100,18 +100,29 @@ describe('heightmap export through the exact path', () => {
       expect(d.chunks[0]).toBe('IHDR');
       expect(d.chunks.at(-2)).toBe('IDAT');
       expect([d.width, d.height]).toEqual([160, 80]);
-      const outside = metres.some(Number.isNaN);
-      expect(d.colourType, projection).toBe(outside ? 4 : 0);
-      for (let i = 0; i < metres.length; i++) {
-        if (Number.isNaN(metres[i]!)) { expect(d.alpha![i]).toBe(0); expect(d.grey[i]).toBe(0); continue; }
-        if (d.alpha) expect(d.alpha[i]).toBe(65535);
-        expect(d.grey[i]).toBe(quantise(mapping, metres[i]!));
-      }
+      const nOut = metres.filter(Number.isNaN).length;
+      expect(d.colourType, projection).toBe(0);
+      expect(d.alpha).toBeNull();
+      for (let i = 0; i < metres.length; i++) expect(d.grey[i]).toBe(Number.isNaN(metres[i]!) ? 0 : quantise(mapping, metres[i]!));
+      expect(d.texts['MapMaker.outside']).toBe(`${nOut} pixels outside the projection's domain, written as grey 0`);
+      if (projection === 'mollweide') expect(nOut).toBeGreaterThan(0);
       const range = mapping.kind === 'absolute' ? '-5000 6000' : mapping.kind === 'land' ? '0 6000' : '-2500 4500';
       expect(d.texts['MapMaker.range_m']).toBe(range);
       expect(d.texts['MapMaker.mapping']).toBe(mapping.kind === 'land' ? 'land (ocean = 0)' : mapping.kind);
       expect(d.texts['MapMaker.projection']).toBe(`${projection} rotate 0 0 0`);
     }
+  });
+
+  it("with outside: 'transparent', grey + alpha (colour type 4), alpha 0 exactly outside the domain", () => {
+    const { png, metres } = exportHeightmap({ projection: 'mollweide', width: 160, height: 80 }, S, ELEV, { kind: 'absolute' }, { outside: 'transparent' });
+    const d = decode(png);
+    expect(d.colourType).toBe(4);
+    for (let i = 0; i < metres.length; i++) {
+      const out = Number.isNaN(metres[i]!);
+      expect(d.alpha![i]).toBe(out ? 0 : 65535);
+      expect(d.grey[i]).toBe(out ? 0 : quantise({ kind: 'absolute' }, metres[i]!));
+    }
+    expect(d.texts['MapMaker.outside']).toMatch(/^\d+ pixels outside the projection's domain, written as alpha 0$/);
   });
 
   it('the raster is the barycentric sample of elevation through the exact view', async () => {
@@ -134,9 +145,9 @@ describe('heightmap export through the exact path', () => {
   });
 });
 
-/** Recorded when the exporter was written (Phase 5 M2); also checked in every browser by the determinism probe. */
+/** Recorded in Phase 5 M2, re-recorded for the M2 ruling (colour type 0 by default, MapMaker.outside text); also checked in every browser by the determinism probe. */
 const GOLDEN: Record<string, string> = {
-  equirectangular: 'ac08768473a1955a4da52edae82aec8b256c77d60e73171934768822fc654f12',
-  mollweide: '9b2a83ac3da51b4a69f31946206c4195b60cad219f2e8dae093c4bbbc7f51eee',
-  orthographic: 'ad1c2cbfe8181ee536eb5cecc6848093e4ec7ee4d604518df466fc39ebf6defb',
+  equirectangular: 'a3e8094a393cc88738c108f8864bd1bf864735f7aece243c320fcc44fb497932',
+  mollweide: '6b290ee2e9aea62b82ed36ab00f0496f4be44265e354008dff5bbf4a6d470300',
+  orthographic: '24e9e1d4804cf69725a0ee271dbc798068579fc97494c6fd1b2e194569b011f6',
 };

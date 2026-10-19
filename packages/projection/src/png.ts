@@ -2,8 +2,9 @@
 // The encoder is ported from orogen (upstream/orogen/js/planet-mesh.js @ cc2662b, encode16BitGrayscalePNG, _pngChunk,
 // _crc32; GPL-3.0): the same CRC table, chunk layout, IHDR (bit depth 16), filter-0 scanlines and big-endian samples.
 // Changes: zlib compression by fflate's zlibSync (pure JS, so the bytes are identical on every engine) instead of the
-// browser's CompressionStream; tEXt chunks recording the mapping; and, when some pixels lie outside the projection's
-// domain, colour type 4 (grey + alpha, alpha 0 outside) instead of type 0.
+// browser's CompressionStream; tEXt chunks recording the mapping, the view and the outside-pixel rule. Pixels outside the
+// projection's domain are 0 in colour type 0 (the default, as orogen writes), or, with `outside: 'transparent'`, alpha 0
+// in colour type 4 (grey + alpha).
 //
 // Mappings (orogen's two, plus a custom range): metres → t ∈ [0, 1] → round(t · 65535) as orogen quantises
 // (Math.max(0, Math.min(65535, (t·65535 + 0.5) | 0))):
@@ -100,6 +101,11 @@ export function encodePng16(width: number, height: number, grey: Uint16Array, al
   return png;
 }
 
+export interface HeightmapOptions {
+  /** Pixels outside the projection's domain: grey 0 in colour type 0 (default), or alpha 0 in colour type 4. */
+  outside?: 'zero' | 'transparent';
+}
+
 export interface HeightmapExport {
   png: Uint8Array;
   /** The sampled elevation in metres, NaN outside the domain (the raster the PNG was quantised from). */
@@ -107,32 +113,34 @@ export interface HeightmapExport {
 }
 
 /** Quantises a sampled metre raster (NaN outside) and encodes it with the mapping and view recorded as text. */
-export function heightmapPngFromRaster(view: ProjectionView, metres: Float64Array, mapping: HeightMapping): Uint8Array {
+export function heightmapPngFromRaster(view: ProjectionView, metres: Float64Array, mapping: HeightMapping, opts: HeightmapOptions = {}): Uint8Array {
+  const transparent = opts.outside === 'transparent';
   const [lo, hi] = mappingRange(mapping);
   if (!(Number.isFinite(lo) && Number.isFinite(hi) && hi > lo)) throw new Error(`heightmapPng: bad range ${lo}..${hi} m`);
   const n = view.width * view.height;
   if (metres.length !== n) throw new Error(`heightmapPng: raster of ${metres.length} for ${view.width}×${view.height}`);
   const grey = new Uint16Array(n);
-  let outside = false;
+  let outside = 0;
   const inside = new Uint8Array(n);
   for (let i = 0; i < n; i++) {
     const m = metres[i]!;
-    if (Number.isNaN(m)) { outside = true; continue; }
+    if (Number.isNaN(m)) { outside++; continue; }
     inside[i] = 1;
     grey[i] = quantise(mapping, m);
   }
   const rot = view.projection.rotate();
-  return encodePng16(view.width, view.height, grey, outside ? inside : null, [
+  return encodePng16(view.width, view.height, grey, transparent ? inside : null, [
     ['Software', 'MapMaker'],
     ['MapMaker.layer', 'elevation'],
     ['MapMaker.mapping', mapping.kind === 'land' ? 'land (ocean = 0)' : mapping.kind],
     ['MapMaker.range_m', `${lo} ${hi}`],
     ['MapMaker.projection', `${view.spec.id} rotate ${rot.join(' ')}`],
+    ['MapMaker.outside', `${outside} pixels outside the projection's domain, written as ${transparent ? 'alpha 0' : 'grey 0'}`],
   ]);
 }
 
 /** Samples elevation (metres per cell) through an exact view and encodes the 16-bit heightmap. */
-export function heightmapPng(view: ProjectionView, sampler: MeshSampler, elevationM: ArrayLike<number>, mapping: HeightMapping): HeightmapExport {
+export function heightmapPng(view: ProjectionView, sampler: MeshSampler, elevationM: ArrayLike<number>, mapping: HeightMapping, opts: HeightmapOptions = {}): HeightmapExport {
   const metres = sampleRaster(view, sampler, elevationM, 'barycentric');
-  return { png: heightmapPngFromRaster(view, metres, mapping), metres };
+  return { png: heightmapPngFromRaster(view, metres, mapping, opts), metres };
 }

@@ -1,7 +1,7 @@
 // Engine-worker kernels of the exact path (ARCHITECTURE §3.7, §6.1): the CPU inverse sampler and the heightmap export
 // run where the World lives, through the `worldKernel` op. They only read the World.
 import { type SphereMesh, type World } from '@mapmaker/core';
-import { type HeightMapping, heightmapPngFromRaster } from '../png';
+import { type HeightMapping, type HeightmapOptions, heightmapPngFromRaster } from '../png';
 import { MeshSampler, rowBands, sampleRaster } from '../sampler';
 import type { ViewOptions } from '../view';
 import { exactView } from './index';
@@ -9,7 +9,7 @@ import { exactView } from './index';
 export type ViewSpec = Omit<ViewOptions, 'registry'>;
 
 export interface SampleArgs { view: ViewSpec; layer: string; mesh?: string; y0?: number; y1?: number }
-export interface HeightmapArgs { view: ViewSpec; mapping: HeightMapping; mesh?: string }
+export interface HeightmapArgs { view: ViewSpec; mapping: HeightMapping; mesh?: string; png?: HeightmapOptions }
 
 const samplers = new WeakMap<SphereMesh, MeshSampler>();
 const samplerFor = (m: SphereMesh) => {
@@ -39,6 +39,6 @@ export const projectionKernels = {
     const view = exactView(a.view);
     const metres = new Float64Array(view.width * view.height);
     for (const b of rowBands(view.height, EXPORT_ROWS)) metres.set(layerRaster(world, a.view, 'elevation', a.mesh, b.y0, b.y1), b.y0 * view.width);
-    return heightmapPngFromRaster(view, metres, a.mapping);
+    return heightmapPngFromRaster(view, metres, a.mapping, a.png);
   },
 } satisfies Record<string, (world: World, args: never) => unknown>;
