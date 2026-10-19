@@ -91,6 +91,10 @@ Decision Q17; §7.0 assigns tests to phases.
 - The Earth tests are developer tooling, but the user sees them too: an "Earth check" panel can run the T1 statistics on any world and show how Earth-like it is, metric by metric. This turns realism into something the user can inspect for their own worlds.
 - The "Earth" preset (note 17) is, by definition, the parameter set that passes T1.
 
+## 10. Scope notes (decisions P1, P2)
+
+**No seed reproduces Earth's actual coastlines** (decision P1): the seed is a state of at most about 2.1 billion values, and even a coarse match to Earth's layout has odds of roughly 1 in 10¹⁵ per world (a rough illustration, not a measurement). "Earth conditions give back Earth" means statistical similarity (T1), pinned real data (T2) and deep-time statistics (T3). Exact geography comes from importing real data (Phase 11). An **Earth-like preset** of the generation settings, found by a sweep against Earth statistics (decision P2), is an early deliverable; it changes no default.
+
 ## 9. Earth-recovery test
 
 This note *is* the Earth-recovery test. Its own acceptance: at Phase 18, every domain built so far has at least one T1 or T2 metric at or above its target, and every T3 and T4 metric is within its stated band.

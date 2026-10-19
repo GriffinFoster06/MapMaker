@@ -995,6 +995,9 @@ Added at Checkpoint 1 (D5):
 - Continuous seasons (design note 11).
 - **Q7 baseline rule:** any change to the climate model (the parameter mapping, seasons, or downscaling) re-records the Q7 A/B baseline in the **same commit**.
 
+- **Known defect (decision P3, 2026-10-19):** generated continents can look unrealistically rectangular, even with organic settings. Investigated in `docs/checkpoints/RECT_CONTINENTS.md` (queue item Q2) before this phase; Phase 6b's plate evolution may also change shapes. Metrics: share of coastline in long near-straight segments, and each landmass's fit to an axis-aligned box.
+- **Earth-like preset and Electron (decisions P1, P2, P4):** no seed reproduces Earth (statistical similarity only); the Earth-like preset (sweep `tools/tuning/earthlike/`) is repeated after Phase 6b and redone for all parameters in Phase 8. The Electron wrapper (Q4) is packaged after Checkpoint 5c for macOS and Windows.
+
 **Checkpoint 6.** Stop and wait.
 
 ### Phase 6a: Astronomy (note 20)

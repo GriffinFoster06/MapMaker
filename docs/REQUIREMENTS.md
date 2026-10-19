@@ -25,7 +25,7 @@ MapMaker is a personal, non-commercial project. The goal is the most complete re
 
 ## Deliverable
 
-- Desktop software for macOS and Windows (decision W7). The app is developed in the browser (Firefox, plus Chromium because the planned Electron wrapper is Chromium) and packaged with Electron after Checkpoint 5c (Q4, P4). WebKit/Safari, Linux as a supported target, mobile and public web hosting are out of scope for good.
+- Desktop software for macOS and Windows (decision W7). The app is developed in the browser (Firefox, plus Chromium because the planned Electron wrapper is Chromium) and packaged with Electron after Checkpoint 5c (Q4, P4). WebKit/Safari, Linux as a supported target, mobile and public web hosting are out of scope for good. The Electron wrapper (decision P4) is built after Checkpoint 5c as installers for macOS and Windows.
 - Offline support is not required. It is welcome if it comes cheaply, for example through a service worker once the app is large.
 - Open source, free and personal (non-commercial). Licences do not restrict which upstream code is used, but the licence of every extracted repo is still recorded (see `upstream-manifest.json` and `PROVENANCE.md`).
 
@@ -164,6 +164,8 @@ Earth recovery is tested in layers (note 15). Every layer is a permanent regress
 2. **T2, physics given Earth.** Given Earth's real elevation (and plates and ice where needed), the downstream climate, Köppen zones, ocean currents, biomes, hydrology, soils and vegetation match real Earth data.
 3. **T3, deep-time Earth.** Evolving from a Pangaea-like supercontinent with Earth parameters gives Earth-like statistics over deep time: supercontinent cycles, orogen ages, ice ages.
 4. **T4, civilization sanity.** Given Earth's geography, the human layer gives plausible results: population densities, city-size distributions (Zipf), the timing and centres of the spread of agriculture, state sizes and lifetimes, trade-route placement and language-family counts.
+
+**No seed reproduces Earth's actual coastlines** (decision P1): the seed is a state of at most about 2.1 billion values, and even a coarse match to Earth's layout has odds of roughly 1 in 10¹⁵ per world (a rough illustration, not a measurement). "Earth conditions give back Earth" means statistical similarity (T1), pinned real data (T2) and deep-time statistics (T3). Exact geography comes from importing real data (Phase 11). An **Earth-like preset** of the generation settings, found by a sweep against Earth statistics (decision P2), is an early deliverable; it changes no default.
 
 ## Export
 
