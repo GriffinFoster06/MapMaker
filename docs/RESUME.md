@@ -2,12 +2,12 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-19, by the local agent (Claude Code), on `phase-5c`: housekeeping done; 5c starting.
-- **Authorized through: Checkpoint 5c and Q4** (end of Phase 5c, Cartography v1, then the Electron desktop app for macOS and Windows). Edit this line to extend or shorten; the agent never goes past it.
+- **Last updated:** 2026-10-19, by the local agent (Claude Code), on `phase-5c`: Checkpoint 5c reached (`docs/checkpoints/CHECKPOINT_5C.md`, PR #10). Stopped; Q4 not started.
+- **Authorized through: Checkpoint 5c and Q4** (the user wants to review each stage; Q4 starts only on their next prompt) (end of Phase 5c, Cartography v1, then the Electron desktop app for macOS and Windows). Edit this line to extend or shorten; the agent never goes past it.
 
 ## Branches
 
-- `main` includes Phase 5 (PR #8) and Phase 5b (PR #9), both merged. Current work: `phase-5c`.
+- `main` includes Phase 5 (PR #8) and Phase 5b (PR #9), both merged. `phase-5c` (PR #10) waits for review.
 
 ## Done (one line each)
 
@@ -16,13 +16,12 @@ The living state of the project for any agent starting a session. **Update this 
 
 ## Next
 
-- **5c Prerequisite:** audit mapgen4 and mewo2/terrain with prompt 2 in `docs/reconciliation/README.md`.
-- **Phase 5c** per `docs/ARCHITECTURE.md` §7, plus conic projections, a brush cursor and the end-to-end usability check (including save/load of `.mapmaker`). Then stop at Checkpoint 5c.
-- Q4 (Electron wrapper, decision P4) only when the user sends the next prompt.
+- Review and merge PR #10 (Phase 5c). Then, only when the user sends the next prompt: Q4 (Electron wrapper for macOS and Windows, decision P4; native save/load dialogs replace the browser download and file input).
+- Missing for a polished first version, logged not built: settlements and political borders (Phase 18 names are placeholders); more than one font family; globe labels for river and range paths use the plan only; no styled export of the globe view; river drawing threshold is a heuristic.
 
 ## Waiting on the user
 
-- Nothing. (W7 feature-level candidates were ruled on as decision W8.)
+- Review of Checkpoint 5c (`docs/checkpoints/CHECKPOINT_5C.md`). Nothing else.
 
 User-only actions, whenever convenient and never blocking: merge the PRs the agent opens; enable branch protection on `main`; extend **Authorized through**.
 
@@ -38,6 +37,8 @@ You are continuing MapMaker autonomously. Read AGENTS.md, docs/OPERATING_GUIDE.m
 ```
 
 ## Work log (newest first; 2 to 4 lines per milestone)
+
+- 2026-10-19: Phase 5c: conics, brush cursor, `packages/carto` (label-spread port, QGIS hillshade, styles and five themes, cartographic data, SVG overlay, exact styled PNG/SVG), styled GPU layer and globe labels in the app, save/load of `.mapmaker`. Checkpoint 5c written; stopped at the limit.
 
 - 2026-10-19: 5b M3 (editor UI, registry levels/presets, `edit.spec.ts`) and checkpoint 5b written; 380 unit and 18 e2e tests pass. Stopped at the limit.
 - 2026-10-19: M5: flat-map UI (`apps/web/src/flat/map-ui.ts`): globe/flat switch, 16 projections (GPU for 10), rotation, zoom 1–16× and pan, graticule/coastline/Tissot/distortion overlays, heightmap and SVG export through the exact path; `map.spec.ts` checks the exported PNG's bytes against Node in three browsers. Checkpoint 5 written; PR #8 marked ready. Stopped at the limit.

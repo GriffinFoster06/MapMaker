@@ -295,6 +295,44 @@ export function startApp(): void {
   relief.addEventListener('input', restyle);
   ovLabels.addEventListener('change', () => { globeLabels?.schedule(0); });
 
+  // Save and load a .mapmaker file (ARCHITECTURE §5): the worker writes and reads the container; the page only moves bytes.
+  async function refreshAfterLoad(): Promise<void> {
+    const { variant: v, cells } = await client.worldKernel<{ variant: string; cells: number }>('app.info', {});
+    variant = v as Variant;
+    layers = makeLayers(RAW_ELEVATION[variant]!);
+    cartoDataP = undefined;
+    const mesh = await client.meshData();
+    globe?.setMesh(mesh);
+    flat.setWorld(mesh);
+    ui.worldChanged();
+    await paint(sel.value);
+    await editor.refresh();
+    status.textContent = `loaded ${cells.toLocaleString()} cells`;
+  }
+  $('saveWorld').addEventListener('click', () => {
+    void (async () => {
+      const bytes = await client.snapshot();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'application/zip' }));
+      a.download = `world-${seedInput.value || 'x'}.mapmaker`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+      status.textContent = `saved ${(bytes.length / 1e6).toFixed(1)} MB`;
+    })().catch((e: unknown) => { status.textContent = `save failed: ${String(e)}`; });
+  });
+  const loadFile = $<HTMLInputElement>('loadFile');
+  $('loadWorld').addEventListener('click', () => loadFile.click());
+  loadFile.addEventListener('change', () => {
+    const f = loadFile.files?.[0];
+    if (!f) return;
+    void (async () => {
+      const r = await client.load(new Uint8Array(await f.arrayBuffer()));
+      await refreshAfterLoad();
+      if (r.viewOnly) status.textContent += ' (view only: stage versions differ)';
+      loadFile.value = '';
+    })().catch((e: unknown) => { status.textContent = `load failed: ${String(e)}`; });
+  });
+
   async function generateInWorker(opts: GenerateOpts): Promise<{ totalMs: number; stats: WorldStats }> {
     const w = new Worker(new URL('./engine-worker.ts', import.meta.url), { type: 'module' });
     try {
