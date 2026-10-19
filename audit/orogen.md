@@ -34,7 +34,7 @@
 - **Requirements capabilities it could serve**: Globe view (no — uses Three.js sphere geometry, not a projected globe). Flat projections (yes — equirectangular only).
 
 ### 3.2 Heightmap Generation & Tectonics — 12-Stage Pipeline
-- **Where**: js/elevation.js (2615 LOC, 12 sequential stages: computeTectonicState → classifyTerrain → buildSkeleton → ... → fixupTopology), js/plates.js (plate seeding & flood fill), js/coarse-plates.js (coarse reference grid), js/super-plates.js (plate grouping), js/plate-physics.js (collision & stress).
+- **Where**: js/elevation.js (2615 LOC, 13 sequential stages (`elevation.js:2594` "Stage 13 — fill interior seas"; dynamic topography is stage 10 in the banner at `:2410` and stage 11 in the orchestrator at `:2590`; reconciliation group 5b): computeTectonicState → classifyTerrain → buildSkeleton → ... → fixupTopology), js/plates.js (plate seeding & flood fill), js/coarse-plates.js (coarse reference grid), js/super-plates.js (plate grouping), js/plate-physics.js (collision & stress).
 - **What it does**:
   1. **Plate generation** (coarse grid, ~20k regions): Farthest-point seed placement with top-3 jitter (for variety without biasing plate shapes with Irregularity slider). Round-robin flood fill with per-plate growth rates (random 0.3–1.5, clamped by governor), directional bias (random vec per plate, strength inverse to growth rate), compactness penalty (reduces spindly plates), multi-pass boundary smoothing (5–9 passes, scale-dependent), fragment reconnection.
   2. **Ocean/land assignment**: Farthest-point continent seeding, round-robin growth with area budgeting, trapped-sea absorption. Targets ~30% land coverage (tunable via Continents + Land Coverage sliders).
@@ -56,7 +56,7 @@
   - **Hydraulic erosion** (Hydraulic Erosion slider, 0–1): Iterative implicit stream-power erosion (Braun-Willett style). Self-reinforcing river valleys, automatic sediment deposition in flat receivers. Adjustable number of iterations.
   - **Thermal erosion** (Thermal Erosion slider, 0–1): Slope-driven talus transport (angle-of-repose material flow). Softens ridge ridges naturally.
   - **Ridge sharpening** (Ridge Sharpening slider, 0–1): Pushes peaks above surroundings. Selectively accentuates mountain ridgelines.
-  - **Soil creep** (always on, ~0.05 default): Laplacian diffusion. Gentle rounding of hillslopes.
+  - **Soil creep** (always on, no UI slider: a fixed pass of 3 iterations at 0.1125, `generate.js:810`, `planet-worker.js:151`; `planet-code.js` keeps a slot at 0.05): Laplacian diffusion. Gentle rounding of hillslopes.
 - **Quality & realism rating: 4/5** (visually convincing; algorithmically sound but simplified). Domain warping produces realistic fractal coastlines. Bilateral smoothing avoids over-blurring sharp features. Hydraulic erosion with pit resolution ensures proper drainage (known algorithm, Barnes). Thermal erosion (angle-of-repose material transport) is standard. Glacial erosion is simplified (latitude-driven, not explicit ice-sheet simulation). All together produce convincing erosion aesthetics.
 - **Extractability: standalone** — Erosion functions are ~900 LOC of pure mesh manipulation + noise. Import: rng, SimplexNoise, elevation data, mesh. No UI, no rendering deps. Each erosion type (hydraulic, glacial, thermal, etc.) is independently callable. **Effort to port**: low — mesh agnostic (just needs adjacency), can be extracted as pure functions.
 - **Requirements capabilities it could serve**: Erosion, hydrology (pit resolution ensures drainage routing), terrain aesthetics.
@@ -80,7 +80,7 @@
 - **Requirements capabilities it could serve**: Climate (temperature, wind, precipitation, ocean currents), Köppen classification (via temperature + precipitation).
 
 ### 3.6 Köppen Classification & Biomes
-- **Where**: js/koppen.js (~150 LOC), js/color-map.js (biome colors by Köppen).
+- **Where**: js/koppen.js (320 lines; the earlier ~150 was wrong), js/color-map.js (biome colors by Köppen).
 - **What it does**: Implements Köppen-Geiger climate classification. Input: annual temperature, annual precipitation, warmest/coldest month temps, driest/wettest seasons. Output: Köppen code (Af, Am, As, Aw, BWh, BWk, Csa, ..., ET, EF; 30 classes). Color mapping: each class has a signature RGB color (lush green for Af tropical rainforest, tan for BWh hot desert, white for ET/EF tundra/ice, etc.).
 - **Quality & realism rating: 5/5** (standard geospatial classification, well-validated). Directly maps real climate physics (temp + precip) to observed biome distributions. Used in tuning/climate/ to calibrate against real Earth data.
 - **Extractability: standalone** — ~150 LOC, pure function. Input: temperature, precipitation arrays. Output: Köppen code array. No mesh dependencies, no UI.
@@ -114,12 +114,12 @@
 
 **Grid/mesh type**: Voronoi cells on sphere, dual of Delaunay triangulation. Generated via Fibonacci spiral point distribution + optional jitter, stereographic projection to 2D, Delaunator triangulation, pole closure. Regions = Voronoi cells (centers = Fibonacci points on unit sphere). Triangles = Delaunay dual. Stored as SphereMesh: triangles array (Delaunay), halfedges array (half-edge connectivity), region→neighbor adjacency via halfedges.
 
-**Resolution & how set**: User controls via Detail slider (5,000–2,560,000 regions, stepped by 1,000; default 204,000). Irregularity slider (0–1, jitter magnitude) affects point distribution but not count. Terrain generation occurs on fixed ~20k coarse mesh (for resolution-independent plate shapes), then projected onto high-res mesh via nearest-neighbor + FBM perturbation. Export resolution is independent (1,024–65,536 px equirectangular).
+**Resolution & how set**: User controls via Detail slider (5,000–2,560,000 regions (the slider position steps by 1 and the region count is rounded to 1,000, `detail-scale.js:9`); default 204,000). Irregularity slider (0–1, jitter magnitude) affects point distribution but not count. Terrain generation occurs on fixed ~20k coarse mesh (for resolution-independent plate shapes), then projected onto high-res mesh via nearest-neighbor + FBM perturbation. Export resolution is independent (1,024–65,536 px equirectangular).
 
 **Units**: Sphere radius = 1.0 (unit sphere in 3D space). Elevations in signed height above sea level (scale TBD: heightmapColor function maps -5 km (ocean floor) to 6 km (peak) onto [0, 1] grayscale). Temperatures in Celsius (-45 to +45 C range). Precipitation in normalized 0–1 (95th-percentile scaling). Wind speed units unspecified in code (likely m/s or unitless). Plate velocities in degrees per generation timestep.
 
 **Coordinate conventions**: 
-- **3D sphere**: Right-handed XYZ, unit sphere. x points toward prime meridian equator, y points toward north pole, z points toward 90°E equator. Stored as Float32Array (r_xyz[3*r + offset] for x/y/z of region r).
+- **3D sphere**: Right-handed XYZ, unit sphere. +y points toward the north pole and longitude is `atan2(x, z)` (`planet-mesh.js:427`), so +z is (0°N, 0°E) and +x is 90°E (the earlier statement had x and z swapped; ARCHITECTURE F1 is right). Stored as Float32Array (r_xyz[3*r + offset] for x/y/z of region r).
 - **Latitude/longitude**: lat ∈ [-π/2, π/2], lon ∈ [-π, π]. Computed as lat = asin(y), lon = atan2(x, z). Poles have y ≈ ±1 (well-defined mathematically, degenerate in some projections).
 - **Map projection (equirectangular)**: x_map = lon × (2/π), y_map = lat × (2/π), with clipping to [-2, 2] × [-1, 1]. Antimeridian wrapping: triangles crossing lon ≈ ±π are split into two copies (one wrapped by +2π, one by -2π) to handle map seams.
 - **Grid coordinates**: No explicit grid; mesh is unstructured Voronoi. Adjacency encoded via halfedges (O(1) neighbor lookup per region).

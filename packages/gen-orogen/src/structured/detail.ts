@@ -315,7 +315,7 @@ export interface ClimateDetail {
  *   The sub-reference orographic term (Smith–Barstad 2004) is not applied yet: Phase 4b M9 decides on it.
  * - Köppen: orogen's classifier per L1 cell from the downscaled fields.
  */
-export function runClimateDetail(ref: ReferenceState, d: Pick<ElevationDetail, 'ml' | 'omesh' | 'r_xyz' | 'elevRaw'>): ClimateDetail {
+export function runClimateDetail(ref: ReferenceState, d: Pick<ElevationDetail, 'ml' | 'omesh' | 'r_xyz' | 'elevRaw'>, adjust?: (temp: Float32Array, precip: Float32Array) => void): ClimateDetail {
   const { ml } = d;
   const { wind, ocean, precip, temp } = ref.climate;
   // One Float64 buffer for the scalar prolongations that are immediately rounded or copied (Phase 5 M0).
@@ -328,6 +328,7 @@ export function runClimateDetail(ref: ReferenceState, d: Pick<ElevationDetail, '
     const precipN = Float32Array.from(ml.anchorMultiplicative(ml.prolongInto(pRef, buf), pRef));
     const tRef = temp[`r_temperature_${name}`];
     const tempN = Float32Array.from(ml.anchorAdditiveInPlace(ml.prolong(tRef), tRef));
+    adjust?.(tempN, precipN); // user edits only (note 16): the lapse change of edited cells; absent otherwise
     return { windEast, windNorth, currentEast, currentNorth, pressure, temp: tempN, precip: precipN };
   };
   const summer = season('summer'), winter = season('winter');

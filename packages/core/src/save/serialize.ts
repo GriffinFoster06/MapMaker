@@ -6,6 +6,7 @@ import { type ChangeRuns, TimeVaryingLayer } from '../layers/time-varying';
 import { SphereMesh, buildTopology, type Precision } from '../mesh/sphere-mesh';
 import { RngService, type MasterSeed } from '../rng/service';
 import type { SerializedStream } from '../rng/types';
+import { EditLog, type EditLogJSON, type SystemMode } from '../edits';
 import { EventLog, type GameEvent } from '../timeline/event-log';
 import { Timeline, type TimelineJSON } from '../timeline/timeline';
 import { type Dtype, type TypedArray, arrayFromBytes, bytesOf, canonicalJson, dtypeOf } from '../typed';
@@ -94,6 +95,12 @@ export function worldToFiles(w: World): { files: FileMap; units: Map<string, str
     const nd = evs.map((e) => canonicalJson(e)).join('\n');
     files.set(`timeline/events/${k}.ndjson.gz`, gzipSync(enc.encode(nd), { level: 6, mtime: 0 }));
   }
+  // Written only when used, so worlds without edits keep their existing hashes.
+  if (!w.edits.isEmpty()) {
+    files.set('edits/log.ndjson.gz', gzipSync(enc.encode(w.edits.all().map((e) => canonicalJson(e)).join('\n')), { level: 6, mtime: 0 }));
+    files.set('edits/cursor.json', json({ cursor: w.edits.cursor, nextId: w.edits.toJSON().nextId }));
+  }
+  if (Object.keys(w.systems).length) files.set('systems.json', json(w.systems));
   if (w.ui !== undefined) files.set('ui.json', json(w.ui));
   return { files, units };
 }
@@ -205,6 +212,12 @@ export function filesToWorld(files: FileMap, manifest: WorldManifest): World {
   }
   w.events = EventLog.fromEvents(events, ei.chunkTicks);
   if (events.length !== ei.count) throw new Error('event count mismatch');
+  if (files.has('edits/log.ndjson.gz')) {
+    const edits = dec.decode(gunzipSync(need(files, 'edits/log.ndjson.gz'))).split('\n').filter(Boolean).map((l) => JSON.parse(l) as EditLogJSON['edits'][number]);
+    const c = parse<{ cursor: number; nextId: number }>(files, 'edits/cursor.json');
+    w.edits = EditLog.fromJSON({ edits, cursor: c.cursor, nextId: c.nextId });
+  }
+  if (files.has('systems.json')) w.systems = parse<Record<string, SystemMode>>(files, 'systems.json');
   if (files.has('ui.json')) w.ui = parse(files, 'ui.json');
   return w;
 }

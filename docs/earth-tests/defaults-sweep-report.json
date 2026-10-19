@@ -1,0 +1,3022 @@
+{
+ "times": {
+  "msPerWorld": 24229,
+  "worlds": 30805
+ },
+ "searchTop": [
+  {
+   "cfg": "L612",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7019192393787244,
+   "se": 0.03522178583736846,
+   "terms": {
+    "landFrac": 0.047000000000000375,
+    "hypsometry": 1.1844999999999999,
+    "slope": 0.35966678006151376,
+    "continents": 0.8404266866421498,
+    "koppen": 1.304604917777778,
+    "rivers": 0.0952949875856729,
+    "shape": 0.6222000000000001
+   }
+  },
+  {
+   "cfg": "L2801",
+   "params": {
+    "jitter": 0.9,
+    "P": 78,
+    "numContinents": 5,
+    "nMag": 0.42,
+    "continentSizeVariety": 0.35,
+    "landCoverage": 0.35,
+    "terrainWarp": 0.35,
+    "smoothing": 0.15,
+    "glacialErosion": 0.35,
+    "hydraulicErosion": 0.3,
+    "thermalErosion": 0.95,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -1,
+    "precipitationOffset": 0.4
+   },
+   "n": 5,
+   "objective": 0.7645285339878829,
+   "se": 0.030861300923828317,
+   "terms": {
+    "landFrac": 0.16449999999999992,
+    "hypsometry": 0.9257916666666667,
+    "slope": 0.592124514766603,
+    "continents": 1.0698905087896478,
+    "koppen": 1.400741868888889,
+    "rivers": 0.25543652480452506,
+    "shape": 0.6502333333333334
+   }
+  },
+  {
+   "cfg": "L1166",
+   "params": {
+    "jitter": 0.3,
+    "P": 119,
+    "numContinents": 4,
+    "nMag": 0.48,
+    "continentSizeVariety": 0.6,
+    "landCoverage": 0.33,
+    "terrainWarp": 0.45,
+    "smoothing": 0,
+    "glacialErosion": 0.7,
+    "hydraulicErosion": 0.1,
+    "thermalErosion": 0.05,
+    "ridgeSharpening": 0.65,
+    "temperatureOffset": 6,
+    "precipitationOffset": 0.7
+   },
+   "n": 5,
+   "objective": 0.7739133292904365,
+   "se": 0.02854041923531328,
+   "terms": {
+    "landFrac": 0.3974999999999995,
+    "hypsometry": 1.1998333333333333,
+    "slope": 0.36952196857127817,
+    "continents": 0.6069420285659092,
+    "koppen": 1.5006887444444446,
+    "rivers": 0.08011745521910468,
+    "shape": 0.6379666666666667
+   }
+  },
+  {
+   "cfg": "L3720",
+   "params": {
+    "jitter": 0.6,
+    "P": 74,
+    "numContinents": 4,
+    "nMag": 0.44,
+    "continentSizeVariety": 0.25,
+    "landCoverage": 0.37,
+    "terrainWarp": 0.15,
+    "smoothing": 0.35,
+    "glacialErosion": 0.7,
+    "hydraulicErosion": 0.1,
+    "thermalErosion": 0.3,
+    "ridgeSharpening": 0.1,
+    "temperatureOffset": -2,
+    "precipitationOffset": 0.8
+   },
+   "n": 5,
+   "objective": 0.782541206350269,
+   "se": 0.015622411823968606,
+   "terms": {
+    "landFrac": 0.44800000000000095,
+    "hypsometry": 1.1705833333333333,
+    "slope": 0.4891586632097894,
+    "continents": 0.7939262454958174,
+    "koppen": 1.3539194933333334,
+    "rivers": 0.0885495850661081,
+    "shape": 0.5962333333333334
+   }
+  },
+  {
+   "cfg": "L4733",
+   "params": {
+    "jitter": 0.7,
+    "P": 83,
+    "numContinents": 5,
+    "nMag": 0.39,
+    "continentSizeVariety": 0.55,
+    "landCoverage": 0.37,
+    "terrainWarp": 0.35,
+    "smoothing": 0.6,
+    "glacialErosion": 0.8,
+    "hydraulicErosion": 0.15,
+    "thermalErosion": 0.15,
+    "ridgeSharpening": 0.8,
+    "temperatureOffset": 0,
+    "precipitationOffset": 0.7
+   },
+   "n": 5,
+   "objective": 0.7895854893080674,
+   "se": 0.010350740415420511,
+   "terms": {
+    "landFrac": 0.5450000000000005,
+    "hypsometry": 1.0845416666666667,
+    "slope": 0.46921623236750803,
+    "continents": 0.9260031614413753,
+    "koppen": 1.36820838,
+    "rivers": 0.10221931452583757,
+    "shape": 0.4863333333333335
+   }
+  },
+  {
+   "cfg": "L4414",
+   "params": {
+    "jitter": 0.95,
+    "P": 62,
+    "numContinents": 6,
+    "nMag": 0.35,
+    "continentSizeVariety": 0.15,
+    "landCoverage": 0.33,
+    "terrainWarp": 0.8,
+    "smoothing": 0.35,
+    "glacialErosion": 0,
+    "hydraulicErosion": 0.6,
+    "thermalErosion": 0.3,
+    "ridgeSharpening": 0.65,
+    "temperatureOffset": 2,
+    "precipitationOffset": -0.1
+   },
+   "n": 5,
+   "objective": 0.7972903974050085,
+   "se": 0.01689092092600227,
+   "terms": {
+    "landFrac": 0.3054999999999996,
+    "hypsometry": 0.99325,
+    "slope": 0.47889033248041646,
+    "continents": 1.2823267836623236,
+    "koppen": 1.3524092377777779,
+    "rivers": 0.17324538792563576,
+    "shape": 0.5948333333333334
+   }
+  },
+  {
+   "cfg": "L1898",
+   "params": {
+    "jitter": 0.95,
+    "P": 76,
+    "numContinents": 4,
+    "nMag": 0.17,
+    "continentSizeVariety": 0.35,
+    "landCoverage": 0.33,
+    "terrainWarp": 1,
+    "smoothing": 0.5,
+    "glacialErosion": 0.2,
+    "hydraulicErosion": 0.25,
+    "thermalErosion": 0.75,
+    "ridgeSharpening": 0.35,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.6
+   },
+   "n": 5,
+   "objective": 0.8043700458392177,
+   "se": 0.06921527062126528,
+   "terms": {
+    "landFrac": 0.23099999999999957,
+    "hypsometry": 1.1707083333333332,
+    "slope": 1.2564453734837437,
+    "continents": 0.7265817022307857,
+    "koppen": 1.2195314733333333,
+    "rivers": 0.2198729640681394,
+    "shape": 0.6929333333333334
+   }
+  },
+  {
+   "cfg": "L1373",
+   "params": {
+    "jitter": 0.95,
+    "P": 22,
+    "numContinents": 8,
+    "nMag": 0.46,
+    "continentSizeVariety": 0.95,
+    "landCoverage": 0.34,
+    "terrainWarp": 0.95,
+    "smoothing": 0.2,
+    "glacialErosion": 0.6,
+    "hydraulicErosion": 0,
+    "thermalErosion": 0.4,
+    "ridgeSharpening": 0.6,
+    "temperatureOffset": -1,
+    "precipitationOffset": -0.2
+   },
+   "n": 5,
+   "objective": 0.8098468946564295,
+   "se": 0.10050074194171428,
+   "terms": {
+    "landFrac": 0.7154999999999998,
+    "hypsometry": 1.0121666666666667,
+    "slope": 0.5150009213200113,
+    "continents": 0.6212727491869396,
+    "koppen": 1.3239650777777778,
+    "rivers": 0.1953923072314137,
+    "shape": 0.7751666666666667
+   }
+  },
+  {
+   "cfg": "L3589",
+   "params": {
+    "jitter": 0.05,
+    "P": 81,
+    "numContinents": 6,
+    "nMag": 0.47,
+    "continentSizeVariety": 0.6,
+    "landCoverage": 0.33,
+    "terrainWarp": 0.65,
+    "smoothing": 0.85,
+    "glacialErosion": 0.7,
+    "hydraulicErosion": 0.3,
+    "thermalErosion": 0.3,
+    "ridgeSharpening": 0.6,
+    "temperatureOffset": -3,
+    "precipitationOffset": 0.5
+   },
+   "n": 5,
+   "objective": 0.8175045404112268,
+   "se": 0.012647500198739767,
+   "terms": {
+    "landFrac": 0.26649999999999985,
+    "hypsometry": 0.9528333333333332,
+    "slope": 0.986111769524792,
+    "continents": 1.1252321400053644,
+    "koppen": 1.4350299288888888,
+    "rivers": 0.36766344054621186,
+    "shape": 0.4281333333333334
+   }
+  },
+  {
+   "cfg": "L5644",
+   "params": {
+    "jitter": 0.65,
+    "P": 47,
+    "numContinents": 4,
+    "nMag": 0.01,
+    "continentSizeVariety": 0.85,
+    "landCoverage": 0.33,
+    "terrainWarp": 0.8,
+    "smoothing": 0.2,
+    "glacialErosion": 0.45,
+    "hydraulicErosion": 0.15,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.55,
+    "temperatureOffset": -1,
+    "precipitationOffset": -0.8
+   },
+   "n": 5,
+   "objective": 0.8220796696526633,
+   "se": 0.04949326814727145,
+   "terms": {
+    "landFrac": 0.34799999999999937,
+    "hypsometry": 1.1366666666666667,
+    "slope": 1.3024004202337494,
+    "continents": 0.6313715722329267,
+    "koppen": 1.4145399333333333,
+    "rivers": 0.12105538759615839,
+    "shape": 0.5826333333333336
+   }
+  }
+ ],
+ "searchCount": 6000,
+ "sensitivity": [
+  {
+   "key": "jitter",
+   "corr": -0.0017758108627846552
+  },
+  {
+   "key": "P",
+   "corr": 0.07124561047129527
+  },
+  {
+   "key": "numContinents",
+   "corr": -0.21636868046693164
+  },
+  {
+   "key": "nMag",
+   "corr": -0.07628563271250335
+  },
+  {
+   "key": "continentSizeVariety",
+   "corr": -0.024653781841844906
+  },
+  {
+   "key": "landCoverage",
+   "corr": -0.09938361105328493
+  },
+  {
+   "key": "terrainWarp",
+   "corr": 0.0847669663358159
+  },
+  {
+   "key": "smoothing",
+   "corr": 0.09569843528022824
+  },
+  {
+   "key": "glacialErosion",
+   "corr": 0.004927249543054301
+  },
+  {
+   "key": "hydraulicErosion",
+   "corr": 0.13753147249682945
+  },
+  {
+   "key": "thermalErosion",
+   "corr": 0.0580773230026832
+  },
+  {
+   "key": "ridgeSharpening",
+   "corr": -0.027562580490625516
+  },
+  {
+   "key": "temperatureOffset",
+   "corr": -0.11444913175905949
+  },
+  {
+   "key": "precipitationOffset",
+   "corr": 0.02434019914747219
+  }
+ ],
+ "refine": [
+  {
+   "cfg": "L612",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 20,
+   "objective": 0.7272189530554212,
+   "se": 0.01014565471010031,
+   "terms": {
+    "landFrac": 0.17725000000000024,
+    "hypsometry": 1.1734895833333332,
+    "slope": 0.4633994416384157,
+    "continents": 0.7920754849557317,
+    "koppen": 1.2795211394444448,
+    "rivers": 0.09631186898206327,
+    "shape": 0.6607083333333336
+   }
+  },
+  {
+   "cfg": "L2801",
+   "params": {
+    "jitter": 0.9,
+    "P": 78,
+    "numContinents": 5,
+    "nMag": 0.42,
+    "continentSizeVariety": 0.35,
+    "landCoverage": 0.35,
+    "terrainWarp": 0.35,
+    "smoothing": 0.15,
+    "glacialErosion": 0.35,
+    "hydraulicErosion": 0.3,
+    "thermalErosion": 0.95,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -1,
+    "precipitationOffset": 0.4
+   },
+   "n": 20,
+   "objective": 0.7619056717620908,
+   "se": 0.014939157452805149,
+   "terms": {
+    "landFrac": 0.2008750000000002,
+    "hypsometry": 0.9214895833333333,
+    "slope": 0.6154492573402937,
+    "continents": 1.0683580174843477,
+    "koppen": 1.3436323894444446,
+    "rivers": 0.2689196602606303,
+    "shape": 0.641375
+   }
+  },
+  {
+   "cfg": "L3720",
+   "params": {
+    "jitter": 0.6,
+    "P": 74,
+    "numContinents": 4,
+    "nMag": 0.44,
+    "continentSizeVariety": 0.25,
+    "landCoverage": 0.37,
+    "terrainWarp": 0.15,
+    "smoothing": 0.35,
+    "glacialErosion": 0.7,
+    "hydraulicErosion": 0.1,
+    "thermalErosion": 0.3,
+    "ridgeSharpening": 0.1,
+    "temperatureOffset": -2,
+    "precipitationOffset": 0.8
+   },
+   "n": 20,
+   "objective": 0.7660411790366696,
+   "se": 0.012227783337055676,
+   "terms": {
+    "landFrac": 0.2895000000000004,
+    "hypsometry": 1.1391145833333334,
+    "slope": 0.450002127811716,
+    "continents": 0.8049600199754832,
+    "koppen": 1.349154288888889,
+    "rivers": 0.08988556718397775,
+    "shape": 0.7490583333333334
+   }
+  },
+  {
+   "cfg": "L4733",
+   "params": {
+    "jitter": 0.7,
+    "P": 83,
+    "numContinents": 5,
+    "nMag": 0.39,
+    "continentSizeVariety": 0.55,
+    "landCoverage": 0.37,
+    "terrainWarp": 0.35,
+    "smoothing": 0.6,
+    "glacialErosion": 0.8,
+    "hydraulicErosion": 0.15,
+    "thermalErosion": 0.15,
+    "ridgeSharpening": 0.8,
+    "temperatureOffset": 0,
+    "precipitationOffset": 0.7
+   },
+   "n": 20,
+   "objective": 0.7954424028351581,
+   "se": 0.014068557776031656,
+   "terms": {
+    "landFrac": 0.4411250000000003,
+    "hypsometry": 1.09728125,
+    "slope": 0.5757209051175709,
+    "continents": 0.9181957608981002,
+    "koppen": 1.2755695472222224,
+    "rivers": 0.0867002902775734,
+    "shape": 0.7214666666666667
+   }
+  },
+  {
+   "cfg": "L1373",
+   "params": {
+    "jitter": 0.95,
+    "P": 22,
+    "numContinents": 8,
+    "nMag": 0.46,
+    "continentSizeVariety": 0.95,
+    "landCoverage": 0.34,
+    "terrainWarp": 0.95,
+    "smoothing": 0.2,
+    "glacialErosion": 0.6,
+    "hydraulicErosion": 0,
+    "thermalErosion": 0.4,
+    "ridgeSharpening": 0.6,
+    "temperatureOffset": -1,
+    "precipitationOffset": -0.2
+   },
+   "n": 20,
+   "objective": 0.8199592005118651,
+   "se": 0.031603033818652454,
+   "terms": {
+    "landFrac": 0.44499999999999973,
+    "hypsometry": 1.0294062499999999,
+    "slope": 0.49387808448821835,
+    "continents": 0.7601246672475955,
+    "koppen": 1.4606904661111113,
+    "rivers": 0.23085518804868382,
+    "shape": 0.8562916666666668
+   }
+  },
+  {
+   "cfg": "L3589",
+   "params": {
+    "jitter": 0.05,
+    "P": 81,
+    "numContinents": 6,
+    "nMag": 0.47,
+    "continentSizeVariety": 0.6,
+    "landCoverage": 0.33,
+    "terrainWarp": 0.65,
+    "smoothing": 0.85,
+    "glacialErosion": 0.7,
+    "hydraulicErosion": 0.3,
+    "thermalErosion": 0.3,
+    "ridgeSharpening": 0.6,
+    "temperatureOffset": -3,
+    "precipitationOffset": 0.5
+   },
+   "n": 20,
+   "objective": 0.8436165634616751,
+   "se": 0.015595355479041123,
+   "terms": {
+    "landFrac": 0.16549999999999965,
+    "hypsometry": 1.0071041666666665,
+    "slope": 1.1048505374624025,
+    "continents": 1.1737957030439936,
+    "koppen": 1.4631481377777777,
+    "rivers": 0.36887099716114335,
+    "shape": 0.5159083333333334
+   }
+  },
+  {
+   "cfg": "L1898",
+   "params": {
+    "jitter": 0.95,
+    "P": 76,
+    "numContinents": 4,
+    "nMag": 0.17,
+    "continentSizeVariety": 0.35,
+    "landCoverage": 0.33,
+    "terrainWarp": 1,
+    "smoothing": 0.5,
+    "glacialErosion": 0.2,
+    "hydraulicErosion": 0.25,
+    "thermalErosion": 0.75,
+    "ridgeSharpening": 0.35,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.6
+   },
+   "n": 20,
+   "objective": 0.8633161443426707,
+   "se": 0.02077514927252713,
+   "terms": {
+    "landFrac": 0.24449999999999966,
+    "hypsometry": 1.1348125,
+    "slope": 1.426653125937376,
+    "continents": 0.7941555221230895,
+    "koppen": 1.3928822483333334,
+    "rivers": 0.2358016819807017,
+    "shape": 0.7322666666666667
+   }
+  },
+  {
+   "cfg": "L1166",
+   "params": {
+    "jitter": 0.3,
+    "P": 119,
+    "numContinents": 4,
+    "nMag": 0.48,
+    "continentSizeVariety": 0.6,
+    "landCoverage": 0.33,
+    "terrainWarp": 0.45,
+    "smoothing": 0,
+    "glacialErosion": 0.7,
+    "hydraulicErosion": 0.1,
+    "thermalErosion": 0.05,
+    "ridgeSharpening": 0.65,
+    "temperatureOffset": 6,
+    "precipitationOffset": 0.7
+   },
+   "n": 20,
+   "objective": 0.8730558901419979,
+   "se": 0.017367723124962303,
+   "terms": {
+    "landFrac": 0.48162499999999947,
+    "hypsometry": 1.2922812499999998,
+    "slope": 0.42755427007178765,
+    "continents": 0.6389847746971704,
+    "koppen": 1.7170362811111108,
+    "rivers": 0.11442329722221485,
+    "shape": 0.7475166666666666
+   }
+  },
+  {
+   "cfg": "L4414",
+   "params": {
+    "jitter": 0.95,
+    "P": 62,
+    "numContinents": 6,
+    "nMag": 0.35,
+    "continentSizeVariety": 0.15,
+    "landCoverage": 0.33,
+    "terrainWarp": 0.8,
+    "smoothing": 0.35,
+    "glacialErosion": 0,
+    "hydraulicErosion": 0.6,
+    "thermalErosion": 0.3,
+    "ridgeSharpening": 0.65,
+    "temperatureOffset": 2,
+    "precipitationOffset": -0.1
+   },
+   "n": 20,
+   "objective": 0.8946356022753204,
+   "se": 0.017392769840999456,
+   "terms": {
+    "landFrac": 0.4288749999999997,
+    "hypsometry": 1.0806458333333333,
+    "slope": 0.6110945542426046,
+    "continents": 1.2704058525872937,
+    "koppen": 1.531931978888889,
+    "rivers": 0.1805201674605351,
+    "shape": 0.7072416666666668
+   }
+  },
+  {
+   "cfg": "L5644",
+   "params": {
+    "jitter": 0.65,
+    "P": 47,
+    "numContinents": 4,
+    "nMag": 0.01,
+    "continentSizeVariety": 0.85,
+    "landCoverage": 0.33,
+    "terrainWarp": 0.8,
+    "smoothing": 0.2,
+    "glacialErosion": 0.45,
+    "hydraulicErosion": 0.15,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.55,
+    "temperatureOffset": -1,
+    "precipitationOffset": -0.8
+   },
+   "n": 20,
+   "objective": 0.919014097578232,
+   "se": 0.02990397602546745,
+   "terms": {
+    "landFrac": 0.41337499999999966,
+    "hypsometry": 1.2311354166666666,
+    "slope": 1.3386047370529952,
+    "continents": 0.6655786670567442,
+    "koppen": 1.457413826666667,
+    "rivers": 0.15870884905577315,
+    "shape": 0.9397500000000001
+   }
+  },
+  {
+   "cfg": "L2888",
+   "params": {
+    "jitter": 0.5,
+    "P": 108,
+    "numContinents": 2,
+    "nMag": 0.08,
+    "continentSizeVariety": 0,
+    "landCoverage": 0,
+    "terrainWarp": 0.65,
+    "smoothing": 0.25,
+    "glacialErosion": 0.9,
+    "hydraulicErosion": 0.95,
+    "thermalErosion": 0.05,
+    "ridgeSharpening": 0.8,
+    "temperatureOffset": -4,
+    "precipitationOffset": -0.7
+   },
+   "n": 20,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 20,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  }
+ ],
+ "validate": [
+  {
+   "cfg": "L612",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 20,
+   "objective": 0.7351774115672111,
+   "se": 0.013527172384990812,
+   "terms": {
+    "landFrac": 0.21400000000000002,
+    "hypsometry": 1.1389479166666667,
+    "slope": 0.5817787488761101,
+    "continents": 0.8082345541240039,
+    "koppen": 1.2020554827777779,
+    "rivers": 0.09415164828831654,
+    "shape": 0.7257750000000002
+   }
+  },
+  {
+   "cfg": "L2801",
+   "params": {
+    "jitter": 0.9,
+    "P": 78,
+    "numContinents": 5,
+    "nMag": 0.42,
+    "continentSizeVariety": 0.35,
+    "landCoverage": 0.35,
+    "terrainWarp": 0.35,
+    "smoothing": 0.15,
+    "glacialErosion": 0.35,
+    "hydraulicErosion": 0.3,
+    "thermalErosion": 0.95,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -1,
+    "precipitationOffset": 0.4
+   },
+   "n": 20,
+   "objective": 0.7605032837918413,
+   "se": 0.012043345285128994,
+   "terms": {
+    "landFrac": 0.16174999999999987,
+    "hypsometry": 0.8967500000000002,
+    "slope": 0.6143638250137681,
+    "continents": 1.0583391413553551,
+    "koppen": 1.4049381994444445,
+    "rivers": 0.2729996857745637,
+    "shape": 0.6425249999999998
+   }
+  },
+  {
+   "cfg": "L3720",
+   "params": {
+    "jitter": 0.6,
+    "P": 74,
+    "numContinents": 4,
+    "nMag": 0.44,
+    "continentSizeVariety": 0.25,
+    "landCoverage": 0.37,
+    "terrainWarp": 0.15,
+    "smoothing": 0.35,
+    "glacialErosion": 0.7,
+    "hydraulicErosion": 0.1,
+    "thermalErosion": 0.3,
+    "ridgeSharpening": 0.1,
+    "temperatureOffset": -2,
+    "precipitationOffset": 0.8
+   },
+   "n": 20,
+   "objective": 0.7830353750179582,
+   "se": 0.014933648745155095,
+   "terms": {
+    "landFrac": 0.3931250000000005,
+    "hypsometry": 1.1338645833333334,
+    "slope": 0.46259507065425254,
+    "continents": 0.7985955302433851,
+    "koppen": 1.3899362199999998,
+    "rivers": 0.09528665251153971,
+    "shape": 0.6825083333333332
+   }
+  },
+  {
+   "cfg": "default",
+   "params": {
+    "jitter": 0.75,
+    "P": 80,
+    "numContinents": 4,
+    "nMag": 0.4,
+    "continentSizeVariety": 0.35,
+    "landCoverage": 0.3,
+    "terrainWarp": 0.75,
+    "smoothing": 0.1,
+    "glacialErosion": 0.5,
+    "hydraulicErosion": 0.5,
+    "thermalErosion": 0.1,
+    "ridgeSharpening": 0.5,
+    "temperatureOffset": 0,
+    "precipitationOffset": 0
+   },
+   "n": 20,
+   "objective": 0.8892272041790251,
+   "se": 0.022273216534959436,
+   "terms": {
+    "landFrac": 0.9799999999999993,
+    "hypsometry": 0.9999166666666668,
+    "slope": 0.3612387504889192,
+    "continents": 0.7979489088643721,
+    "koppen": 1.507151678888889,
+    "rivers": 0.1157879410726879,
+    "shape": 0.7556083333333333
+   }
+  },
+  {
+   "cfg": "L1523",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 20,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  }
+ ],
+ "large": [
+  {
+   "cfg": "L612",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7285536182582574,
+   "se": 0.01882992592659402,
+   "terms": {
+    "landFrac": 0.21949999999999997,
+    "hypsometry": 1.129125,
+    "slope": 0.4583661007859945,
+    "continents": 0.8433929121624842,
+    "koppen": 1.1310941488888888,
+    "rivers": 0.103946034033332,
+    "shape": 0.8181666666666665
+   }
+  },
+  {
+   "cfg": "L2801",
+   "params": {
+    "jitter": 0.9,
+    "P": 78,
+    "numContinents": 5,
+    "nMag": 0.42,
+    "continentSizeVariety": 0.35,
+    "landCoverage": 0.35,
+    "terrainWarp": 0.35,
+    "smoothing": 0.15,
+    "glacialErosion": 0.35,
+    "hydraulicErosion": 0.3,
+    "thermalErosion": 0.95,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -1,
+    "precipitationOffset": 0.4
+   },
+   "n": 5,
+   "objective": 0.7724378403145914,
+   "se": 0.03466791688381689,
+   "terms": {
+    "landFrac": 0.11049999999999952,
+    "hypsometry": 0.8544166666666666,
+    "slope": 0.611966591869751,
+    "continents": 1.074719487353637,
+    "koppen": 1.392113688888889,
+    "rivers": 0.2744097094491887,
+    "shape": 0.8562
+   }
+  },
+  {
+   "cfg": "L3720",
+   "params": {
+    "jitter": 0.6,
+    "P": 74,
+    "numContinents": 4,
+    "nMag": 0.44,
+    "continentSizeVariety": 0.25,
+    "landCoverage": 0.37,
+    "terrainWarp": 0.15,
+    "smoothing": 0.35,
+    "glacialErosion": 0.7,
+    "hydraulicErosion": 0.1,
+    "thermalErosion": 0.3,
+    "ridgeSharpening": 0.1,
+    "temperatureOffset": -2,
+    "precipitationOffset": 0.8
+   },
+   "n": 5,
+   "objective": 0.8627737006372591,
+   "se": 0.040418982082417225,
+   "terms": {
+    "landFrac": 0.5645000000000003,
+    "hypsometry": 1.1637499999999998,
+    "slope": 0.5919214995365827,
+    "continents": 0.7941271277884823,
+    "koppen": 1.3965123933333334,
+    "rivers": 0.13187372912387624,
+    "shape": 0.8839999999999998
+   }
+  },
+  {
+   "cfg": "default",
+   "params": {
+    "jitter": 0.75,
+    "P": 80,
+    "numContinents": 4,
+    "nMag": 0.4,
+    "continentSizeVariety": 0.35,
+    "landCoverage": 0.3,
+    "terrainWarp": 0.75,
+    "smoothing": 0.1,
+    "glacialErosion": 0.5,
+    "hydraulicErosion": 0.5,
+    "thermalErosion": 0.1,
+    "ridgeSharpening": 0.5,
+    "temperatureOffset": 0,
+    "precipitationOffset": 0
+   },
+   "n": 5,
+   "objective": 0.9682561626371445,
+   "se": 0.0378886033354708,
+   "terms": {
+    "landFrac": 1.2179999999999995,
+    "hypsometry": 1.0657916666666665,
+    "slope": 0.544145461967793,
+    "continents": 0.812527127788482,
+    "koppen": 1.4605351199999999,
+    "rivers": 0.20107806202474016,
+    "shape": 0.7987666666666667
+   }
+  },
+  {
+   "cfg": "L1523",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  }
+ ],
+ "oat": [
+  {
+   "cfg": "L612:terrainWarp:lo",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0.25,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.694527924764439,
+   "se": 0.031154113422173165,
+   "terms": {
+    "landFrac": 0.06400000000000045,
+    "hypsometry": 1.1175833333333334,
+    "slope": 0.38540801343822223,
+    "continents": 0.8446044644199275,
+    "koppen": 1.3123695755555556,
+    "rivers": 0.07623664456293713,
+    "shape": 0.6155666666666668
+   }
+  },
+  {
+   "cfg": "L612:ridgeSharpening:hi",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.75,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.6959075876712089,
+   "se": 0.031977093977135815,
+   "terms": {
+    "landFrac": 0.042500000000000315,
+    "hypsometry": 1.1074583333333332,
+    "slope": 0.4441215233849413,
+    "continents": 0.8397155755310386,
+    "koppen": 1.3131986866666667,
+    "rivers": 0.08242453770179678,
+    "shape": 0.6283666666666669
+   }
+  },
+  {
+   "cfg": "L612:jitter:lo",
+   "params": {
+    "jitter": 0.25,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.6995845970902784,
+   "se": 0.03588405274499074,
+   "terms": {
+    "landFrac": 0.0495000000000001,
+    "hypsometry": 1.1748333333333334,
+    "slope": 0.3657663298693484,
+    "continents": 0.8409155755310387,
+    "koppen": 1.3028285377777777,
+    "rivers": 0.13736713260493377,
+    "shape": 0.5844
+   }
+  },
+  {
+   "cfg": "L612:glacialErosion:lo",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.25,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.6999660785493245,
+   "se": 0.03517695437640969,
+   "terms": {
+    "landFrac": 0.04850000000000049,
+    "hypsometry": 1.1852916666666666,
+    "slope": 0.35619468914279495,
+    "continents": 0.840648908864372,
+    "koppen": 1.2999226200000003,
+    "rivers": 0.08188023826988236,
+    "shape": 0.6221000000000001
+   }
+  },
+  {
+   "cfg": "L612:ridgeSharpening:lo",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.25,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7002162880858454,
+   "se": 0.02476217541918566,
+   "terms": {
+    "landFrac": 0.04050000000000026,
+    "hypsometry": 1.0647083333333334,
+    "slope": 0.5891062723424951,
+    "continents": 0.8396266866421499,
+    "koppen": 1.32549296,
+    "rivers": 0.09168027997191298,
+    "shape": 0.6005
+   }
+  },
+  {
+   "cfg": "L612:P:hi",
+   "params": {
+    "jitter": 0.75,
+    "P": 91,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7009309664434675,
+   "se": 0.024707643891010333,
+   "terms": {
+    "landFrac": 0.14450000000000016,
+    "hypsometry": 1.1429583333333333,
+    "slope": 0.385367858993629,
+    "continents": 0.9031049055662599,
+    "koppen": 1.2198041333333334,
+    "rivers": 0.10419048020179016,
+    "shape": 0.5676666666666668
+   }
+  },
+  {
+   "cfg": "L612:hydraulicErosion:hi",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.75,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7012353990479395,
+   "se": 0.022641681538265786,
+   "terms": {
+    "landFrac": 0.04399999999999987,
+    "hypsometry": 1.0819166666666666,
+    "slope": 0.6024328280676905,
+    "continents": 0.8434044644199276,
+    "koppen": 1.2756559200000002,
+    "rivers": 0.0910546914964196,
+    "shape": 0.6345666666666668
+   }
+  },
+  {
+   "cfg": "L612:base",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7019192393787244,
+   "se": 0.03522178583736846,
+   "terms": {
+    "landFrac": 0.047000000000000375,
+    "hypsometry": 1.1844999999999999,
+    "slope": 0.35966678006151376,
+    "continents": 0.8404266866421498,
+    "koppen": 1.304604917777778,
+    "rivers": 0.0952949875856729,
+    "shape": 0.6222000000000002
+   }
+  },
+  {
+   "cfg": "L612:glacialErosion:hi",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7019192393787244,
+   "se": 0.03522178583736846,
+   "terms": {
+    "landFrac": 0.047000000000000375,
+    "hypsometry": 1.1844999999999999,
+    "slope": 0.35966678006151376,
+    "continents": 0.8404266866421498,
+    "koppen": 1.304604917777778,
+    "rivers": 0.0952949875856729,
+    "shape": 0.6222000000000002
+   }
+  },
+  {
+   "cfg": "L612:thermalErosion:lo",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7019192393787244,
+   "se": 0.03522178583736846,
+   "terms": {
+    "landFrac": 0.047000000000000375,
+    "hypsometry": 1.1844999999999999,
+    "slope": 0.35966678006151376,
+    "continents": 0.8404266866421498,
+    "koppen": 1.304604917777778,
+    "rivers": 0.0952949875856729,
+    "shape": 0.6222000000000002
+   }
+  },
+  {
+   "cfg": "L612:precipitationOffset:lo",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7019192393787244,
+   "se": 0.03522178583736846,
+   "terms": {
+    "landFrac": 0.047000000000000375,
+    "hypsometry": 1.1844999999999999,
+    "slope": 0.35966678006151376,
+    "continents": 0.8404266866421498,
+    "koppen": 1.304604917777778,
+    "rivers": 0.0952949875856729,
+    "shape": 0.6222000000000002
+   }
+  },
+  {
+   "cfg": "L612:jitter:hi",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7019192393787244,
+   "se": 0.03522178583736846,
+   "terms": {
+    "landFrac": 0.047000000000000375,
+    "hypsometry": 1.1844999999999999,
+    "slope": 0.35966678006151376,
+    "continents": 0.8404266866421498,
+    "koppen": 1.304604917777778,
+    "rivers": 0.0952949875856729,
+    "shape": 0.6222000000000002
+   }
+  },
+  {
+   "cfg": "L612:nMag:lo",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.13,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7041548984014308,
+   "se": 0.02953102239599804,
+   "terms": {
+    "landFrac": 0.06300000000000028,
+    "hypsometry": 1.1454999999999997,
+    "slope": 0.42485961520995,
+    "continents": 0.8355822421977054,
+    "koppen": 1.3025272866666666,
+    "rivers": 0.09536633057589626,
+    "shape": 0.6333666666666669
+   }
+  },
+  {
+   "cfg": "L612:precipitationOffset:hi",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": 0.5
+   },
+   "n": 5,
+   "objective": 0.7081580813989264,
+   "se": 0.03651945088626073,
+   "terms": {
+    "landFrac": 0.047000000000000375,
+    "hypsometry": 1.1844999999999999,
+    "slope": 0.35966678006151376,
+    "continents": 0.8404266866421498,
+    "koppen": 1.338918548888889,
+    "rivers": 0.09529498758567288,
+    "shape": 0.6222000000000001
+   }
+  },
+  {
+   "cfg": "L612:smoothing:lo",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.25,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7095509102309981,
+   "se": 0.036900984782481897,
+   "terms": {
+    "landFrac": 0.05550000000000027,
+    "hypsometry": 1.1768750000000001,
+    "slope": 0.3866003214206006,
+    "continents": 0.8412266866421497,
+    "koppen": 1.3166317622222223,
+    "rivers": 0.09530613671271014,
+    "shape": 0.6422000000000001
+   }
+  },
+  {
+   "cfg": "L612:nMag:hi",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.38,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7095760159924568,
+   "se": 0.03562342212638824,
+   "terms": {
+    "landFrac": 0.041999999999999815,
+    "hypsometry": 1.2614999999999998,
+    "slope": 0.2920118443456531,
+    "continents": 0.8469600199754831,
+    "koppen": 1.3449995111111113,
+    "rivers": 0.08863527938592428,
+    "shape": 0.5715000000000001
+   }
+  },
+  {
+   "cfg": "L612:hydraulicErosion:lo",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.25,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7106868291756476,
+   "se": 0.03686811092194544,
+   "terms": {
+    "landFrac": 0.0500000000000006,
+    "hypsometry": 1.2349166666666667,
+    "slope": 0.32021483938670864,
+    "continents": 0.8417155755310388,
+    "koppen": 1.306156288888889,
+    "rivers": 0.09477100713774474,
+    "shape": 0.6385666666666667
+   }
+  },
+  {
+   "cfg": "L612:continentSizeVariety:hi",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.75,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7243190190063057,
+   "se": 0.03381675358482895,
+   "terms": {
+    "landFrac": 0.1225000000000001,
+    "hypsometry": 1.1086666666666667,
+    "slope": 0.599845347913704,
+    "continents": 0.6226933533088166,
+    "koppen": 1.2574406311111113,
+    "rivers": 0.06870923563687814,
+    "shape": 0.9251333333333335
+   }
+  },
+  {
+   "cfg": "L612:terrainWarp:hi",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0.75,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7252097059537729,
+   "se": 0.026692526133966745,
+   "terms": {
+    "landFrac": 0.25050000000000044,
+    "hypsometry": 1.0284583333333335,
+    "slope": 0.49692442319486074,
+    "continents": 0.8451822421977055,
+    "koppen": 1.2711417733333334,
+    "rivers": 0.1044587656667477,
+    "shape": 0.6719666666666668
+   }
+  },
+  {
+   "cfg": "L612:thermalErosion:hi",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.75,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7288852241369699,
+   "se": 0.02261421601736247,
+   "terms": {
+    "landFrac": 0.05650000000000016,
+    "hypsometry": 1.0047083333333333,
+    "slope": 0.8015425652484917,
+    "continents": 0.8403822421977054,
+    "koppen": 1.3632046133333333,
+    "rivers": 0.18044564362828525,
+    "shape": 0.6175666666666667
+   }
+  },
+  {
+   "cfg": "L612:continentSizeVariety:lo",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.25,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.732155530017352,
+   "se": 0.023975070966326395,
+   "terms": {
+    "landFrac": 0.1270000000000004,
+    "hypsometry": 1.1447916666666667,
+    "slope": 0.47224669244435774,
+    "continents": 0.7628151343847064,
+    "koppen": 1.3498593533333336,
+    "rivers": 0.12583939616945228,
+    "shape": 0.7120666666666666
+   }
+  },
+  {
+   "cfg": "L612:P:lo",
+   "params": {
+    "jitter": 0.75,
+    "P": 33,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.769411422032437,
+   "se": 0.03002660280445938,
+   "terms": {
+    "landFrac": 0.34699999999999953,
+    "hypsometry": 1.2065416666666668,
+    "slope": 0.4132520439920547,
+    "continents": 0.7050359343473444,
+    "koppen": 1.3408870755555555,
+    "rivers": 0.13266221239929138,
+    "shape": 0.7141333333333335
+   }
+  },
+  {
+   "cfg": "L612:temperatureOffset:hi",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": 8,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7696441468534718,
+   "se": 0.02445548354484541,
+   "terms": {
+    "landFrac": 0.047000000000000375,
+    "hypsometry": 1.1844999999999999,
+    "slope": 0.35966678006151376,
+    "continents": 0.8404266866421498,
+    "koppen": 1.677091908888889,
+    "rivers": 0.0952949875856729,
+    "shape": 0.6222000000000002
+   }
+  },
+  {
+   "cfg": "L612:numContinents:lo",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 3,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7783526844008519,
+   "se": 0.022518781353634786,
+   "terms": {
+    "landFrac": 0.1625000000000004,
+    "hypsometry": 1.1155833333333334,
+    "slope": 0.668772906809541,
+    "continents": 1.0843564855891832,
+    "koppen": 1.2593845733333333,
+    "rivers": 0.13823607988271985,
+    "shape": 0.7022666666666667
+   }
+  },
+  {
+   "cfg": "L612:smoothing:hi",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.75,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.7803269281899101,
+   "se": 0.03779734275169222,
+   "terms": {
+    "landFrac": 0.22200000000000028,
+    "hypsometry": 1.1422916666666667,
+    "slope": 0.8388578302133893,
+    "continents": 0.8526933533088166,
+    "koppen": 1.3187907466666666,
+    "rivers": 0.1700835232457285,
+    "shape": 0.6196333333333335
+   }
+  },
+  {
+   "cfg": "L612:numContinents:hi",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 8,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.8597299555817821,
+   "se": 0.060773826362977755,
+   "terms": {
+    "landFrac": 0.17799999999999955,
+    "hypsometry": 1.2984166666666668,
+    "slope": 0.491154090449077,
+    "continents": 1.6783789151005764,
+    "koppen": 1.1951418377777778,
+    "rivers": 0.19769003941077395,
+    "shape": 0.6050000000000001
+   }
+  },
+  {
+   "cfg": "L612:temperatureOffset:lo",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -7,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 0.8933312090756941,
+   "se": 0.03874623657826107,
+   "terms": {
+    "landFrac": 0.047000000000000375,
+    "hypsometry": 1.1844999999999999,
+    "slope": 0.35966678006151376,
+    "continents": 0.8404266866421498,
+    "koppen": 2.3573707511111115,
+    "rivers": 0.0952949875856729,
+    "shape": 0.6222000000000001
+   }
+  },
+  {
+   "cfg": "L612:landCoverage:lo",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.25,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 1.128872637306951,
+   "se": 0.0345630558278099,
+   "terms": {
+    "landFrac": 2.284,
+    "hypsometry": 1.2066666666666666,
+    "slope": 0.3593830878715244,
+    "continents": 0.8132266866421498,
+    "koppen": 1.3056781599999998,
+    "rivers": 0.11368623920838028,
+    "shape": 0.7546666666666667
+   }
+  },
+  {
+   "cfg": "L612:landCoverage:hi",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.75,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 1.426942075563804,
+   "se": 0.0075526825620830795,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 1.1212500000000003,
+    "slope": 0.7999034561711158,
+    "continents": 0.790254021969685,
+    "koppen": 1.1509032155555556,
+    "rivers": 0.1891719109650868,
+    "shape": 0.6517333333333333
+   }
+  },
+  {
+   "cfg": "L1523:landCoverage:lo",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0.25,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 1.5243836340682182,
+   "se": 0.032537532821509264,
+   "terms": {
+    "landFrac": 2.2349999999999994,
+    "hypsometry": 0.9459583333333332,
+    "slope": 0.3922350085521032,
+    "continents": 1.5324465031325152,
+    "koppen": 3.2219115511111114,
+    "rivers": 0.3388254426106372,
+    "shape": 0.6218333333333333
+   }
+  },
+  {
+   "cfg": "L1523:landCoverage:hi",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0.75,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 1.7616978762696167,
+   "se": 0.022040098431394612,
+   "terms": {
+    "landFrac": 3.893,
+    "hypsometry": 0.8513333333333332,
+    "slope": 0.8119182334524331,
+    "continents": 1.3177241749084057,
+    "koppen": 2.92672448,
+    "rivers": 0.11185651648407716,
+    "shape": 0.7574666666666667
+   }
+  },
+  {
+   "cfg": "L1523:jitter:lo",
+   "params": {
+    "jitter": 0.25,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:P:lo",
+   "params": {
+    "jitter": 0.8,
+    "P": 33,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:numContinents:hi",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:continentSizeVariety:lo",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.25,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:smoothing:lo",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.25,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:glacialErosion:lo",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.25,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:hydraulicErosion:hi",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.75,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:ridgeSharpening:lo",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.25,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:temperatureOffset:hi",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": 8,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:base",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:numContinents:lo",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 3,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:nMag:hi",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.38,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:terrainWarp:hi",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.75,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:hydraulicErosion:lo",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.25,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:thermalErosion:hi",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.75,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:temperatureOffset:lo",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -7,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:precipitationOffset:hi",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.5
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:P:hi",
+   "params": {
+    "jitter": 0.8,
+    "P": 91,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:glacialErosion:hi",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:nMag:lo",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.13,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:thermalErosion:lo",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:continentSizeVariety:hi",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.75,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:ridgeSharpening:hi",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.75,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:terrainWarp:lo",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.25,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:precipitationOffset:lo",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": -0.5
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:jitter:hi",
+   "params": {
+    "jitter": 0.75,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.05,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  },
+  {
+   "cfg": "L1523:smoothing:hi",
+   "params": {
+    "jitter": 0.8,
+    "P": 119,
+    "numContinents": 8,
+    "nMag": 0.36,
+    "continentSizeVariety": 0.9,
+    "landCoverage": 0,
+    "terrainWarp": 0.7,
+    "smoothing": 0.75,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.45,
+    "ridgeSharpening": 0.05,
+    "temperatureOffset": -9,
+    "precipitationOffset": 0.1
+   },
+   "n": 5,
+   "objective": 4,
+   "se": 0,
+   "terms": {
+    "landFrac": 4,
+    "hypsometry": 4,
+    "slope": 4,
+    "continents": 4,
+    "koppen": 4,
+    "rivers": 4,
+    "shape": 4
+   }
+  }
+ ],
+ "bestCombined": [
+  {
+   "cfg": "L612",
+   "params": {
+    "jitter": 0.75,
+    "P": 81,
+    "numContinents": 4,
+    "nMag": 0.23,
+    "continentSizeVariety": 0.1,
+    "landCoverage": 0.36,
+    "terrainWarp": 0,
+    "smoothing": 0.15,
+    "glacialErosion": 0.75,
+    "hydraulicErosion": 0.4,
+    "thermalErosion": 0.25,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -2,
+    "precipitationOffset": -0.5
+   },
+   "n": 25,
+   "objective": 0.7221590103200818,
+   "se": 0.010526698090146865,
+   "terms": {
+    "landFrac": 0.15120000000000025,
+    "hypsometry": 1.1756916666666668,
+    "slope": 0.4426529093230353,
+    "continents": 0.8017457252930152,
+    "koppen": 1.2845378951111115,
+    "rivers": 0.0961084927027852,
+    "shape": 0.6530066666666668
+   }
+  },
+  {
+   "cfg": "L2801",
+   "params": {
+    "jitter": 0.9,
+    "P": 78,
+    "numContinents": 5,
+    "nMag": 0.42,
+    "continentSizeVariety": 0.35,
+    "landCoverage": 0.35,
+    "terrainWarp": 0.35,
+    "smoothing": 0.15,
+    "glacialErosion": 0.35,
+    "hydraulicErosion": 0.3,
+    "thermalErosion": 0.95,
+    "ridgeSharpening": 0.95,
+    "temperatureOffset": -1,
+    "precipitationOffset": 0.4
+   },
+   "n": 25,
+   "objective": 0.7624302442072494,
+   "se": 0.013158249451144776,
+   "terms": {
+    "landFrac": 0.19360000000000013,
+    "hypsometry": 0.92235,
+    "slope": 0.6107843088255556,
+    "continents": 1.0686645157454076,
+    "koppen": 1.3550542853333334,
+    "rivers": 0.26622303316940926,
+    "shape": 0.6431466666666666
+   }
+  },
+  {
+   "cfg": "L3720",
+   "params": {
+    "jitter": 0.6,
+    "P": 74,
+    "numContinents": 4,
+    "nMag": 0.44,
+    "continentSizeVariety": 0.25,
+    "landCoverage": 0.37,
+    "terrainWarp": 0.15,
+    "smoothing": 0.35,
+    "glacialErosion": 0.7,
+    "hydraulicErosion": 0.1,
+    "thermalErosion": 0.3,
+    "ridgeSharpening": 0.1,
+    "temperatureOffset": -2,
+    "precipitationOffset": 0.8
+   },
+   "n": 25,
+   "objective": 0.7693411844993894,
+   "se": 0.010229638235521225,
+   "terms": {
+    "landFrac": 0.32120000000000054,
+    "hypsometry": 1.1454083333333331,
+    "slope": 0.45783343489133066,
+    "continents": 0.80275326507955,
+    "koppen": 1.350107329777778,
+    "rivers": 0.08961837076040384,
+    "shape": 0.7184933333333333
+   }
+  },
+  {
+   "cfg": "L4733",
+   "params": {
+    "jitter": 0.7,
+    "P": 83,
+    "numContinents": 5,
+    "nMag": 0.39,
+    "continentSizeVariety": 0.55,
+    "landCoverage": 0.37,
+    "terrainWarp": 0.35,
+    "smoothing": 0.6,
+    "glacialErosion": 0.8,
+    "hydraulicErosion": 0.15,
+    "thermalErosion": 0.15,
+    "ridgeSharpening": 0.8,
+    "temperatureOffset": 0,
+    "precipitationOffset": 0.7
+   },
+   "n": 25,
+   "objective": 0.7942710201297399,
+   "se": 0.011364506961608524,
+   "terms": {
+    "landFrac": 0.4619000000000003,
+    "hypsometry": 1.0947333333333333,
+    "slope": 0.5544199705675584,
+    "continents": 0.919757241006755,
+    "koppen": 1.2940973137777778,
+    "rivers": 0.08980409512722623,
+    "shape": 0.67444
+   }
+  },
+  {
+   "cfg": "L1373",
+   "params": {
+    "jitter": 0.95,
+    "P": 22,
+    "numContinents": 8,
+    "nMag": 0.46,
+    "continentSizeVariety": 0.95,
+    "landCoverage": 0.34,
+    "terrainWarp": 0.95,
+    "smoothing": 0.2,
+    "glacialErosion": 0.6,
+    "hydraulicErosion": 0,
+    "thermalErosion": 0.4,
+    "ridgeSharpening": 0.6,
+    "temperatureOffset": -1,
+    "precipitationOffset": -0.2
+   },
+   "n": 25,
+   "objective": 0.8179367393407779,
+   "se": 0.03114328930448888,
+   "terms": {
+    "landFrac": 0.49909999999999977,
+    "hypsometry": 1.025958333333333,
+    "slope": 0.49810265185457697,
+    "continents": 0.7323542836354645,
+    "koppen": 1.4333453884444447,
+    "rivers": 0.2237626118852298,
+    "shape": 0.8400666666666667
+   }
+  }
+ ]
+}

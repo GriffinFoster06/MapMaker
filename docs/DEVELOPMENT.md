@@ -24,9 +24,9 @@ MapMaker is a new strict TypeScript shell around selected upstream implementatio
 | `tools/tuning/ab/` | Q7 fidelity harness (spike 1c lineage) for either pipeline (`--pipeline parity|structured`); `gate.mjs` is the regression gate against `tools/tuning/ab-baseline.structured.json` (CI `ab-gate`, nightly with the 2.56M final). |
 | `tools/tuning/realism/` | Realism statistics of a world (hypsometry, slope, Hack's law, river density), stock against structured; `gate.mjs` fails a flatter or out-of-bounds structured world against `baseline.json` (nightly, 2.56M). |
 | `tools/fdlibm-vectors/` | Reference C vector generation for the deterministic math port. |
-| `apps/web/e2e/`, `apps/web/bench/` | Cross-browser correctness checks and separate performance measurements. |
+| `apps/web/e2e/`, `apps/web/bench/` | Firefox and Chromium correctness checks and separate performance measurements. |
 | `spikes/`, `audit/` | Historical feasibility experiments/results and upstream capability assessments. Not shipped in the app. |
-| `.github/workflows/` | CI checks, three-OS determinism matrix, nightly upstream parity, deployments with live smoke tests: Cloudflare Pages (`cloudflare.yml`, primary, native COOP/COEP from `apps/web/public/_headers`, a preview per pull request; needs the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets) and GitHub Pages (`pages.yml`, mirror, opt-in `?coi` shim). See ARCHITECTURE.md Q18. |
+| `.github/workflows/` | CI checks, three-OS determinism matrix (Windows runs Node checks only, no GPU; Playwright e2e runs on macOS and Ubuntu in Firefox and Chromium), nightly upstream parity, and the **unmaintained** (decision W7) deployments with live smoke tests: Cloudflare Pages (`cloudflare.yml`, primary, native COOP/COEP from `apps/web/public/_headers`, a preview per pull request; needs the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets) and GitHub Pages (`pages.yml`, mirror, opt-in `?coi` shim). See ARCHITECTURE.md Q18. |
 
 The runtime path is `app.ts` → `EngineClient` → browser engine worker → `startOrogenHost` → `runPipeline` (variant `structured`, or `parity` for stock) → `World`. Mesh/layer copies return to the main thread for rendering. Browser and Node hosts reuse the same generation packages.
 
@@ -45,7 +45,7 @@ scripts/node24.sh npm run dev -w @mapmaker/web
 To install browser binaries into this project's cache:
 
 ```sh
-scripts/node24.sh npx playwright install chromium firefox webkit
+scripts/node24.sh npx playwright install chromium firefox
 ```
 
 Reference repos and calibration data are optional for basic development. Restore only needed upstreams rather than downloading the entire reference collection:
@@ -70,7 +70,7 @@ scripts/node24.sh npm run e2e
 
 `npm test` covers core/engine behavior, stock-orogen parity, save/resume, deterministic probes, calibration, and the A/B harness. Tests needing optional upstreams or ground truth can skip when those inputs are absent. `REQUIRE_UPSTREAM=1` enables the nightly job's required-input check. Record passed, failed, and skipped counts; an installed toolchain does not imply a green suite.
 
-`npm run e2e` builds and serves on port 4173 and runs Chromium, Firefox, and WebKit: determinism, isolation shim, and globe/layer checks. It may reuse an existing server locally; ensure that server serves the current checkout. `E2E_BASE_URL` targets a remote site. On Linux, headless Firefox has no WebGL, so its globe test fails headless; run `FIREFOX_HEADED=1 xvfb-run -a scripts/node24.sh npm run e2e` (CI does the same on Linux). `npm run build` produces `apps/web/dist`; Vite may warn about bundle size.
+`npm run e2e` builds and serves on port 4173 and runs Chromium and Firefox (decision W7): determinism, isolation shim, and globe/layer checks. It may reuse an existing server locally; ensure that server serves the current checkout. `E2E_BASE_URL` targets a remote site. On Linux, headless Firefox has no WebGL, so its globe test fails headless; run `FIREFOX_HEADED=1 xvfb-run -a scripts/node24.sh npm run e2e` (CI does the same on Linux). `npm run build` produces `apps/web/dist`; Vite may warn about bundle size.
 
 For an isolated test, use `scripts/node24.sh npx vitest run <test-file>`. The Node-only probe entry is `scripts/node24.sh npm run probe`.
 
@@ -82,7 +82,7 @@ Full performance tiers and Q7 baseline generation are phase work, not prerequisi
 # Browser timing/memory; restrict tiers for a short run.
 BENCH_TIERS=50k,200k scripts/node24.sh npm run bench -- --project=chromium
 # Engine worker alone (no globe, no transfers), with per-process peaks; writes phase4b-worker-*.json.
-BENCH_MODE=worker BENCH_TIERS=2.56M scripts/node24.sh npm run bench -- --project=webkit
+BENCH_MODE=worker BENCH_TIERS=2.56M scripts/node24.sh npm run bench -- --project=firefox
 # Report from existing measured JSON files (does not run benchmarks).
 scripts/node24.sh node scripts/bench-report.mjs
 # Earth evaluation (requires downloaded Kottek ground truth).
@@ -113,3 +113,7 @@ When the user says they are switching agents (and only then), update its current
 - Any decision awaiting the user, including the applicable phase boundary.
 
 The receiving agent reads that section and checks the working tree/recent commits before editing. Uncommitted work is a valid handoff; describe it and preserve it. Default to taking turns in the shared checkout. Use separate worktrees if simultaneous work is explicitly requested. Avoid machine-specific agent settings or hooks unless a concrete need appears; the project already supplies its own toolchain wrapper.
+
+## Unmaintained since decision W7
+
+The GitHub Pages deploy (`pages.yml`), the Cloudflare Pages deploy and its deployed-site smoke test (`cloudflare.yml`, `E2E_BASE_URL`) and the `coi-serviceworker` shim (`apps/web/e2e/coi.spec.ts`) are kept as files but no longer maintained or extended: MapMaker is desktop software for macOS and Windows, not a hosted site. Their WebKit references are historical.

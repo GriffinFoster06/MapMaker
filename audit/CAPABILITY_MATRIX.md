@@ -399,8 +399,8 @@ Q12 lifted licence restrictions and Q13 widened the scope to every domain in `do
 | Characters, dynasties, chronicle | New | SongsOfFOSS succession and coups, Azgaar names | 33 |
 | Town and city plans | Candidate: watabou TownGeneratorOS | UrbanSim, PostGIS geometry, Godot geometry | 34 |
 | Cartography and map art | **Azgaar** relief placement (`generators/relief-generator.ts`), coastline (`generators/coastline-generator.ts`, `renderers/coastal-waves.ts`), river paths, label path fitting and the seeded label-overlap solver (`controllers/label-spread.ts`, MIT, DOM text measurement to replace); **QGIS** hillshade renderer (`core/raster/qgshillshaderenderer.cpp`, incl. multi-directional) and **PAL** label placement (`core/pal/`, FALP + chain search; needs GEOS replaced); rule-based styles as design | CesiumJS slope/aspect/contour materials and imagery colour adjustments, orogen colour maps; candidates mapgen4, mewo2/terrain | 18, 19 |
-| Editing, undo, plugins | New | Godot undo-redo and plugins, QGIS Processing, SLiM Eidos | 16, 37 |
-| Parameter registry | New, after **MARBL** settings registry (its metadata fields and ordered categories; MARBL has no ranges or generated documentation and declares each parameter twice) | orogen config, Azgaar options | 17 |
+| Editing, undo, plugins | New | Godot undo-redo and plugins (concept references; not a serialisable log), Azgaar editors (behaviour reference; no edit log of its own), QGIS Processing, SLiM Eidos | 16, 37 |
+| Parameter registry | New, after **MARBL** settings registry (its metadata fields and ordered categories; MARBL has no ranges or generated documentation and declares each parameter twice) | orogen config and sliders (15 sliders, about 446 constants), Azgaar options (reference only; its zod schema `components/options-schema.ts` is the closest analogue), MESSAGEix (index-set structure only) | 17 |
 | Earth test datasets | Downloaded at tuning time (Q8) | orogen tuning harness | 15 |
 
 ### Candidate upstreams to audit

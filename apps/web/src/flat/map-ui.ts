@@ -9,6 +9,7 @@ import {
 import type { MultiLineString } from 'geojson';
 import type { HeightmapArgs } from '@mapmaker/projection/exact/kernels';
 import { CPU_REDUCTION, FlatMap, type MapState } from './flat-map';
+import { lonLatDegToUnit } from '../editor/editing';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -24,6 +25,12 @@ export interface MapUi {
   /** Call after the layer changed (FlatMap.setLayer done). */
   layerChanged(): void;
   state(): MapState & { view: 'globe' | 'flat' };
+  /** While an editing tool is active a drag no longer pans the map. */
+  setEditing(on: boolean): void;
+  /** Canonical unit vector under a pointer position (client coordinates) on the flat map, or null outside the projection. */
+  pick(clientX: number, clientY: number): [number, number, number] | null;
+  /** The element that receives the pointer events of the flat map. */
+  readonly element: HTMLElement;
   /** Resolves when the map and its overlays are drawn for the current state. */
   rendered(): Promise<void>;
   /** Exports with the current controls; resolves with the file's bytes (also offered for download) and the kernel args. */
@@ -145,9 +152,10 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
     schedule();
   }, { passive: false });
   let drag: { x: number; y: number; pan: [number, number] } | null = null;
-  mapEl.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, pan: [pan[0], pan[1]] }; mapEl.setPointerCapture(e.pointerId); });
+  let editing = false;
+  mapEl.addEventListener('pointerdown', (e) => { if (editing) return; drag = { x: e.clientX, y: e.clientY, pan: [pan[0], pan[1]] }; mapEl.setPointerCapture(e.pointerId); });
   mapEl.addEventListener('pointermove', (e) => {
-    if (!drag || zoom === 1) return;
+    if (editing || !drag || zoom === 1) return;
     const dpr = Math.min(2, devicePixelRatio || 1);
     pan = [drag.pan[0] + (e.clientX - drag.x) * dpr, drag.pan[1] + (e.clientY - drag.y) * dpr];
     schedule();
@@ -197,6 +205,15 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
     worldChanged() { coast = undefined; schedule(); },
     layerChanged() { schedule(); },
     state: () => ({ ...state(), view: viewSel.value as 'globe' | 'flat' }),
+    setEditing(on) { editing = on; drag = null; },
+    element: mapEl,
+    pick(clientX, clientY) {
+      if (!flat.ready) return null;
+      const rect = mapEl.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+      const [W, H] = flat.size();
+      const ll = FlatMap.view(state(), W, H).invert((clientX - rect.left) * dpr, (clientY - rect.top) * dpr);
+      return ll ? lonLatDegToUnit(ll[0], ll[1]) : null;
+    },
     rendered: async () => {
       // Wait for the scheduled frame and the draw it started, until no further draw is scheduled.
       do {

@@ -25,7 +25,7 @@ The open decisions in §8 were resolved on 2026-10-03. At Checkpoint 1 (also 202
 | Q15 | Fantasy | **A module layer over the realistic core (2026-10-13, user decision).** Fantasy rules (magic, non-human peoples, creatures, rule overrides, fantastical geography) are per-world modules that hook into defined stage points (§3.9, note 35). With every module off, outputs are bit-identical to the realistic pipeline; a CI test enforces this. |
 | Q16 | User edits | **First-class, deterministic inputs (2026-10-13).** Every layer value, region and entity can be edited. Edits are recorded in an append-only edit log, replayed deterministically, and act as hard pins or soft constraints on the stages that produce them; downstream stages re-run through the existing invalidation (§3.8, note 16). Any system can also be switched off or replaced by hand-authored data. |
 | Q17 | Earth tests | **A permanent regression gate (2026-10-13).** The layered Earth tests T1–T4 (`docs/REQUIREMENTS.md`, note 15) are built up phase by phase. Each phase adds the tests for its domain, and once a test exists, CI fails on regression beyond its stored tolerance, as for the Q7 A/B gate. |
-| Q18 | Hosting and distribution | **Cloudflare Pages primary, GitHub Pages mirror, Electron later (2026-10-13, user decision; free tier only).** Cloudflare Pages sends COOP/COEP natively (`apps/web/public/_headers`), so the app is cross-origin isolated (SharedArrayBuffer, threaded WASM) without the `coi-serviceworker` shim; static traffic is unmetered on the free plan, every pull request gets a preview deployment, and R2 can later hold large datasets and asset packs (25 MiB per-file limit on Pages). Deployed by `.github/workflows/cloudflare.yml` with the `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` secrets. GitHub Pages (`pages.yml`) stays as a mirror and keeps the opt-in shim. Next steps on the browser path: an installable PWA and OPFS storage for large worlds. The desktop edition is the same build in Electron (Q4), with installers on GitHub Releases, when Phase 14 benchmarks call for it. A custom domain can be added later. |
+| Q18 | Hosting and distribution | **Superseded by W7 (2026-10-19, user): desktop software for macOS and Windows only; public hosting is out of scope and the deploys below are unmaintained.** Original text: **Cloudflare Pages primary, GitHub Pages mirror, Electron later (2026-10-13, user decision; free tier only).** Cloudflare Pages sends COOP/COEP natively (`apps/web/public/_headers`), so the app is cross-origin isolated (SharedArrayBuffer, threaded WASM) without the `coi-serviceworker` shim; static traffic is unmetered on the free plan, every pull request gets a preview deployment, and R2 can later hold large datasets and asset packs (25 MiB per-file limit on Pages). Deployed by `.github/workflows/cloudflare.yml` with the `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` secrets. GitHub Pages (`pages.yml`) stays as a mirror and keeps the opt-in shim. Next steps on the browser path: an installable PWA and OPFS storage for large worlds. The desktop edition is the same build in Electron (Q4), with installers on GitHub Releases, when Phase 14 benchmarks call for it. A custom domain can be added later. |
 | D5 | Fidelity slider | **Redesign adopted (Checkpoint 1).** Structural decisions (mountain kernels and belts, hotspots, the macro land mask, major drainage divides) are made at a fixed reference resolution, with counter-based randomness keyed to reference-cell ids. Higher N adds only band-limited detail. See §3.1, §3.5, §4 (Fidelity slider) and design note 14. |
 | D6 | Phase 4 split | **Adopted (Checkpoint 1).** Phase 4a: orogen in the shell, parity test, globe, benchmarks. Phase 4b: the preview restructure (D5) behind the Q7 A/B gate. Each has its own checkpoint (§7). |
 | D7 | Climate at L0, downscaled | **Approved with a gate (Checkpoint 2).** Phase 4b must show that the downscaled climate scores within a stated tolerance of orogen's full-resolution climate on the Earth tuning harness, at the same N. The tolerance starts at **0.02 of the objective**: the downscaled score may be at most 0.02 lower. If it is not, the climate solve moves to the **80k-cell climate mesh fallback** (L0′, note 14 §3.6). |
@@ -418,7 +418,7 @@ The cube maps are a lookup acceleration built from the sphere, not a resampled c
 
 **Switching projection** swaps the `ProjectionView` and rebuilds GPU lookups only. It never touches `World` and never re-runs a stage.
 
-**SharedArrayBuffer note**: zero-copy sharing between workers needs cross-origin isolation (COOP/COEP headers). GitHub Pages cannot set custom headers. The default is transferable `ArrayBuffer`s (ownership moves, no copy). The `coi-serviceworker` shim is an optional upgrade for SharedArrayBuffer. **Checkpoint 3 (tested):** with the shim (`?coi`), the page reloads once and becomes cross-origin isolated, and a worker can use a `SharedArrayBuffer` with `Atomics`, in Chromium, Firefox and WebKit, on Linux, macOS and Windows runners and on the live GitHub Pages site under `/MapMaker/`. Without the shim, `crossOriginIsolated` is false and transferable `ArrayBuffer`s move as expected.
+**SharedArrayBuffer note** (hosting is out of scope under W7; Electron can set the headers itself): zero-copy sharing between workers needs cross-origin isolation (COOP/COEP headers). GitHub Pages cannot set custom headers. The default is transferable `ArrayBuffer`s (ownership moves, no copy). The `coi-serviceworker` shim is an optional upgrade for SharedArrayBuffer. **Checkpoint 3 (tested):** with the shim (`?coi`), the page reloads once and becomes cross-origin isolated, and a worker can use a `SharedArrayBuffer` with `Atomics`, in Chromium, Firefox and WebKit, on Linux, macOS and Windows runners and on the live GitHub Pages site under `/MapMaker/`. Without the shim, `crossOriginIsolated` is false and transferable `ArrayBuffer`s move as expected.
 
 ---
 
@@ -582,7 +582,7 @@ world.mapmaker
 Rules:
 
 - **Exact resume.** Loading restores `params`, `rng`, `pipeline` and `timeline` exactly. Continuing a run (the next erosion iteration or the next history tick) gives the same result as if the session had never stopped. This is tested by a CI test that runs N steps, saves at step k, reloads, finishes, and compares hashes.
-- **Scope of exactness.** It is guaranteed for the same app version in `dmath.mode = 'fdlibm'` on any engine and CPU (CI-verified on Chromium, Firefox, WebKit and Node on Linux x64, macOS arm64 and Windows x64); in `'native'` mode only on the same engine build and CPU architecture (Float64 libm results differ across engines and between arm64 and x64; see Q3). The manifest records the mode. Cross-engine bit-exactness is a **CI-tested goal** (Q3): CI hashes outputs on Chromium, Firefox and WebKit, and on a Windows runner from Phase 3. **GPU-computed values are never part of resumable state** (§6).
+- **Scope of exactness.** It is guaranteed for the same app version in `dmath.mode = 'fdlibm'` on any engine and CPU (CI-verified on Node on Linux x64, macOS arm64 and Windows x64, and in Chromium and Firefox on Linux and macOS; WebKit was verified through Checkpoint 5 and is out of scope under W7); in `'native'` mode only on the same engine build and CPU architecture (Float64 libm results differ across engines and between arm64 and x64; see Q3). The manifest records the mode. Cross-engine bit-exactness is a **CI-tested goal** (Q3): CI hashes outputs in Chromium and Firefox (macOS, Ubuntu) and in Node on a Windows runner (W7). **GPU-computed values are never part of resumable state** (§6).
 - **Mid-stage checkpoints.** Iterative stages (slow erosion, the coupling loop, history) implement `checkpoint(): Chunk[]` and `restore(chunks)`. Single-shot stages are re-run from their recorded inputs if interrupted.
 - **Versioning.** `manifest.format` uses semver and migrations live in `packages/core/save/migrations/`. If stage code versions differ from the running app, the world opens **view-only for simulation**: it can be viewed and exported, but resuming requires an explicit "re-run from stage X".
 - **World code.** A short, recipe-only string (params + seed + app version), like orogen's planet code, for sharing a world that regenerates deterministically. It is not a save.
@@ -613,7 +613,7 @@ The memory budget is set per fidelity tier. Layers are allocated only when a dow
 | Max (browser) | 2.56M | ~12.5 km | ~400–600 MB† |
 | Regional patch | per patch, up to ~1M | down to ~1 km | budgeted separately |
 
-Safari's per-tab limits are the tightest constraint†. Phase 4a measures real numbers per browser.
+Browser per-tab limits are the tightest constraint†; Safari is out of scope (W7), so Firefox is the tightest supported browser (Electron/Chromium raises the heap limit). Phase 4a measured real numbers per browser.
 
 ### 6.3 CPU, WASM and GPU roles
 
@@ -636,7 +636,7 @@ The desktop fallback is built **only if** phase-gate benchmarks (Phases 4a, 7 an
 - Node `worker_threads` are available.
 - Azgaar already ships an Electron build, which is a working reference.
 
-Tauri is lighter, but it uses WKWebView on macOS, so the Mac desktop build would inherit Safari's memory limits and JavaScriptCore math. That is decision Q4.
+Tauri is lighter, but it uses WKWebView on macOS, so the Mac desktop build would inherit WebKit's memory limits and JavaScriptCore math. That is decision Q4. Under W7 the desktop build is the product's final form, not only a fallback.
 
 ### 6.6 Scaling the expanded scope (Q13, note 38)
 
@@ -780,7 +780,7 @@ Phases on different branches of this graph can be reordered at a checkpoint with
   - orogen tectonics/heightmap (4), erosion (4), climate (4), Köppen (5);
   - the **tuning harness (5)**: download the Kottek Köppen data (F6), run `tuning/climate/evaluate.mjs`, and record the baseline objective;
   - **scale invariance** (orogen's own claim);
-  - **determinism**: same planet code gives identical array hashes across runs and across Chrome, Firefox and Safari. Record any cross-engine divergence; this input decides Q3;
+  - **determinism**: same planet code gives identical array hashes across runs and across Chrome and Firefox (Safari dropped, W7). Record any cross-engine divergence; this input decides Q3;
   - **axis convention and the seam cell** (F1);
   - **elevation units** (F2).
 - Azgaar: rivers (3), names and burgs (3), save (4) via a `.map` round-trip that compares state, and an inventory of `Math.random` use (F7).
@@ -907,12 +907,12 @@ Added at Checkpoint 1 (D5):
 ### Phase 3: Shell, canonical model, determinism infrastructure
 
 - Monorepo scaffolding (§2 layout), TypeScript strict, Vite, Vitest, Playwright, lint rules (including the `Math.random` ban), and CI.
-- **Cross-engine hash test in CI** (Q3): output hashes compared across Chromium, Firefox and WebKit, plus a **Windows/x64 runner**, since Windows is the one platform spike 1a could not test.
+- **Cross-engine hash test in CI** (Q3): output hashes compared across Chromium and Firefox (WebKit dropped by W7), plus a **Windows/x64 runner** (Node checks only; no GPU) since Windows is the one platform spike 1a could not test.
 - `PROVENANCE.md` plus a script that checks every vendored file against `upstream-manifest.json` commits, and records the third-party npm dependencies with their licenses.
 - `packages/core`: frame and units, `SphereMesh` (orogen's mesh builder, ported), `LayerRegistry`, entity tables (with declared time axes), `Timeline` (geologic and history axes) and `EventLog`, the RNG service (three algorithms, derivation, counter-based), `dmath` (pass-through; gained the `'fdlibm'` mode at Checkpoint 3b), and save/load v0.
 - `packages/engine`: stage runner (manifests, hashing, invalidation, pipeline variants with the one-producer check), worker protocol, worker pool, cancellation, checkpoints.
 - A **dummy history stage** that writes agents, events, keyframes and changes, to prove the history schema round-trips through save → load → resume with hash equality.
-- GitHub Pages deployment, and a COOP/COEP shim test.
+- GitHub Pages deployment, and a COOP/COEP shim test (both unmaintained since W7).
 
 **Checkpoint 3.** Stop and wait.
 
@@ -961,7 +961,7 @@ Added at Checkpoint 1 (D5):
 
 ### Phase 5b: Editor core v1 (Q14, Q16; notes 16, 17)
 
-**Prerequisite:** reconcile first: Godot (its undo-redo and plugin system, the references for notes 16 and 37; `audit/Godot.md`); orogen (every claim in the design notes that cites it, especially notes 17 and 21; `audit/orogen.md`); Azgaar beyond Phases 5 and 5c (its editors and options UI, cited by notes 16 and 17); and MESSAGEix (cited by note 17; `audit/MESSAGEix.md`). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
+**Prerequisite:** reconcile first: Godot (its undo-redo and plugin system, the references for notes 16 and 37; `audit/Godot.md`); orogen (every claim in the design notes that cites it, especially notes 17 and 21; `audit/orogen.md`); Azgaar beyond Phases 5 and 5c (its editors and options UI, cited by notes 16 and 17); and MESSAGEix (cited by note 17; `audit/MESSAGEix.md`). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`. **Done 2026-10-19: `docs/reconciliation/group-5b.md`.**
 
 - The edit log, pins, soft constraints and seeds (§3.8), wired into stage invalidation, with undo and redo.
 - Editing tools on the globe and flat views: elevation sculpt and paint (raise, lower, smooth, flatten, noise), land/sea paint, plate-boundary and hotspot seeds, and a categorical paint for any enum layer.
@@ -994,6 +994,9 @@ Added at Checkpoint 1 (D5):
 - Parameter-mapping layer (design note 10); `planet.radius_m` threaded through.
 - Continuous seasons (design note 11).
 - **Q7 baseline rule:** any change to the climate model (the parameter mapping, seasons, or downscaling) re-records the Q7 A/B baseline in the **same commit**.
+
+- **Known defect (decision P3, 2026-10-19):** generated continents can look unrealistically rectangular, even with organic settings. Investigated in `docs/checkpoints/RECT_CONTINENTS.md` (queue item Q2) before this phase; Phase 6b's plate evolution may also change shapes. Metrics: share of coastline in long near-straight segments, and each landmass's fit to an axis-aligned box.
+- **Earth-like preset and Electron (decisions P1, P2, P4):** no seed reproduces Earth (statistical similarity only); the Earth-like preset (sweep `tools/tuning/earthlike/`) is repeated after Phase 6b and redone for all parameters in Phase 8. The Electron wrapper (Q4) is packaged after Checkpoint 5c for macOS and Windows.
 
 **Checkpoint 6.** Stop and wait.
 
@@ -1251,8 +1254,8 @@ This is the original decision table, kept for its rationale. **All eleven questi
 |---|---|---|---|---|
 | **Q1** | **Resolved** | Base: new TS shell, or fork orogen? | **New shell, vendoring orogen's stages verbatim** | §1. The parts of orogen we would keep are the parts that move cleanly. A fork's head start is recovered by the Phase 4 parity approach. |
 | **Q2** | **Resolved** | Project license | ~~Declare GPL-3.0-or-later now~~ → **GPL-3.0-only** (orogen has no or-later grant) | orogen (GPL-3.0, with no or-later grant) forces version 3 for the combined work. Declaring it early avoids accidental incompatible additions. This does not resolve the deferred conflicts (GPlates 2.0-only stays code-free). |
-| **Q3** | **Resolved** | Determinism scope: exact resume on the same browser engine only, or bit-exact across Chrome, Firefox and Safari? | **Same-version, same-engine exactness now**, with the `dmath` hook in place from day one. Decide on cross-engine exactness after spike 1a measures actual divergence. | A deterministic math library costs performance (estimated 1.5–3× on transcendental-heavy code†). It may be needed only for the history simulation. Changed at Checkpoint 1: spike 1a measured no divergence, so cross-engine exactness became a CI-tested goal. |
-| **Q4** | **Resolved** | Desktop wrapper, if needed | **Electron**, built only if benchmarks demand it | Same engine as Chrome on both OSes, consistent determinism, raisable heap. Tauri on macOS inherits WebKit's limits. |
+| **Q3** | **Resolved** | Determinism scope: exact resume on the same browser engine only, or bit-exact across Chrome, Firefox and Safari (Safari dropped by W7)? | **Same-version, same-engine exactness now**, with the `dmath` hook in place from day one. Decide on cross-engine exactness after spike 1a measures actual divergence. | A deterministic math library costs performance (estimated 1.5–3× on transcendental-heavy code†). It may be needed only for the history simulation. Changed at Checkpoint 1: spike 1a measured no divergence, so cross-engine exactness became a CI-tested goal. |
+| **Q4** | **Resolved** | Desktop wrapper, if needed | **Electron**, built only if benchmarks demand it | Same engine as Chrome on both OSes, consistent determinism, raisable heap. Tauri on macOS inherits WebKit's limits. W7: Electron is now the planned desktop packaging after 5c, not only a benchmark-driven fallback. |
 | **Q5** | **Resolved** | History t0 | **Start from Azgaar's static human layer**; add "grow from first settlements" later | Gets a working history loop much sooner. The schema already supports both. |
 | **Q6** | **Resolved** | Fidelity ceilings | Whole planet ≤ **2.56M cells (~12.5 km)** in the browser; regional patches down to **~1 km**; history at **1-year ticks for ≤ 5,000 years**, with **aggregate agents** (settlements, polities, cultures), not individuals | These set memory budgets, save sizes and the desktop-fallback trigger. Resolved as **benchmark targets, not caps**; longer histories use coarser per-era `dtYears`. |
 | **Q7** | **Resolved** | A/B pass thresholds for "preview is faithful" | Land IoU ≥ **0.95**; coastline Hausdorff ≤ **2 preview-cell widths**; Köppen area agreement ≥ **90%**; precipitation correlation ≥ **0.9**; no new or missing major mountain belts | These make "true preview" testable rather than subjective. Resolved as **provisional**: spike 1c measures first, and the final values are set at Checkpoint 1. Final at Checkpoint 1: seven targets, CI fails on regression only. |

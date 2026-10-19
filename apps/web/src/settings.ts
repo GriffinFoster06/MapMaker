@@ -3,9 +3,17 @@
 // Original shell code. Defaults must equal OROGEN_DEFAULTS (settings.test.ts); they are duplicated here so the page
 // does not bundle the generator, which runs in the engine worker.
 
+/** Registry levels (design note 17 §3.2): simple world-level controls, advanced per-system controls, expert (every registered constant). */
+export type Level = 'simple' | 'advanced' | 'expert';
+export const LEVELS: Level[] = ['simple', 'advanced', 'expert'];
+
 export interface Setting {
   /** OrogenParams key. */
   key: string;
+  /** Registry level: shown at this level and above (simple ⊂ advanced ⊂ expert). */
+  level: Level;
+  /** Domain the parameter belongs to (informational and for grouping). */
+  domain: string;
   label: string;
   tip: string;
   min: number;
@@ -23,49 +31,63 @@ export const SETTING_GROUPS: SettingGroup[] = [
   {
     title: 'Shape your world',
     settings: [
-      { key: 'jitter', label: 'Irregularity', min: 0, max: 1, step: 0.05, def: 0.75, lo: 'Uniform', hi: 'Scattered',
+      { key: 'jitter', level: 'simple', domain: 'mesh', label: 'Irregularity', min: 0, max: 1, step: 0.05, def: 0.75, lo: 'Uniform', hi: 'Scattered',
         tip: 'How randomly the cell points are scattered: 0 gives a uniform grid, 1 gives fully organic, irregular shapes.' },
-      { key: 'P', label: 'Plates', min: 4, max: 120, step: 1, def: 80, lo: 'Few', hi: 'Many',
+      { key: 'P', level: 'simple', domain: 'tectonics', label: 'Plates', min: 4, max: 120, step: 1, def: 80, lo: 'Few', hi: 'Many',
         tip: 'Number of tectonic plates. More plates means more boundaries where mountains, trenches and coastlines form.' },
-      { key: 'numContinents', label: 'Continents', min: 1, max: 10, step: 1, def: 4, lo: 'Supercontinent', hi: 'Archipelago',
+      { key: 'numContinents', level: 'simple', domain: 'tectonics', label: 'Continents', min: 1, max: 10, step: 1, def: 4, lo: 'Supercontinent', hi: 'Archipelago',
         tip: 'Target number of landmasses: 1 creates a supercontinent, higher values scatter land into continents and archipelagos.' },
-      { key: 'nMag', label: 'Roughness', min: 0, max: 0.5, step: 0.01, def: 0.4, lo: 'Smooth', hi: 'Rugged',
+      { key: 'nMag', level: 'simple', domain: 'terrain', label: 'Roughness', min: 0, max: 0.5, step: 0.01, def: 0.4, lo: 'Smooth', hi: 'Rugged',
         tip: 'Terrain roughness: higher values add more fractal detail to mountains and coastlines.' },
-      { key: 'continentSizeVariety', label: 'Continent size variety', min: 0, max: 1, step: 0.05, def: 0.35, lo: 'Equal', hi: 'Varied',
+      { key: 'continentSizeVariety', level: 'advanced', domain: 'tectonics', label: 'Continent size variety', min: 0, max: 1, step: 0.05, def: 0.35, lo: 'Equal', hi: 'Varied',
         tip: 'How much continent sizes vary: at 0 all continents are similar in size, at 1 large and small landmasses mix.' },
-      { key: 'landCoverage', label: 'Land coverage', min: 0, max: 1, step: 0.01, def: 0.3, lo: 'Ocean world', hi: 'Desert world',
+      { key: 'landCoverage', level: 'simple', domain: 'tectonics', label: 'Land coverage', min: 0, max: 1, step: 0.01, def: 0.3, lo: 'Ocean world', hi: 'Desert world',
         tip: 'Share of the planet covered by land. Low values make ocean worlds; high values make desert worlds with less rain.' },
     ],
   },
   {
     title: 'Terrain sculpting',
     settings: [
-      { key: 'terrainWarp', label: 'Terrain warp', min: 0, max: 1, step: 0.05, def: 0.75, lo: 'None', hi: 'Heavy',
+      { key: 'terrainWarp', level: 'advanced', domain: 'terrain', label: 'Terrain warp', min: 0, max: 1, step: 0.05, def: 0.75, lo: 'None', hi: 'Heavy',
         tip: 'Deforms the elevation field with noise, giving more organic, squiggly coastlines and mountain ridges.' },
-      { key: 'smoothing', label: 'Smoothing', min: 0, max: 1, step: 0.05, def: 0.1, lo: 'None', hi: 'Heavy',
+      { key: 'smoothing', level: 'advanced', domain: 'terrain', label: 'Smoothing', min: 0, max: 1, step: 0.05, def: 0.1, lo: 'None', hi: 'Heavy',
         tip: 'Blends harsh terrain boundaries from tectonic generation: smooths banded ridges and abrupt transitions.' },
-      { key: 'glacialErosion', label: 'Glacial erosion', min: 0, max: 1, step: 0.05, def: 0.5, lo: 'None', hi: 'Ice age',
+      { key: 'glacialErosion', level: 'advanced', domain: 'erosion', label: 'Glacial erosion', min: 0, max: 1, step: 0.05, def: 0.5, lo: 'None', hi: 'Ice age',
         tip: 'Ice-age sculpting: carves fjords, U-shaped valleys and lake basins at high latitudes and altitudes.' },
-      { key: 'hydraulicErosion', label: 'Hydraulic erosion', min: 0, max: 1, step: 0.05, def: 0.5, lo: 'None', hi: 'Deep',
+      { key: 'hydraulicErosion', level: 'advanced', domain: 'erosion', label: 'Hydraulic erosion', min: 0, max: 1, step: 0.05, def: 0.5, lo: 'None', hi: 'Deep',
         tip: 'Stream-power erosion: carves river valleys and branching drainage networks.' },
-      { key: 'thermalErosion', label: 'Thermal erosion', min: 0, max: 1, step: 0.05, def: 0.1, lo: 'None', hi: 'Heavy',
+      { key: 'thermalErosion', level: 'advanced', domain: 'erosion', label: 'Thermal erosion', min: 0, max: 1, step: 0.05, def: 0.1, lo: 'None', hi: 'Heavy',
         tip: 'Slope-driven material transport: softens ridges and creates natural talus slopes.' },
-      { key: 'ridgeSharpening', label: 'Ridge sharpening', min: 0, max: 1, step: 0.05, def: 0.5, lo: 'None', hi: 'Jagged',
+      { key: 'ridgeSharpening', level: 'advanced', domain: 'terrain', label: 'Ridge sharpening', min: 0, max: 1, step: 0.05, def: 0.5, lo: 'None', hi: 'Jagged',
         tip: 'Accentuates mountain ridgelines: pushes peaks further above their surroundings for more dramatic terrain.' },
     ],
   },
   {
     title: 'Climate',
     settings: [
-      { key: 'temperatureOffset', label: 'Temperature (°C)', min: -15, max: 15, step: 1, def: 0, lo: 'Colder', hi: 'Warmer',
+      { key: 'temperatureOffset', level: 'simple', domain: 'climate', label: 'Temperature (°C)', min: -15, max: 15, step: 1, def: 0, lo: 'Colder', hi: 'Warmer',
         tip: 'Shifts global temperature; climate zones shift accordingly.' },
-      { key: 'precipitationOffset', label: 'Precipitation', min: -1, max: 1, step: 0.1, def: 0, lo: 'Drier', hi: 'Wetter',
+      { key: 'precipitationOffset', level: 'simple', domain: 'climate', label: 'Precipitation', min: -1, max: 1, step: 0.1, def: 0, lo: 'Drier', hi: 'Wetter',
         tip: 'Scales global precipitation: affects where deserts and rainforests form.' },
     ],
   },
 ];
 
 export const SETTINGS: Setting[] = SETTING_GROUPS.flatMap((g) => g.settings);
+
+/** Settings visible at `level`: a level shows its own parameters and every lower level's. */
+export const visibleAt = (level: Level): Setting[] => SETTINGS.filter((s) => LEVELS.indexOf(s.level) <= LEVELS.indexOf(level));
+
+/** A named set of slider values. Presets never change the defaults (world hashes depend on them); they only fill the sliders. */
+export interface Preset { id: string; label: string; tip: string; values: Record<string, number> }
+
+export const PRESETS: Preset[] = [
+  {
+    id: 'earthlike', label: 'Earth-like',
+    tip: 'Found by a sweep of the 14 sliders against Earth statistics (docs/earth-tests/DEFAULTS_SWEEP.md, configuration L612). Compared with the defaults it gives Earth-like land fraction, hypsometry, continent sizes, climate-zone shares and river density. Preview-tier evidence only.',
+    values: { jitter: 0.75, P: 81, numContinents: 4, nMag: 0.23, continentSizeVariety: 0.1, landCoverage: 0.36, terrainWarp: 0, smoothing: 0.15, glacialErosion: 0.75, hydraulicErosion: 0.4, thermalErosion: 0.25, ridgeSharpening: 0.95, temperatureOffset: -2, precipitationOffset: -0.5 },
+  },
+];
 
 const clamp = (s: Setting, v: number): number => Math.min(s.max, Math.max(s.min, v));
 

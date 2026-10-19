@@ -13,6 +13,7 @@ Updated at every checkpoint.
 | World settings panel (PR #5) | Merged (`121dc1e`) |
 | Reconciliation, groups 1, 2, 3 and 6a | Done 2026-10-18; independent review fixed (`docs/reconciliation/`). Other upstreams deferred |
 | 5 (Projection and distortion layer) | **Reached 2026-10-19; waits for the user's review** (`docs/checkpoints/CHECKPOINT_5.md`, PR #8) |
+| 5b (Editing core) | **Reached 2026-10-19; waits for the user's review** (`docs/checkpoints/CHECKPOINT_5B.md`, PR #9) |
 
 ## Current handoff — 2026-10-18, Claude Code (cloud to local; catch-up and reconciliation)
 

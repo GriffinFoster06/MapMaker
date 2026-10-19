@@ -1,6 +1,6 @@
 # Reconciliation
 
-Documentation-only passes that check what the planning documents claim about each upstream against the source in `upstream/`. This file records why they exist, the method, what is done and what is deferred, and how to run the next one. The results are in `group-1.md`, `group-2.md`, `group-3.md` and `group-6a.md`. `pending-decisions.md` records the changes the passes raised and the user's rulings on them (all resolved 2026-10-18). `review.md` is an independent review of the first four passes.
+Documentation-only passes that check what the planning documents claim about each upstream against the source in `upstream/`. This file records why they exist, the method, what is done and what is deferred, and how to run the next one. The results are in `group-1.md`, `group-2.md`, `group-3.md`, `group-6a.md` and `group-5b.md`. `pending-decisions.md` records the changes the passes raised and the user's rulings on them (all resolved 2026-10-18). `review.md` is an independent review of the first four passes.
 
 ## 1. Why reconciliation exists
 
@@ -41,11 +41,11 @@ Used in `group-1.md` through `group-3.md` and `group-6a.md`:
 | CTSM | Done | group 3 | — |
 | MOM6 | Done | group 3 | — |
 | MARBL | Done | group 3 | — |
-| Azgaar | **Partly done**: Phases 5 and 5c only | group 6a | Phase 5b (editors and options UI); Phase 7 (`lakes.ts`, `features-generator.ts`). Notes 5 and 9 are covered by those passes or by Phase 10; asset licences at Phase 10b |
+| Azgaar | **Partly done**: Phases 5, 5b (editors and options UI) and 5c | group 6a, group 5b | Phase 7 (`lakes.ts`, `features-generator.ts`). Notes 5 and 9 are covered by those passes or by Phase 10; asset licences at Phase 10b |
 | QGIS | **Partly done**: Phases 5 and 5c only | group 6a | Phase 17 (Processing framework, note 37) |
 | CesiumJS | **Partly done**: Phases 5 and 5c only | group 6a | Phase 14 (LOD and tiling, note 38); Phase 16 (note 36) |
-| Godot | Deferred | — | Phase 5b |
-| orogen | Deferred (vendored and parity-tested, but its claims in notes 17 and 21 were wrong or unchecked: `review.md` M1, M2) | — | Phase 5b (every design-note claim that cites it, especially notes 17 and 21) |
+| Godot | Done | group 5b | — |
+| orogen | Done (the claims in notes 17 and 21 and the audit were corrected) | group 5b | — |
 | LPJmL | Deferred | — | Phase 7 (`src/lpj/drain.c`, note 12) |
 | SLiM | Deferred | — | Phase 9b |
 | RangeShiftR | Deferred | — | Phase 9b |
@@ -53,13 +53,13 @@ Used in `group-1.md` through `group-3.md` and `group-6a.md`:
 | Eurace | Deferred | — | Phase 13 |
 | UrbanSim | Deferred | — | Phase 10 |
 | LIAM2 | Deferred | — | Phase 13 |
-| MESSAGEix | Deferred | — | Phase 5b |
+| MESSAGEix | Done | group 5b | — |
 | GAMA | Deferred | — | Phase 9c |
 | FLAMEGPU2 | Deferred | — | Phase 9c |
 | OpenSpiel | Deferred | — | Phase 13 |
 | SongsOfFOSS | Deferred | — | Phase 9e |
 
-Totals: 13 done, 3 partly done, 14 deferred (30).
+Totals: 16 done, 3 partly done, 11 deferred (30).
 
 ### Candidate upstreams and datasets (not in the manifest; audit with prompt 2)
 

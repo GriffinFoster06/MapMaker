@@ -6,7 +6,7 @@ Godot Engine is a mature, production-grade 2D/3D cross-platform game engine main
 
 ## 2. Language, runtime, dependencies, build
 
-- **Primary language**: C++ (99%+, ~808k LOC); Python for build scripts; small GDScript editor support modules
+- **Primary language**: C++ (99%+; first-party only, excluding `thirdparty/`: 1,807 .cpp and 1,944 .h files, 1,624,746 lines; the earlier ~808k LOC figure was wrong, reconciliation group 5b); Python for build scripts; small GDScript editor support modules
 - **Runtime**: Cross-platform: native binaries for desktop/mobile; WASM (wasm32 via Emscripten) for web
 - **Key dependencies**: Emscripten (for web/WASM), SCons 4.4+, Python 3.9+, optional third-party libraries vendored in `thirdparty/` (freetype, zlib, minizip, openssl, mbedtls, enet, ogg/vorbis/theora, etc.). Exact pinned versions are in individual module `SCsub` files.
 - **Build system**: SCons-based (Python). Supports platform-specific build detection and modular compilation.
@@ -20,7 +20,7 @@ Godot Engine is a mature, production-grade 2D/3D cross-platform game engine main
 ### 3.1 Noise Generation
 
 - **Where**: `modules/noise/` (fastnoise_lite.h/cpp, noise.h/cpp, noise_texture_2d.h/cpp, noise_texture_3d.h/cpp)
-- **What it does**: Wraps FastNoiseLite library (third-party, vendored in `thirdparty/`). Provides: Simplex (OpenSimplex2/2S), Perlin, Cellular (Voronoi), Value/ValueCubic noise; fractal modes (FBM, Ridged, PingPong); domain warping (simplex-based); configurable octaves, lacunarity, gain. Output is float noise scalars or 2D/3D textures. No FFT-based Brownian noise or spectral synthesis.
+- **What it does**: Wraps FastNoiseLite library (third-party, vendored at `thirdparty/misc/FastNoiseLite.h`, 2,599 lines, MIT, included at `modules/noise/fastnoise_lite.h:35`). Provides: Simplex (OpenSimplex2/2S), Perlin, Cellular (Voronoi), Value/ValueCubic noise; fractal modes (FBM, Ridged, PingPong); domain warping (simplex-based); configurable octaves, lacunarity, gain. Output is float noise scalars or 2D/3D textures. No FFT-based Brownian noise or spectral synthesis.
 - **Quality & realism rating: 3/5** — FastNoiseLite is well-tested and widely used for procedural terrain in games. Simplex and Perlin are industry-standard for heightmap generation. However: (a) tuned for game aesthetics, not calibrated to real-world terrain statistics; (b) no spectral synthesis or continuous fractal modes; (c) domain warping is for visual effects (flow fields), not physical simulation; (d) no multi-resolution or FFT-based synthesis for coherent noise across scales. Suitable for fantasy terrain, with limits on realism without extensive tuning/calibration.
 - **Extractability: loosely coupled** — FastNoiseLite is a standalone C++ library (not Godot-specific). The Godot wrapper (fastnoise_lite.h/cpp) tightly couples it to Godot's property/resource system. Extraction effort: high (would require porting FastNoiseLite to JS/TS or consuming its C++ via WASM). Better approach: use existing JS libraries (FastNoiseLite.js or Simplex noise.js on npm).
 - **Requirements capabilities it could serve**: Heightmap generation (basic seed-based terrain)
@@ -38,7 +38,7 @@ Godot Engine is a mature, production-grade 2D/3D cross-platform game engine main
 - **Where**: `modules/csg/` (constructive solid geometry); `core/math/` (convex hull, Delaunay 2D/3D, triangulation); `scene/3d/` (mesh nodes, terrain/gridmap)
 - **What it does**: CSG: boolean operations on 3D shapes (union, difference, intersection). Delaunay: 2D Delaunay triangulation for procedural meshes. Convex hull: Graham scan / quickhull. Triangulation: ear-clipping for simple polygons. GridMap: 3D grid-based voxel/block placement. No procedural terrain generation (heightmap → mesh). No mesh subdivision or LOD (level-of-detail) synthesis.
 - **Quality & realism rating: 2/5** — Geometry utilities are functional for game meshes and basic procedural generation, but: (a) no terrain-specific mesh synthesis (e.g., streaming LOD or geomorphing); (b) Delaunay is bare-bones (no constrained Delaunay for terrains with hard edges); (c) CSG is slow for large models. Not suitable for high-fidelity planet-scale terrain rendering without heavy custom work.
-- **Extractability: moderate coupling** — Delaunay and convex hull are relatively standalone (~500 LOC total in `core/math/delaunay_2d.h`, `convex_hull.cpp`). CSG is more tangled (rendering integration). For MapMaker: extraction of Delaunay for Voronoi-cell-based biome generation is feasible (medium effort), but mesh generation for terrain export would require custom code. Better approach: use existing JS libraries (Delaunator.js) or port CGAL/Triangle.
+- **Extractability: moderate coupling** — Delaunay and convex hull are relatively standalone (157 + 2,340 lines in `core/math/delaunay_2d.h`, `convex_hull.cpp` (the earlier ~500 LOC was wrong)). CSG is more tangled (rendering integration). For MapMaker: extraction of Delaunay for Voronoi-cell-based biome generation is feasible (medium effort), but mesh generation for terrain export would require custom code. Better approach: use existing JS libraries (Delaunator.js) or port CGAL/Triangle.
 - **Requirements capabilities it could serve**: Biome/settlement placement (Voronoi partitioning), mesh export (basic)
 
 ### 3.4 Import/Export Formats
@@ -89,7 +89,7 @@ Godot Engine is a mature, production-grade 2D/3D cross-platform game engine main
 - **What it does**: Node-based scene tree, property inspector, scene serialization, undo/redo, asset pipeline, visual editor UI. Editor is feature-complete 2D/3D level designer.
 - **Quality & realism rating**: High for game development, not applicable to MapMaker
 - **Extractability: N/A** — Entirely engine-specific
-- **Requirements capabilities it could serve**: None directly, though editor could theoretically be extended for custom map editing (not practical)
+- **Requirements capabilities it could serve**: None directly, though editor could theoretically be extended for custom map editing (not practical). Correction (group 5b): the undo-redo stack is a design reference for note 16 (`core/object/undo_redo.{h,cpp}`, `editor/editor_undo_redo_manager.{h,cpp}`: do/undo closures, per-object histories, a version counter, a wall-clock merge window at `undo_redo.cpp:95`), not extractable and not a serialisable log; the plugin classes (`editor/plugins/editor_plugin.*`) and GDExtension are references for note 37
 
 ## 4. Internal data representation
 
@@ -160,7 +160,7 @@ Godot Engine is a mature, production-grade 2D/3D cross-platform game engine main
   - **Licensing**: MIT is clean, but no blocking risk.
 
 - **Open questions / Unverified**:
-  - (Unverified) Whether Godot's WASM export supports shared memory (SharedArrayBuffer) for multi-threaded simulation. Likely not by default (for security), so multi-threaded processing would be restricted.
+  - Godot's web export does support threads (SharedArrayBuffer): `threads` defaults to true (`SConstruct:187`), `platform/web/detect.py:256-262` adds `-pthread` (reconciliation group 5b; the earlier unverified note said "likely not by default").
   - (Unverified) Performance of Godot WASM vs. native browser JS for number-crunching (heightmap generation, flow routing, climate calc). Unlikely to match native JS for these workloads.
   - (Unverified) Whether extracting FastNoiseLite from Godot's wrapper is faster than using an existing JS library.
 

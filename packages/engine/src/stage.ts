@@ -1,5 +1,5 @@
 // Stage interface (ARCHITECTURE §4). Original shell code.
-import type { Checkpoint, EntityTable, TableSpec, TypedArray, World } from '@mapmaker/core';
+import type { Checkpoint, Edit, EntityTable, TableSpec, TypedArray, World } from '@mapmaker/core';
 
 export class CancelledError extends Error {
   constructor() { super('cancelled'); this.name = 'CancelledError'; }
@@ -28,7 +28,17 @@ export interface Stage {
   writes: string[];
   /** World params keys that influence the stage (hashed into its input). */
   params?: string[];
+  /**
+   * False for structure that is not a switchable system (the mesh, the reference pass): the runner rejects a
+   * `manual` or `off` switch on it. Default true.
+   */
+  switchable?: boolean;
   run(ctx: StageContext): void | Promise<void>;
+  /**
+   * Runs instead of `run` when the stage's switch is `manual` (ARCHITECTURE §3.8): the outputs are zero-filled first, and this
+   * hook applies the edit log to them. Omitted: the outputs stay zero-filled and the edits are not applied.
+   */
+  manual?(ctx: StageContext): void | Promise<void>;
 }
 
 export interface StageContext {
@@ -38,6 +48,8 @@ export interface StageContext {
   readonly signal: CancelFlag;
   /** Present when this stage was interrupted earlier and the world was saved or kept mid-stage. */
   readonly resume: Checkpoint | undefined;
+  /** Active edits that target this stage's outputs or parameters, in log order (§3.8). */
+  readonly edits: readonly Edit[];
   progress(fraction: number, message?: string): void;
   /** Record mid-stage state. The world's own tables and layers are saved with it, so keep only extra state here. */
   checkpoint(meta: unknown, chunks?: Record<string, TypedArray>): void;

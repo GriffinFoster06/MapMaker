@@ -41,5 +41,13 @@ export function readParams(world: World): OrogenParams {
   if (r !== undefined && r !== OROGEN_RADIUS_M) {
     throw new Error(`orogen hard-codes R = 6371 km (F3); planet.radius_m = ${String(r)} is not supported until the radius is threaded through (gap 11)`);
   }
-  return { ...OROGEN_DEFAULTS, ...(world.params[PARAM_KEY] as Partial<OrogenParams> | undefined) };
+  const out: OrogenParams = { ...OROGEN_DEFAULTS, ...(world.params[PARAM_KEY] as Partial<OrogenParams> | undefined) };
+  // Parameter edits (note 16 §2: target { kind: 'param', key: 'orogen.<name>' }, op 'set', payload.value) in log order.
+  for (const e of world.edits.active()) {
+    if (e.target.kind !== 'param' || e.op !== 'set' || !e.target.key.startsWith(`${PARAM_KEY}.`)) continue;
+    const k = e.target.key.slice(PARAM_KEY.length + 1) as keyof OrogenParams;
+    const v = e.payload['value'];
+    if (k in OROGEN_DEFAULTS && k !== 'debugLayers' && typeof v === 'number' && Number.isFinite(v)) (out[k] as number) = v;
+  }
+  return out;
 }

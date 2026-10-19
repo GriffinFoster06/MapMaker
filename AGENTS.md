@@ -25,6 +25,7 @@ Default to one agent editing a checkout at a time. If the user requests simultan
 - **Each extraction needs a test** that checks it against the upstream behaviour or a golden value.
 - **Keep the record current, cheaply.** At every milestone update `docs/RESUME.md` (a few lines) and, for non-obvious choices, `docs/DECISIONS_LOG.md`. At every checkpoint add one line to the `STATUS.md` checkpoint table. Write a full `STATUS.md` handoff section only when the user announces an agent switch (see Session start and handoff).
 - **Phases and authorization.** `docs/RESUME.md` names the checkpoint the user has authorized work through. Finish each phase's checkpoint report and continue into the next phase until that limit; stop and wait at the limit, and never start a phase beyond it. Within the authorized range decide rather than ask; the only reasons to wait are the hard stops in `docs/OPERATING_GUIDE.md` §4.
+- Supported targets (decision W7): desktop software for macOS and Windows only, working in Firefox (development browser) and Chromium (Electron's engine). WebKit/Safari, Linux as a supported target and public web hosting are out of scope. Do not add WebKit, Linux-only, mobile or hosting work.
 - No `Math.random` in `packages/**`. Simulation math goes through `dmath`. **Exception:** `packages/gen-orogen/vendor/` is verbatim upstream code (lint-ignored). It calls `Math.*` and `Math.random` directly (the latter only in `planet-worker.js`, a test-only oracle), so it runs only in stages flagged `parity`, inside `dmath.withMode('native')`. Tests make `Math.random` throw during pipeline runs.
 - `dmath` defaults to `'fdlibm'` in every realm. The stage runner fails any non-parity stage that enters `'native'`.
 - Keep `packages/gen-orogen/vendor/` verbatim. Put changes in adapters or adjacent TypeScript ports.
@@ -46,7 +47,7 @@ scripts/node24.sh npm run lint
 scripts/node24.sh npm run typecheck
 scripts/node24.sh npm test              # Vitest, all workspaces
 scripts/node24.sh npm run build
-scripts/node24.sh npm run e2e           # Playwright: Chromium, Firefox, WebKit
+scripts/node24.sh npm run e2e           # Playwright: Chromium, Firefox
 scripts/node24.sh npm run provenance:check
 ```
 

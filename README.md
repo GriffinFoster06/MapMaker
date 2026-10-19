@@ -54,12 +54,14 @@ Open the app, either the live site below or a local copy (see [Run locally](#run
    - ocean current speed.
 8. **Globe:** drag to rotate, and scroll or pinch to zoom.
 
-A typical workflow: try seeds and settings at 50k until you like a world, then generate the same seed at 1M or 2.56M for the detailed version. The large-scale layout stays the same. "Diagnostics", at the bottom of the page, runs the cross-browser determinism check; ordinary use does not need it.
+A typical workflow: try seeds and settings at 50k until you like a world, then generate the same seed at 1M or 2.56M for the detailed version. The large-scale layout stays the same. "Diagnostics", at the bottom of the page, runs the Chromium/Firefox determinism check; ordinary use does not need it.
 
 ## Live site
 
 - Primary: https://mapmaker-aw8.pages.dev/ on Cloudflare Pages. It is cross-origin isolated and deploys from `main`; every pull request gets its own preview link.
 - Mirror: https://griffinfoster06.github.io/MapMaker/ on GitHub Pages.
+
+Both deployments are unmaintained since decision W7 (the app is desktop software for macOS and Windows; Firefox and Chromium only).
 
 See `docs/ARCHITECTURE.md` Q18.
 
@@ -76,7 +78,7 @@ scripts/node24.sh npm run dev -w @mapmaker/web
 2. Open the URL Vite prints, usually http://localhost:5173/.
 3. Generate a world as described above.
 
-Large tiers need a desktop browser with several GB of free memory: about 2 GB for Chromium at 2.56M, more for Firefox and Safari.
+Large tiers need a desktop browser with several GB of free memory: about 2 GB for Chromium at 2.56M, more for Firefox. Safari/WebKit is not supported.
 
 ## Find your way around
 
