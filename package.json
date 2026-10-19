@@ -22,7 +22,7 @@
     "build": "npm run build -w @mapmaker/web",
     "e2e": "playwright test",
     "provenance:check": "tsx tools/provenance/check.ts",
-    "probe": "tsx --import ./packages/projection/build/register.mjs tools/determinism/node-probe.ts",
+    "probe": "tsx --import ./packages/projection/alias/register.mjs tools/determinism/node-probe.ts",
     "bench": "playwright test -c playwright.bench.config.ts"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 // The exact path (ARCHITECTURE §3.7): the projection registry over dmath-backed copies of d3-geo and
 // d3-geo-projection, for the CPU inverse sampler and every export. Importing this module needs the d3-dmath alias
-// (build/d3-dmath.mjs: the Vite plugin, or the Node loader hook for tsx scripts). Interactive display uses the stock
+// (alias/d3-dmath.mjs: the Vite plugin, or the Node loader hook for tsx scripts). Interactive display uses the stock
 // registry (PROJECTIONS), with native math.
 import * as geo from 'virtual:d3-geo-dmath';
 import * as proj from 'virtual:d3-geo-projection-dmath';

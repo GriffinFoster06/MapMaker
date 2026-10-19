@@ -1,4 +1,4 @@
-// Stand-in for d3-geo 3.1.1 src/math.js in the exact path (ARCHITECTURE §3.5, §3.7; build/d3-dmath.mjs). Same
+// Stand-in for d3-geo 3.1.1 src/math.js in the exact path (ARCHITECTURE §3.5, §3.7; alias/d3-dmath.mjs). Same
 // exports, same definitions, with every transcendental function routed through dmath at call time (so the active
 // dmath mode, fdlibm by default, decides the result). abs, ceil, floor, sign and sqrt stay on Math: they are exact,
 // or correctly rounded under IEEE 754, on every engine. d3-geo's own files are not modified.

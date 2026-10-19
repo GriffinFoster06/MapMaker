@@ -1,4 +1,4 @@
-// The d3-dmath alias (build/d3-dmath.mjs): the exact path's copy of d3 differs from stock d3 only in its libm.
+// The d3-dmath alias (alias/d3-dmath.mjs): the exact path's copy of d3 differs from stock d3 only in its libm.
 //   1. The shims export what d3's math.js modules export, with identical constants and functions within 1 ULP.
 //   2. The exact copy calls dmath and the stock packages do not.
 //   3. With dmath in 'native' mode, the exact path is bit-identical to stock d3 (so nothing but libm changed).
