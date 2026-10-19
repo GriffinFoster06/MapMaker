@@ -4,11 +4,14 @@ import { type SphereMesh, type World } from '@mapmaker/core';
 import { type HeightMapping, type HeightmapOptions, heightmapPngFromRaster } from '../png';
 import { MeshSampler, rowBands, sampleRaster } from '../sampler';
 import type { ViewOptions } from '../view';
-import { exactView } from './index';
+import { type SvgLayers } from '../svg';
+import { coastlines } from '../vector';
+import { exactView, exportSvg } from './index';
 
 export type ViewSpec = Omit<ViewOptions, 'registry'>;
 
 export interface SampleArgs { view: ViewSpec; layer: string; mesh?: string; y0?: number; y1?: number }
+export interface SvgArgs { view: ViewSpec; layers?: Omit<SvgLayers, 'coastlines'>; coastlines?: boolean; mesh?: string }
 export interface HeightmapArgs { view: ViewSpec; mapping: HeightMapping; mesh?: string; png?: HeightmapOptions }
 
 const samplers = new WeakMap<SphereMesh, MeshSampler>();
@@ -40,5 +43,14 @@ export const projectionKernels = {
     const metres = new Float64Array(view.width * view.height);
     for (const b of rowBands(view.height, EXPORT_ROWS)) metres.set(layerRaster(world, a.view, 'elevation', a.mesh, b.y0, b.y1), b.y0 * view.width);
     return heightmapPngFromRaster(view, metres, a.mapping, a.png);
+  },
+  /** SVG of the vector layers, with coastlines traced along the land/sea cell edges of `elevation` (land: > 0 m). */
+  'projection.svg': (world: World, a: SvgArgs) => {
+    const layers: SvgLayers = { ...a.layers };
+    if (a.coastlines ?? true) {
+      const meshId = a.mesh ?? 'global', elev = world.layers.get(meshId, 'elevation');
+      layers.coastlines = coastlines(world.meshes.get(meshId)!.mesh, (i) => elev[i]! > 0);
+    }
+    return exportSvg(a.view, layers);
   },
 } satisfies Record<string, (world: World, args: never) => unknown>;

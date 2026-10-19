@@ -5,7 +5,8 @@
 // Phase 4b (v4) adds the structured pipeline (`structured.<N>.*`): every reference-pass layer on L0 and every detail-pass
 // layer at N. The stages run in fdlibm only, so the keys are strict; the L0 keys are identical at both N (I2).
 // Phase 5 (v5) adds the exact projection path (`fd.projection.<N>.*`): elevation of the 20k structured world sampled
-// through the dmath-backed d3 copy and exported as 16-bit PNG heightmaps. Every key existing in v4 is unchanged.
+// through the dmath-backed d3 copy and exported as 16-bit PNG heightmaps, the exported SVG of the vector path, and two
+// distortion overlays. Every key existing in v4 is unchanged.
 //
 // The probe runs twice. Keys without a prefix are computed with dmath.mode = 'native' (orogen parity): their
 // libm-dependent values are report-only. Keys prefixed `fd.` are computed with dmath.mode = 'fdlibm' and are ALL
@@ -14,8 +15,8 @@ import { Alea, OrogenLcg, RngService, Sfc32, SphereMesh, bytesOf, dmath, hashArr
 import { dummyHistoryStage, registerDummyHistoryLayers, runPipeline } from '@mapmaker/engine';
 import { Timeline, World } from '@mapmaker/core';
 import { REF_MESH, STRUCTURED, createOrogenWorld, orogenStages, orogenView, structuredStages } from '@mapmaker/gen-orogen';
-import { MeshSampler } from '@mapmaker/projection';
-import { exportHeightmap } from '@mapmaker/projection/exact';
+import { MeshSampler, coastlines } from '@mapmaker/projection';
+import { exportDistortionPng, exportHeightmap, exportSvg } from '@mapmaker/projection/exact';
 
 export const PROBE_VERSION = 5;
 
@@ -120,6 +121,15 @@ function projectionArrays(N: number, mesh: SphereMesh, elevation: TypedArray): R
     out[`fd.projection.${N}.${v.projection}.metres`] = r.metres;
     out[`fd.projection.${N}.${v.projection}.png`] = r.png;
   }
+  // Phase 5 M3: the vector path (graticule, coastlines along land/sea cell edges, Tissot indicatrices) as exported SVG
+  // text, and two distortion overlays as RGBA PNGs.
+  const coast = coastlines(mesh, (i) => elevation[i]! > 0);
+  for (const v of PROBE_VIEWS.slice(0, 5)) {
+    const svg = exportSvg({ ...v, width: 256, height: 128 }, { graticule: 30, coastlines: coast, tissot: { step: 30, radius: 5 } });
+    out[`fd.projection.${N}.${v.projection}.svg`] = new TextEncoder().encode(svg);
+  }
+  out[`fd.projection.${N}.mollweide.distortion.areal.png`] = exportDistortionPng({ projection: 'mollweide', width: 128, height: 64 }, 'areal');
+  out[`fd.projection.${N}.robinson.distortion.omega.png`] = exportDistortionPng({ projection: 'robinson', width: 128, height: 64 }, 'omega');
   return out;
 }
 

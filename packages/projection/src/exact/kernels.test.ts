@@ -4,11 +4,12 @@ import { describe, expect, it } from 'vitest';
 import { EngineClient, type PortLike, runPipeline } from '@mapmaker/engine';
 import { STRUCTURED, createOrogenWorld, orogenStages, startOrogenHost, structuredStages } from '@mapmaker/gen-orogen';
 import { MeshSampler, sampleRaster } from '../index';
-import { exactView, exportHeightmap } from './index';
+import { coastlines } from '../vector';
+import { exactView, exportHeightmap, exportSvg } from './index';
 import { projectionKernels } from './kernels';
 
 describe('projection world kernels', () => {
-  it('sample bands and the heightmap PNG match the direct exact path', async () => {
+  it('sample bands, the heightmap PNG and the SVG match the direct exact path', async () => {
     const { port1, port2 } = new MessageChannel();
     startOrogenHost(port2 as unknown as PortLike, 'test', { worldKernels: projectionKernels });
     const client = new EngineClient(port1 as unknown as PortLike);
@@ -24,6 +25,9 @@ describe('projection world kernels', () => {
       expect(Buffer.from(band.buffer).equals(Buffer.from(direct.buffer))).toBe(true);
       const png = await client.worldKernel<Uint8Array>('projection.heightmap', { view, mapping: { kind: 'land' } });
       expect(Buffer.from(png).equals(Buffer.from(exportHeightmap(view, sampler, w.layers.get('global', 'elevation'), { kind: 'land' }).png))).toBe(true);
+      const elev = w.layers.get('global', 'elevation');
+      const svg = await client.worldKernel<string>('projection.svg', { view, layers: { graticule: 30, tissot: { step: 45 } } });
+      expect(svg).toBe(exportSvg(view, { graticule: 30, tissot: { step: 45 }, coastlines: coastlines(w.meshes.get('global')!.mesh, (i) => elev[i]! > 0) }));
       await expect(client.worldKernel('projection.sample', { view, layer: 'wind.summer' })).rejects.toThrow();
     } finally { port1.close(); port2.close(); }
   });

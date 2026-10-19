@@ -14,6 +14,11 @@ export interface ViewOptions {
   rotate?: [number, number, number];
   /** The registry to take the projection from: PROJECTIONS (stock d3, the default) or EXACT_PROJECTIONS (exact.ts). */
   registry?: readonly ProjectionSpec[];
+  /**
+   * d3's adaptive-resampling tolerance for the vector path, in pixels (projection.precision); default d3's √0.5.
+   * Exact views use EXPORT_PRECISION_PX. It affects only drawn geometry, never invert or a projected point.
+   */
+  precision?: number;
 }
 
 /** Round-trip tolerance of the domain check, in pixels (§3.7 raster path, step 2). */
@@ -42,6 +47,7 @@ export class ProjectionView {
     this.height = opts.height;
     const p = this.spec.create();
     if (opts.rotate) p.rotate(opts.rotate);
+    if (opts.precision !== undefined) p.precision(opts.precision);
     p.fitExtent([[0, 0], [opts.width, opts.height]], { type: 'Sphere' });
     this.projection = p;
     this.scale = p.scale();

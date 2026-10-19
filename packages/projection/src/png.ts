@@ -65,16 +65,31 @@ function text(keyword: string, value: string): Uint8Array {
   return Uint8Array.from(s, (ch) => ch.charCodeAt(0));
 }
 
+/** Signature, IHDR, tEXt chunks, one IDAT of the zlib-compressed scanlines (filter 0 each) and IEND. */
+function assemble(width: number, height: number, bitDepth: number, colourType: number, raw: Uint8Array, texts: [string, string][]): Uint8Array {
+  const ihdr = new Uint8Array(13);
+  const iv = new DataView(ihdr.buffer);
+  iv.setUint32(0, width);
+  iv.setUint32(4, height);
+  ihdr[8] = bitDepth; ihdr[9] = colourType;
+  const parts = [
+    new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk('IHDR', ihdr),
+    ...texts.map(([k, v]) => chunk('tEXt', text(k, v))),
+    chunk('IDAT', zlibSync(raw)),
+    chunk('IEND', new Uint8Array(0)),
+  ];
+  const png = new Uint8Array(parts.reduce((s, p) => s + p.length, 0));
+  let p = 0;
+  for (const part of parts) { png.set(part, p); p += part.length; }
+  return png;
+}
+
 /**
  * Encodes 16-bit samples as a PNG. With `alpha`, colour type 4 (grey, alpha per pixel, 0 or 65535); otherwise colour
  * type 0. `texts` become tEXt chunks after IHDR, in the given order.
  */
 export function encodePng16(width: number, height: number, grey: Uint16Array, alpha: Uint8Array | null, texts: [string, string][] = []): Uint8Array {
-  const ihdr = new Uint8Array(13);
-  const iv = new DataView(ihdr.buffer);
-  iv.setUint32(0, width);
-  iv.setUint32(4, height);
-  ihdr[8] = 16; ihdr[9] = alpha ? 4 : 0;
   const bpp = alpha ? 4 : 2;
   const rowLen = 1 + width * bpp;
   const raw = new Uint8Array(height * rowLen);
@@ -88,17 +103,16 @@ export function encodePng16(width: number, height: number, grey: Uint16Array, al
       if (alpha) raw[o + 2] = raw[o + 3] = alpha[y * width + x] ? 0xff : 0;
     }
   }
-  const parts = [
-    new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
-    chunk('IHDR', ihdr),
-    ...texts.map(([k, v]) => chunk('tEXt', text(k, v))),
-    chunk('IDAT', zlibSync(raw)),
-    chunk('IEND', new Uint8Array(0)),
-  ];
-  const png = new Uint8Array(parts.reduce((s, p) => s + p.length, 0));
-  let p = 0;
-  for (const part of parts) { png.set(part, p); p += part.length; }
-  return png;
+  return assemble(width, height, 16, alpha ? 4 : 0, raw, texts);
+}
+
+/** Encodes 8-bit RGBA pixels (row-major, 4 bytes each) as a PNG, colour type 6 (overlays and styled views). */
+export function encodePngRgba8(width: number, height: number, rgba: Uint8Array | Uint8ClampedArray, texts: [string, string][] = []): Uint8Array {
+  if (rgba.length !== 4 * width * height) throw new Error(`encodePngRgba8: ${rgba.length} bytes for ${width}×${height}`);
+  const rowLen = 1 + width * 4;
+  const raw = new Uint8Array(height * rowLen);
+  for (let y = 0; y < height; y++) raw.set(rgba.subarray(4 * y * width, 4 * (y + 1) * width), y * rowLen + 1);
+  return assemble(width, height, 8, 6, raw, texts);
 }
 
 export interface HeightmapOptions {
