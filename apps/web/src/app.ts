@@ -7,7 +7,8 @@ import type { HeightmapArgs } from '@mapmaker/projection/exact/kernels';
 import { type MapUi, startMapUi } from './flat/map-ui';
 import { type DebugMode, ProjectionView, type ViewOptions } from '@mapmaker/projection';
 import { RAW_ELEVATION, makeLayers } from './globe/colors';
-import { PRESETS, SETTING_GROUPS, SETTINGS, changedParams, decodeState, encodeState } from './settings';
+import { type EditorHandle, startEditor } from './editor/editor-ui';
+import { LEVELS, type Level, PRESETS, SETTING_GROUPS, SETTINGS, changedParams, decodeState, encodeState, visibleAt } from './settings';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -47,7 +48,9 @@ export interface FlatHook {
   ui: Pick<MapUi, 'state' | 'rendered'> & { exportHeightmap(): Promise<{ sha256: string; args: HeightmapArgs }>; exportSvg(): Promise<string>; overlayPaths(): number };
 }
 
-declare global { interface Window { __globe?: GlobeHook; __flat?: FlatHook } }
+/** Test hook for the editor panel (Phase 5b). */
+export interface EditHook { state(): ReturnType<EditorHandle['state']> }
+declare global { interface Window { __globe?: GlobeHook; __flat?: FlatHook; __edit?: EditHook } }
 
 /** Builds the World settings panel and returns a reader of the current slider values. */
 function buildSettings(initial: Record<string, number>, onChange: () => void): { values(): Record<string, number>; reset(): void; apply(values: Record<string, number>): void } {
@@ -63,6 +66,7 @@ function buildSettings(initial: Record<string, number>, onChange: () => void): {
     for (const st of g.settings) {
       const wrap = document.createElement('div');
       wrap.className = 'setting';
+      wrap.dataset['level'] = st.level;
       wrap.title = st.tip;
       const label = document.createElement('label');
       const name = document.createElement('span');
@@ -90,6 +94,18 @@ function buildSettings(initial: Record<string, number>, onChange: () => void): {
     box.append(h, grid);
     host.append(box);
   }
+  /** Shows the parameters of the chosen registry level (simple, advanced, expert); every slider keeps its value when hidden. */
+  const showLevel = (level: Level) => {
+    const vis = new Set(visibleAt(level).map((x) => x.key));
+    for (const st of SETTINGS) inputs.get(st.key)!.closest<HTMLElement>('.setting')!.hidden = !vis.has(st.key);
+    for (const box of host.querySelectorAll<HTMLElement>('.sgroup')) box.hidden = ![...box.querySelectorAll<HTMLElement>('.setting')].some((el) => !el.hidden);
+    $('expertNote').hidden = level !== 'expert';
+  };
+  const levelSel = $<HTMLSelectElement>('level');
+  for (const l of LEVELS) levelSel.add(new Option(l, l));
+  levelSel.addEventListener('change', () => showLevel(levelSel.value as Level));
+  levelSel.value = 'advanced';
+  showLevel('advanced');
   return {
     values: () => Object.fromEntries(SETTINGS.map((st) => [st.key, Number(inputs.get(st.key)!.value)])),
     reset: () => { for (const st of SETTINGS) { const i = inputs.get(st.key)!; i.value = String(st.def); i.dispatchEvent(new Event('input')); } },
@@ -144,6 +160,8 @@ export function startApp(): void {
 
   const status = $('status');
   let busy = false;
+  const editor = startEditor({ client, ui, globe, globeCanvas: $<HTMLCanvasElement>('globe'), variant: () => variant, rerun, busy: () => busy, status: (t) => { status.textContent = t; } });
+  $('cancelRun').hidden = true;
 
   async function paint(id: string): Promise<void> {
     const layer = layers.find((l) => l.id === id)!;
@@ -151,6 +169,22 @@ export function startApp(): void {
     if (globe) { layer.paint(data, globe.colors); globe.colorsChanged(); }
     flat.setLayer(layer.flat(data));
     ui.layerChanged();
+  }
+
+  /** Re-runs the pipeline on the current world (all stale stages, or from a stage) and repaints; the edit panel calls it. */
+  async function rerun(from?: string): Promise<void> {
+    if (busy) throw new Error('already running');
+    busy = true;
+    $('cancelRun').hidden = false;
+    try {
+      const t0 = performance.now();
+      status.textContent = 're-running…';
+      const res = await client.run({ variant, strict: false, ...(from ? { from } : {}), onProgress: (p) => { status.textContent = `re-running ${p.stageId}${p.message ? ': ' + p.message : ''}`; } });
+      if (res.cancelledAt) { status.textContent = `cancelled in ${res.cancelledAt}; re-run to finish`; return; }
+      if (res.ran.includes('mesh')) { const mesh = await client.meshData(); globe?.setMesh(mesh); flat.setWorld(mesh); ui.worldChanged(); }
+      await paint(sel.value);
+      status.textContent = `re-ran ${res.ran.length ? res.ran.join(', ') : 'nothing'} in ${((performance.now() - t0) / 1000).toFixed(1)} s`;
+    } finally { busy = false; $('cancelRun').hidden = true; }
   }
 
   async function generate(opts: GenerateOpts, label = '') {
@@ -181,6 +215,7 @@ export function startApp(): void {
       flat.setWorld(mesh);
       ui.worldChanged();
       await paint(sel.value);
+      await editor.refresh();
       const stats = await client.stats();
       const totalMs = performance.now() - t0;
       status.textContent = `${label}${opts.N.toLocaleString()} cells in ${(totalMs / 1000).toFixed(1)} s`;
@@ -242,6 +277,8 @@ export function startApp(): void {
       overlayPaths: () => document.querySelectorAll('#mapSvg path').length,
     },
   };
+
+  window.__edit = { state: () => editor.state() };
 
   window.__globe = {
     generate,

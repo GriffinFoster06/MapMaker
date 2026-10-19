@@ -86,6 +86,22 @@ export class Globe {
     this.mesh = undefined;
   }
 
+  /** Turns the orbit controls off while an editing tool is active (a drag then paints instead of rotating). */
+  setControlsEnabled(on: boolean): void { this.controls.enabled = on; }
+
+  /**
+   * Canonical unit vector under a pointer position (client coordinates), or null where the ray misses the globe.
+   * three.js is Y-up: (x, y, z) in the canonical frame is (x, z, −y) here, so the inverse is (X, −Z, Y).
+   */
+  pick(clientX: number, clientY: number): [number, number, number] | null {
+    const r = this.canvas.getBoundingClientRect();
+    const ndc = new THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -(((clientY - r.top) / r.height) * 2 - 1));
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera(ndc, this.camera);
+    const hit = ray.ray.intersectSphere(new THREE.Sphere(new THREE.Vector3(), 1), new THREE.Vector3());
+    return hit ? [hit.x, -hit.z, hit.y] : null;
+  }
+
   /** Fraction of canvas pixels that differ from the clear colour (test hook: a rendered globe is not blank). */
   litFraction(): number {
     const gl = this.renderer.getContext();

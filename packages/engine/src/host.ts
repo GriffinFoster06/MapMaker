@@ -1,7 +1,9 @@
 // Engine worker host: owns the World during generation and runs the stage runner (ARCHITECTURE §6.1).
 // Works with any PortLike: a browser DedicatedWorkerGlobalScope, a Node worker_threads port, or a MessagePort.
 import { type TypedArray, type World, arrayIds, dmath, hashWorld, loadWorld, saveWorld } from '@mapmaker/core';
-import type { MeshData, PortLike, Request, Response, RunSummary, WorldStats } from './protocol';
+import type { EditState, MeshData, PortLike, Request, Response, RunSummary, SystemInfo, WorldStats } from './protocol';
+import { staleStages } from './stale';
+import { resolveVariant } from './runner';
 import { runPipeline } from './runner';
 import type { CancelFlag, Stage } from './stage';
 
@@ -49,6 +51,7 @@ export function attachHost(port: PortLike, opts: HostOptions): void {
         const res = await runPipeline(w, opts.stages, {
           ...(req.variant ? { variant: req.variant } : {}),
           ...(req.only ? { only: req.only } : {}),
+          ...(req.from ? { from: req.from } : {}),
           ...(req.strict !== undefined ? { strict: req.strict } : {}),
           signal: cancel,
           onProgress: (p) => {
@@ -97,6 +100,41 @@ export function attachHost(port: PortLike, opts: HostOptions): void {
         if (!m) throw new Error('no such mesh');
         const value: MeshData = { numRegions: m.mesh.numRegions, precision: m.mesh.precision, points: m.mesh.points.slice(), triangles: m.mesh.triangles.slice(), halfedges: m.mesh.halfedges.slice() };
         send({ id: req.id, op: 'result', value }, [value.points.buffer as ArrayBuffer, value.triangles.buffer as ArrayBuffer, value.halfedges.buffer as ArrayBuffer]);
+        return;
+      }
+      case 'edit': {
+        if (!world) throw new Error('no world loaded');
+        const log = world.edits;
+        if (req.action === 'append') for (const d of req.edits) log.append(d, req.now ?? '');
+        else if (req.action === 'undo') log.undo();
+        else if (req.action === 'redo') log.redo();
+        else if (req.action === 'clear') log.clear();
+        const n = log.cursor;
+        const value: EditState = {
+          cursor: n, length: log.length, canUndo: log.canUndo, canRedo: log.canRedo,
+          edits: log.all().map((e, i) => ({ id: e.id, op: e.op, target: e.target.kind === 'layer' ? e.target.id : e.target.kind === 'param' ? e.target.key : e.target.kind, mode: e.mode, ...(e.gesture !== undefined ? { gesture: e.gesture } : {}), active: i < n, ...(e.label ? { label: e.label } : {}) })),
+        };
+        send({ id: req.id, op: 'result', value });
+        return;
+      }
+      case 'systems': {
+        if (!world) throw new Error('no world loaded');
+        if (req.set) {
+          const known = new Map(opts.stages.map((s) => [s.id, s]));
+          for (const [id, mode] of Object.entries(req.set)) {
+            const s = known.get(id);
+            if (!s) throw new Error(`unknown stage: ${id}`);
+            if (mode !== 'simulate' && s.switchable === false) throw new Error(`${id} is structure, not a system`);
+          }
+          world.systems = Object.fromEntries(Object.entries(req.set).filter(([, m]) => m !== 'simulate'));
+        }
+        const value: SystemInfo[] = resolveVariant(opts.stages, world.pipeline.variant).map((s) => ({ stageId: s.id, switchable: s.switchable !== false, mode: world!.systems[s.id] ?? 'simulate' }));
+        send({ id: req.id, op: 'result', value });
+        return;
+      }
+      case 'stale': {
+        if (!world) throw new Error('no world loaded');
+        send({ id: req.id, op: 'result', value: await staleStages(world, opts.stages, req.variant ?? world.pipeline.variant) });
         return;
       }
       case 'stats': {

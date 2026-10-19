@@ -139,3 +139,37 @@ describe('system switches and re-run from a stage', () => {
     await expect(runPipeline(w, st, { from: 'nope' } as never)).rejects.toThrow(/unknown stage/);
   });
 });
+
+describe('edit protocol (in-process MessageChannel)', () => {
+  it('append, undo, redo, clear, stale, systems and run-from work over the worker protocol', async () => {
+    const { MessageChannel } = await import('node:worker_threads');
+    const { EngineClient, attachHost } = await import('./index');
+    const { port1, port2 } = new MessageChannel();
+    const st = [{ ...stageA(), switchable: false }, stageB(), stageC()];
+    attachHost(port2 as never, { stages: st, engine: 'test' });
+    const c = new EngineClient(port1 as never);
+    const w = world();
+    await c.load(await saveWorld(w, { engine: 't' }));
+    await c.run();
+    expect(await c.stale()).toEqual([]);
+    const s1 = await c.appendEdits([draft(3, { gesture: 1, label: 'raise' }), draft(4, { gesture: 1 })]);
+    expect(s1).toMatchObject({ cursor: 2, length: 2, canUndo: true, canRedo: false });
+    expect(s1.edits[0]).toMatchObject({ op: 'add', target: 'a', mode: 'pin', active: true, label: 'raise' });
+    expect(await c.stale()).toEqual([{ stageId: 'sa', reason: 'edits' }, { stageId: 'sb', reason: 'upstream' }]);
+    expect((await c.run()).ran).toEqual(['sa', 'sb']);
+    const s2 = await c.editAction('undo');
+    expect(s2).toMatchObject({ cursor: 0, canRedo: true });
+    expect(s2.edits.every((e) => !e.active)).toBe(true);
+    expect((await c.editAction('redo')).cursor).toBe(2);
+    expect((await c.editAction('clear')).length).toBe(0);
+    await c.run();
+    const sys = await c.systems();
+    expect(sys).toEqual([{ stageId: 'sa', switchable: false, mode: 'simulate' }, { stageId: 'sb', switchable: true, mode: 'simulate' }, { stageId: 'sc', switchable: true, mode: 'simulate' }]);
+    expect((await c.systems({ sc: 'off' })).find((s) => s.stageId === 'sc')!.mode).toBe('off');
+    await expect(c.systems({ sa: 'off' })).rejects.toThrow(/structure, not a system/);
+    await expect(c.systems({ nope: 'off' })).rejects.toThrow(/unknown stage/);
+    expect((await c.stale()).map((x) => x.stageId)).toEqual(['sc']);
+    expect((await c.run({ from: 'sb' })).ran).toEqual(['sb', 'sc']);
+    port1.close(); port2.close();
+  });
+});

@@ -22,6 +22,10 @@
     #mapControls input[type=number] { width: 5.5rem; }
     #timing { max-height: 10rem; }
     #settings > summary { cursor: pointer; font-weight: 600; margin: .25rem 0; }
+    .erow { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; margin: .35rem 0; }
+    #editList { max-height: 8rem; overflow: auto; font-size: .85rem; margin: .25rem 0; }
+    #editList .undone { opacity: .45; text-decoration: line-through; }
+    .hint { color: #666; font-size: .85rem; margin: .2rem 0; }
     .sgroup { border: 1px solid #ddd; border-radius: 6px; padding: .25rem .75rem .5rem; margin: .5rem 0; }
     .sgroup h3 { font-size: .95rem; margin: .4rem 0; }
     .sgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .4rem 1.5rem; }
@@ -48,10 +52,36 @@
   <details id="settings" open>
     <summary>World settings</summary>
     <label>Preset <select id="preset"><option value="">custom</option></select></label>
+    <label>Level <select id="level"></select></label>
+    <p id="expertNote" hidden>Expert: no further parameters are registered yet. orogen's ~446 tuning constants are fixed in the generator and are not overridable (decision 5b-7).</p>
     <div id="settingGroups"></div>
     <button id="resetSettings" type="button">Reset to defaults</button>
     <button id="copyLink" type="button">Copy link to this world</button>
     <span id="linkStatus"></span>
+  </details>
+  <details id="editor" open>
+    <summary>Edit the world</summary>
+    <div class="erow">
+      <label>Tool <select id="tool"></select></label>
+      <label>Radius <input id="brushRadius" type="range" min="0.5" max="30" step="0.5" value="6" /> <span id="brushRadiusVal" class="val">6</span>°</label>
+      <label>Falloff <input id="brushFalloff" type="range" min="0" max="1" step="0.05" value="0.6" /> <span id="brushFalloffVal" class="val">0.6</span></label>
+      <label>Mode <select id="brushMode"><option value="pin">pin (fixed)</option><option value="soft">soft (blend)</option></select></label>
+      <label id="brushSoftRow" hidden>Weight <input id="brushWeight" type="range" min="0.05" max="1" step="0.05" value="0.5" /> <span id="brushWeightVal" class="val">0.5</span></label>
+    </div>
+    <div id="toolParams" class="erow"></div>
+    <p id="toolHint" class="hint"></p>
+    <div class="erow">
+      <button id="undo" type="button" disabled>Undo</button>
+      <button id="redo" type="button" disabled>Redo</button>
+      <button id="clearEdits" type="button" disabled>Clear all edits</button>
+      <label><input id="autoRun" type="checkbox" checked /> re-run on release</label>
+      <button id="rerun" type="button" disabled>Re-run now</button>
+      <label>or from stage <select id="fromStage"></select></label> <button id="rerunFrom" type="button" disabled>Re-run from stage</button>
+      <button id="cancelRun" type="button">Cancel</button>
+    </div>
+    <p><span id="editCount">no world yet</span> · <span id="staleList"></span></p>
+    <div class="erow">Systems: <span id="systemsList"></span></div>
+    <ol id="editList"></ol>
   </details>
   <canvas id="globe"></canvas>
   <div id="mapControls" hidden>

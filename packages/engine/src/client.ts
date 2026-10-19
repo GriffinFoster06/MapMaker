@@ -1,5 +1,5 @@
-import type { TypedArray } from '@mapmaker/core';
-import type { MeshData, PortLike, Request, Response, RunSummary, WorldStats } from './protocol';
+import type { EditDraft, SystemMode, TypedArray } from '@mapmaker/core';
+import type { EditState, MeshData, PortLike, Request, Response, RunSummary, StaleStage, SystemInfo, WorldStats } from './protocol';
 
 type Pending = { resolve: (v: unknown) => void; reject: (e: Error) => void; onProgress?: (p: { stageId: string; fraction: number; message?: string }) => void; onCheckpoint?: (b: Uint8Array) => void };
 
@@ -36,11 +36,16 @@ export class EngineClient {
     return this.call((id) => ({ id, op: 'load', bytes: copy }), {}, [copy.buffer as ArrayBuffer]);
   }
 
-  run(opts: { variant?: string; only?: string[]; checkpointEvery?: number; strict?: boolean; onProgress?: Pending['onProgress']; onCheckpoint?: Pending['onCheckpoint'] } = {}): Promise<RunSummary> {
+  run(opts: { variant?: string; only?: string[]; from?: string; checkpointEvery?: number; strict?: boolean; onProgress?: Pending['onProgress']; onCheckpoint?: Pending['onCheckpoint'] } = {}): Promise<RunSummary> {
     const { onProgress, onCheckpoint, ...rest } = opts;
     return this.call((id) => ({ id, op: 'run', ...rest }), { ...(onProgress ? { onProgress } : {}), ...(onCheckpoint ? { onCheckpoint } : {}) });
   }
 
+  appendEdits(edits: EditDraft[], now = ''): Promise<EditState> { return this.call((id) => ({ id, op: 'edit', action: 'append', edits, now })); }
+  editAction(action: 'undo' | 'redo' | 'clear' | 'state'): Promise<EditState> { return this.call((id) => ({ id, op: 'edit', action })); }
+  /** Sets the per-stage switches (entries replace the current ones) when given; returns the stages and their switches. */
+  systems(set?: Record<string, SystemMode>): Promise<SystemInfo[]> { return this.call((id) => ({ id, op: 'systems', ...(set ? { set } : {}) })); }
+  stale(variant?: string): Promise<StaleStage[]> { return this.call((id) => ({ id, op: 'stale', ...(variant ? { variant } : {}) })); }
   create(params: unknown): Promise<{ viewOnly: boolean }> { return this.call((id) => ({ id, op: 'create', params })); }
   layers(ids: string[], mesh?: string): Promise<Record<string, TypedArray[]>> { return this.call((id) => ({ id, op: 'layers', ids, ...(mesh ? { mesh } : {}) })); }
   meshData(mesh?: string): Promise<MeshData> { return this.call((id) => ({ id, op: 'meshdata', ...(mesh ? { mesh } : {}) })); }

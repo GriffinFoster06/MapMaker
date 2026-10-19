@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { OROGEN_DEFAULTS } from '@mapmaker/gen-orogen';
-import { PRESETS, SETTINGS, changedParams, decodeState, encodeState } from './settings';
+import { LEVELS, PRESETS, SETTINGS, changedParams, decodeState, encodeState, visibleAt } from './settings';
 
 describe('world settings', () => {
   it('cover every orogen generation slider except Detail (the tier) and Seed, with orogen defaults', () => {
@@ -38,6 +38,20 @@ describe('world settings', () => {
       const q = encodeState({ seed: 5, params: earth.values });
       expect(decodeState('?' + q).params).toEqual(changed);
       expect(changedParams({ ...changed, ...Object.fromEntries(Object.keys(changed).map((k) => [k, SETTINGS.find((s) => s.key === k)!.def])) })).toEqual({});
+    });
+  });
+
+  describe('registry levels', () => {
+    it('every parameter has a known level and a domain; a level shows its own and every lower level', () => {
+      for (const st of SETTINGS) { expect(LEVELS).toContain(st.level); expect(st.domain.length).toBeGreaterThan(0); }
+      const n = LEVELS.map((l) => visibleAt(l).length);
+      expect(n[0]).toBeGreaterThan(0);
+      expect(n[0]).toBeLessThan(n[1]!);
+      expect(n[1]).toBe(SETTINGS.length);
+      expect(n[2]).toBe(SETTINGS.length); // no expert-only parameters are registered yet (decision 5b-7)
+      const simple = visibleAt('simple').map((x) => x.key);
+      expect(simple).toEqual(expect.arrayContaining(['landCoverage', 'numContinents', 'temperatureOffset', 'precipitationOffset']));
+      expect(simple).not.toContain('thermalErosion');
     });
   });
 });
