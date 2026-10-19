@@ -2,7 +2,7 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-19, by the local agent (Claude Code), on `phase-5b`: W7, Q1 to Q3 done; next the Phase 5b reconciliation. Draft PR #9.
+- **Last updated:** 2026-10-19, by the local agent (Claude Code), on `phase-5b`: Checkpoint 5b reached (`docs/checkpoints/CHECKPOINT_5B.md`); PR #9 ready. Stopped; 5c not started.
 - **Authorized through: Checkpoint 5c and Q4** (end of Phase 5c, Cartography v1, then the Electron desktop app for macOS and Windows). Edit this line to extend or shorten; the agent never goes past it.
 - **Suggested model/effort for the next batch:** Sonnet 5.5 medium for M3 and M5; Opus 5.5 medium for M4 (GLSL and float32 in Chromium and Firefox), high only after a failed attempt.
 
@@ -45,6 +45,7 @@ Do in this order; milestones commit and push separately.
 
 ## Waiting on the user
 
+- Review Checkpoint 5b (`docs/checkpoints/CHECKPOINT_5B.md`) and merge PR #9 (after PR #8). The next phase, 5c, starts when you tell the agent to continue.
 - **Scope W7 feature-level candidates** (no feature removed; your call): (1) globe pinch/touch zoom, README.md:55: keep, it costs nothing and mouse wheel still works; (2) WebGPU "where available" preview paths (ARCHITECTURE.md §6.3, note 18, note 38): drop the cross-vendor testing, keep the option; Electron's Chromium makes it viable later; (3) offline/service worker and the PWA/OPFS next steps in Q18 (REQUIREMENTS.md:31): drop the PWA, keep OPFS or file storage as an Electron concern; (4) the Diagnostics determinism panel in the app: keep, it is cheap; (5) the URL-held settings (shareable links): keep, it doubles as presets. Full list: decision W7.
 - Review Checkpoint 5 (`docs/checkpoints/CHECKPOINT_5.md`) and merge PR #8.
 - Confirm Phase 5 and extend **Authorized through** to start Q1 to Q3, 5b and 5c.
@@ -65,6 +66,7 @@ You are continuing MapMaker autonomously. Read AGENTS.md, docs/OPERATING_GUIDE.m
 
 ## Work log (newest first; 2 to 4 lines per milestone)
 
+- 2026-10-19: 5b M3 (editor UI, registry levels/presets, `edit.spec.ts`) and checkpoint 5b written; 380 unit and 18 e2e tests pass. Stopped at the limit.
 - 2026-10-19: M5: flat-map UI (`apps/web/src/flat/map-ui.ts`): globe/flat switch, 16 projections (GPU for 10), rotation, zoom 1–16× and pan, graticule/coastline/Tissot/distortion overlays, heightmap and SVG export through the exact path; `map.spec.ts` checks the exported PNG's bytes against Node in three browsers. Checkpoint 5 written; PR #8 marked ready. Stopped at the limit.
 
 - 2026-10-19: M4: GLSL inverse/forward of the ten shader projections with float32 Cephes elementary functions (GPU built-ins were visibly inaccurate), cube-map + bounded walk lookup, three.js host and CPU fallback (`apps/web/src/flat/`), `gpu.spec.ts` in three browsers (≤ 0.0066 px at 1×, ≤ 0.0012 px at 16×; all lookup differences explained by float32 at edges). Draft PR #8 opened (CI runs only on PRs). Next: M5.
