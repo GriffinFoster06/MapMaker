@@ -4,10 +4,12 @@ import { EngineClient, type PortLike, type WorldStats } from '@mapmaker/engine';
 import { Globe } from './globe/globe';
 import { FlatMap, type MapState } from './flat/flat-map';
 import type { HeightmapArgs } from '@mapmaker/projection/exact/kernels';
-import { type MapUi, startMapUi } from './flat/map-ui';
+import { type MapUi, type StyledArgs, startMapUi } from './flat/map-ui';
 import { type DebugMode, ProjectionView, type ViewOptions } from '@mapmaker/projection';
 import { RAW_ELEVATION, makeLayers } from './globe/colors';
 import { type EditorHandle, startEditor } from './editor/editor-ui';
+import { THEMES, THEME_IDS, type CartoData, type Style, buildLut, lutColor } from '@mapmaker/carto';
+import { GlobeLabels } from './globe/globe-labels';
 import { LEVELS, type Level, PRESETS, SETTING_GROUPS, SETTINGS, changedParams, decodeState, encodeState, visibleAt } from './settings';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -45,7 +47,15 @@ export interface FlatHook {
   render(st: MapState): Promise<string>;
   worldHash(): Promise<string>;
   /** The map UI: its state, a wait for the current draw, and the export buttons' actions (sha256 of the file). */
-  ui: Pick<MapUi, 'state' | 'rendered'> & { exportHeightmap(): Promise<{ sha256: string; args: HeightmapArgs }>; exportSvg(): Promise<string>; overlayPaths(): number };
+  ui: Pick<MapUi, 'state' | 'rendered' | 'labelCount'> & {
+    exportHeightmap(): Promise<{ sha256: string; args: HeightmapArgs }>; exportSvg(): Promise<string>; overlayPaths(): number;
+    /** The styled export: sha256 of the exact raster PNG, sizes of the composed PNG and the SVG, the SVG text and the arguments sent to the worker. */
+    exportStyled(): Promise<{ rasterSha256: string; pngBytes: number; svg: string; args: StyledArgs; pngWidth: number; pngHeight: number }>;
+    /** Number of labels on the globe (test hook). */
+    globeLabels(): number;
+    /** The GPU's styled pixels against the exact path's raster for the same view (test hook): inside both, per-channel differences (0 to 255). */
+    compareStyled(): Promise<{ w: number; h: number; inside: number; mean: number; p99: number; max: number; over8: number; coverageMismatch: number }>;
+  };
 }
 
 /** Test hook for the editor panel (Phase 5b). */
@@ -133,6 +143,19 @@ export function startApp(): void {
   let variant: Variant = 'structured';
   let layers = makeLayers(RAW_ELEVATION[variant]!);
   for (const l of layers) sel.add(new Option(l.label, l.id));
+  // The styled map (Phase 5c) is a layer of its own: a theme's colours, QGIS hillshade, and the vector layers and labels.
+  sel.add(new Option('Styled map (theme)', 'styled'));
+  const styleSel = $<HTMLSelectElement>('styleSel'), relief = $<HTMLInputElement>('reliefStrength');
+  for (const id of THEME_IDS) styleSel.add(new Option(THEMES[id]!.label, id));
+  const currentStyle = (): Style => {
+    const base = THEMES[styleSel.value]!;
+    return { ...base, relief: { ...base.relief, strength: Number(relief.value) } };
+  };
+  let cartoDataP: Promise<CartoData> | undefined;
+  const cartoData = () => (cartoDataP ??= client.worldKernel<CartoData>('carto.data', {}));
+  ui.setStyleSource(currentStyle, () => sel.value === 'styled', cartoData);
+  const ovLabels = $<HTMLInputElement>('ovLabels');
+  const globeLabels = globe ? new GlobeLabels(globe, $('globeLabels') as unknown as SVGSVGElement, { style: () => (sel.value === 'styled' && ovLabels.checked ? currentStyle() : null), data: cartoData }) : null;
   const pipelineSel = $<HTMLSelectElement>('pipeline');
   const tier = $<HTMLSelectElement>('tier');
   for (const k of Object.keys(TIERS)) tier.add(new Option(`${k} cells`, k));
@@ -163,7 +186,30 @@ export function startApp(): void {
   const editor = startEditor({ client, ui, globe, globeCanvas: $<HTMLCanvasElement>('globe'), variant: () => variant, rerun, busy: () => busy, status: (t) => { status.textContent = t; } });
   $('cancelRun').hidden = true;
 
+  /** The styled layer: per-cell colours for the globe, the lookup, relief factors and land colours for the flat map. */
+  async function paintStyled(): Promise<void> {
+    const style = currentStyle();
+    const [data, cs] = await Promise.all([client.layers(['elevation']), client.worldKernel<{ factor: Float32Array; colors: Float32Array | null }>('carto.cellStyle', { style })]);
+    const elev = data['elevation']![0]! as Float32Array, lut = buildLut(style), c = [0, 0, 0];
+    if (globe) {
+      const out = globe.colors;
+      for (let i = 0; i < elev.length; i++) {
+        if (cs.colors && elev[i]! > 0) { c[0] = cs.colors[3 * i]!; c[1] = cs.colors[3 * i + 1]!; c[2] = cs.colors[3 * i + 2]!; } else lutColor(lut, elev[i]!, c);
+        const f = cs.factor[i]!;
+        out[3 * i] = c[0]! * f; out[3 * i + 1] = c[1]! * f; out[3 * i + 2] = c[2]! * f;
+      }
+      globe.colorsChanged();
+    }
+    flat.setLayer({ rule: 'styled', elevation: Float32Array.from(elev), factor: cs.factor, colors: cs.colors, lut });
+    $('styledOverlays').hidden = false;
+    ui.layerChanged();
+    globeLabels?.schedule(0);
+  }
+
   async function paint(id: string): Promise<void> {
+    $('styledOverlays').hidden = id !== 'styled';
+    if (id === 'styled') { await paintStyled(); return; }
+    globeLabels?.schedule(0);
     const layer = layers.find((l) => l.id === id)!;
     const data = await client.layers(layer.need);
     if (globe) { layer.paint(data, globe.colors); globe.colorsChanged(); }
@@ -181,7 +227,9 @@ export function startApp(): void {
       status.textContent = 're-running…';
       const res = await client.run({ variant, strict: false, ...(from ? { from } : {}), onProgress: (p) => { status.textContent = `re-running ${p.stageId}${p.message ? ': ' + p.message : ''}`; } });
       if (res.cancelledAt) { status.textContent = `cancelled in ${res.cancelledAt}; re-run to finish`; return; }
+      cartoDataP = undefined;
       if (res.ran.includes('mesh')) { const mesh = await client.meshData(); globe?.setMesh(mesh); flat.setWorld(mesh); ui.worldChanged(); }
+      ui.dataChanged();
       await paint(sel.value);
       status.textContent = `re-ran ${res.ran.length ? res.ran.join(', ') : 'nothing'} in ${((performance.now() - t0) / 1000).toFixed(1)} s`;
     } finally { busy = false; $('cancelRun').hidden = true; }
@@ -210,6 +258,7 @@ export function startApp(): void {
       });
       const tEnd = performance.now();
       close(tEnd);
+      cartoDataP = undefined;
       const mesh = await client.meshData();
       globe?.setMesh(mesh);
       flat.setWorld(mesh);
@@ -240,6 +289,49 @@ export function startApp(): void {
     })().catch((e: unknown) => { status.textContent = `error: ${e instanceof Error ? e.message : String(e)}`; });
   });
   sel.addEventListener('change', () => { void paint(sel.value); });
+  let styleTimer = 0;
+  const restyle = () => { clearTimeout(styleTimer); styleTimer = window.setTimeout(() => { if (sel.value === 'styled') void paint('styled').catch((e: unknown) => { status.textContent = `error: ${String(e)}`; }); }, 120); };
+  styleSel.addEventListener('change', restyle);
+  relief.addEventListener('input', restyle);
+  ovLabels.addEventListener('change', () => { globeLabels?.schedule(0); });
+
+  // Save and load a .mapmaker file (ARCHITECTURE §5): the worker writes and reads the container; the page only moves bytes.
+  async function refreshAfterLoad(): Promise<void> {
+    const { variant: v, cells } = await client.worldKernel<{ variant: string; cells: number }>('app.info', {});
+    variant = v as Variant;
+    layers = makeLayers(RAW_ELEVATION[variant]!);
+    cartoDataP = undefined;
+    const mesh = await client.meshData();
+    globe?.setMesh(mesh);
+    flat.setWorld(mesh);
+    ui.worldChanged();
+    await paint(sel.value);
+    await editor.refresh();
+    status.textContent = `loaded ${cells.toLocaleString()} cells`;
+  }
+  $('saveWorld').addEventListener('click', () => {
+    void (async () => {
+      const bytes = await client.snapshot();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'application/zip' }));
+      a.download = `world-${seedInput.value || 'x'}.mapmaker`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+      status.textContent = `saved ${(bytes.length / 1e6).toFixed(1)} MB`;
+    })().catch((e: unknown) => { status.textContent = `save failed: ${String(e)}`; });
+  });
+  const loadFile = $<HTMLInputElement>('loadFile');
+  $('loadWorld').addEventListener('click', () => loadFile.click());
+  loadFile.addEventListener('change', () => {
+    const f = loadFile.files?.[0];
+    if (!f) return;
+    void (async () => {
+      const r = await client.load(new Uint8Array(await f.arrayBuffer()));
+      await refreshAfterLoad();
+      if (r.viewOnly) status.textContent += ' (view only: stage versions differ)';
+      loadFile.value = '';
+    })().catch((e: unknown) => { status.textContent = `load failed: ${String(e)}`; });
+  });
 
   async function generateInWorker(opts: GenerateOpts): Promise<{ totalMs: number; stats: WorldStats }> {
     const w = new Worker(new URL('./engine-worker.ts', import.meta.url), { type: 'module' });
@@ -275,6 +367,32 @@ export function startApp(): void {
       exportHeightmap: async () => { const r = await ui.exportHeightmap(); return { sha256: await sha256(r.png), args: r.args }; },
       exportSvg: async () => sha256(new TextEncoder().encode(await ui.exportSvg())),
       overlayPaths: () => document.querySelectorAll('#mapSvg path').length,
+      labelCount: () => ui.labelCount(),
+      exportStyled: async () => {
+        const r = await ui.exportStyled();
+        const dv = new DataView(r.png.buffer, r.png.byteOffset + 16, 8);
+        return { rasterSha256: await sha256(r.raster), pngBytes: r.png.length, svg: r.svg, args: r.args, pngWidth: dv.getUint32(0), pngHeight: dv.getUint32(4) };
+      },
+      globeLabels: () => globeLabels?.count ?? 0,
+      compareStyled: async () => {
+        const [W, H] = flat.size(), st = ui.state();
+        const png = await client.worldKernel<Uint8Array>('carto.png', { view: { projection: st.projection, width: W, height: H, rotate: st.rotate, ...(st.parallels ? { parallels: st.parallels } : {}) }, style: currentStyle(), opaque: false });
+        const exactBmp = await createImageBitmap(new Blob([png as Uint8Array<ArrayBuffer>], { type: 'image/png' }));
+        const read = (src: CanvasImageSource) => { const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d', { willReadFrequently: true })!; x.drawImage(src, 0, 0); return x.getImageData(0, 0, W, H).data; };
+        const a = read($('mapGpu') as HTMLCanvasElement), b = read(exactBmp);
+        const diffs: number[] = [];
+        let inside = 0, mismatch = 0, over8 = 0, max = 0, sum = 0;
+        for (let i = 0; i < W * H; i++) {
+          const ia = a[4 * i + 3]! > 127, ib = b[4 * i + 3]! > 127;
+          if (ia !== ib) { mismatch++; continue; }
+          if (!ia) continue;
+          inside++;
+          const d = Math.max(Math.abs(a[4 * i]! - b[4 * i]!), Math.abs(a[4 * i + 1]! - b[4 * i + 1]!), Math.abs(a[4 * i + 2]! - b[4 * i + 2]!));
+          diffs.push(d); sum += d; max = Math.max(max, d); if (d > 8) over8++;
+        }
+        diffs.sort((x, y) => x - y);
+        return { w: W, h: H, inside, mean: sum / Math.max(1, inside), p99: diffs[Math.floor(0.99 * (diffs.length - 1))] ?? 0, max, over8: over8 / Math.max(1, inside), coverageMismatch: mismatch / (W * H) };
+      },
     },
   };
 

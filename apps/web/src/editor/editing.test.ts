@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BRUSH, TOOLS, addStrokePoint, buildDraft, lonLatDegToUnit, toolById } from './editing';
+import { DEFAULT_BRUSH, TOOLS, addStrokePoint, brushRadiusRad, buildDraft, lonLatDegToUnit, ringPoints, toolById, unitToLonLatDeg } from './editing';
 
 describe('editing tools', () => {
   it('every tool has unique id, in-range defaults, and a known target', () => {
@@ -38,5 +38,29 @@ describe('editing tools', () => {
     near(lonLatDegToUnit(0, 0), [1, 0, 0]);
     near(lonLatDegToUnit(90, 0), [0, 1, 0]);
     near(lonLatDegToUnit(0, 90), [0, 0, 1]);
+  });
+  it('the brush ring: unit vectors at exactly the brush radius from the centre, evenly spaced, at the poles and the antimeridian too', () => {
+    const r = brushRadiusRad(9);
+    expect(r).toBeCloseTo((9 * Math.PI) / 180, 15);
+    expect(brushRadiusRad(1000)).toBeCloseTo(Math.PI / 3, 15);
+    expect(brushRadiusRad(0)).toBeCloseTo((0.05 * Math.PI) / 180, 15);
+    for (const c of [[1, 0, 0], [0, 0, 1], [0, 0, -1], [-1, 0, 0], lonLatDegToUnit(179.9, 33), lonLatDegToUnit(-45, -80)] as [number, number, number][]) {
+      const ring = ringPoints(c, r, 64);
+      expect(ring).toHaveLength(192);
+      const steps: number[] = [];
+      for (let i = 0; i < 64; i++) {
+        const x = ring[3 * i]!, y = ring[3 * i + 1]!, z = ring[3 * i + 2]!;
+        expect(Math.hypot(x, y, z)).toBeCloseTo(1, 12);
+        expect(Math.acos(Math.min(1, x * c[0] + y * c[1] + z * c[2]))).toBeCloseTo(r, 10);
+        const j = (i + 1) % 64;
+        steps.push(Math.acos(Math.min(1, x * ring[3 * j]! + y * ring[3 * j + 1]! + z * ring[3 * j + 2]!)));
+      }
+      expect(Math.max(...steps) - Math.min(...steps)).toBeLessThan(1e-9);
+    }
+  });
+  it('unit vectors convert back to longitude and latitude', () => {
+    const [lon, lat] = unitToLonLatDeg(...lonLatDegToUnit(-123.5, 47.25));
+    expect(lon).toBeCloseTo(-123.5, 10);
+    expect(lat).toBeCloseTo(47.25, 10);
   });
 });

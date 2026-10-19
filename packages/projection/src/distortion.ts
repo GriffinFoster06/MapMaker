@@ -71,7 +71,7 @@ export function jacobian(view: ProjectionView, lon: number, lat: number, rlon: n
   const l = lon * RAD, f = lat * RAD;
   const cl = dmath.cos(l), sl = dmath.sin(l), cf = dmath.cos(f), sf = dmath.sin(f);
   const p = [cf * cl, cf * sl, sf], e = [-sl, cl, 0], n = [-sf * cl, -sf * sl, cf];
-  const raw = view.spec.raw, scale = view.spec.rawScale ?? 1;
+  const raw = view.raw, scale = view.spec.rawScale ?? 1;
   const at = (s: number, t: number): [number, number] => {
     const x = p[0]! + s * e[0]! + t * n[0]!, y = p[1]! + s * e[1]! + t * n[1]!, z = p[2]! + s * e[2]! + t * n[2]!;
     const g: [number, number] = [dmath.atan2(y, x) / RAD, dmath.atan2(z, Math.sqrt(x * x + y * y)) / RAD];

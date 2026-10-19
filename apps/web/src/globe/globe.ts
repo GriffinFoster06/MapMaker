@@ -16,6 +16,8 @@ export class Globe {
   private mesh: THREE.Mesh | undefined;
   private color: Float32Array | undefined;
   private frame = 0;
+  private ring: THREE.LineLoop | undefined;
+  private readonly listeners = new Set<() => void>();
 
   constructor(readonly canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
@@ -25,7 +27,7 @@ export class Globe {
     this.controls.enablePan = false;
     this.controls.minDistance = 1.15;
     this.controls.maxDistance = 8;
-    this.controls.addEventListener('change', () => this.render());
+    this.controls.addEventListener('change', () => { this.render(); for (const l of this.listeners) l(); });
     new ResizeObserver(() => this.resize()).observe(canvas);
     this.resize();
   }
@@ -76,6 +78,7 @@ export class Globe {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.render();
+    for (const l of this.listeners) l();
   }
 
   private disposeMesh(): void {
@@ -84,6 +87,60 @@ export class Globe {
     this.mesh.geometry.dispose();
     (this.mesh.material as THREE.Material).dispose();
     this.mesh = undefined;
+  }
+
+  /**
+   * The brush ring (Phase 5c): a closed line through `points` (canonical unit vectors, xyz interleaved), lifted 0.2% above
+   * the surface; null hides it. One small buffer, redrawn with the globe; no change to the world geometry.
+   */
+  setRing(points: ArrayLike<number> | null): void {
+    if (!points) {
+      if (this.ring) this.ring.visible = false;
+      this.render();
+      return;
+    }
+    const n = points.length / 3, lift = 1.002;
+    if (!this.ring || (this.ring.geometry.getAttribute('position') as THREE.BufferAttribute).count !== n) {
+      this.ring?.geometry.dispose();
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(3 * n), 3));
+      if (this.ring) this.ring.geometry = g;
+      else {
+        this.ring = new THREE.LineLoop(g, new THREE.LineBasicMaterial({ color: 0xffffff }));
+        this.ring.frustumCulled = false;
+        this.scene.add(this.ring);
+      }
+    }
+    const a = this.ring.geometry.getAttribute('position') as THREE.BufferAttribute;
+    for (let i = 0; i < n; i++) a.setXYZ(i, points[3 * i]! * lift, points[3 * i + 2]! * lift, -points[3 * i + 1]! * lift);
+    a.needsUpdate = true;
+    this.ring.visible = true;
+    this.render();
+  }
+
+  /** Number of points of the visible brush ring (test hook), 0 when hidden. */
+  ringPoints(): number { return this.ring?.visible ? (this.ring.geometry.getAttribute('position') as THREE.BufferAttribute).count : 0; }
+
+  /** Calls `f` whenever the camera moves or the canvas is resized (label overlays follow it). Returns an unsubscribe. */
+  onViewChange(f: () => void): () => void { this.listeners.add(f); return () => { this.listeners.delete(f); }; }
+
+  /**
+   * Pixel position on the canvas (CSS pixels from its top-left) of a longitude and latitude in degrees, or null when the
+   * point is on the far side of the globe or outside the canvas. three.js is Y-up, so canonical (x, y, z) is (x, z, −y).
+   */
+  projectLonLat(lon: number, lat: number): [number, number] | null {
+    const a = (lon * Math.PI) / 180, b = (lat * Math.PI) / 180;
+    const v = new THREE.Vector3(Math.cos(b) * Math.cos(a), Math.sin(b), -Math.cos(b) * Math.sin(a));
+    if (v.dot(this.camera.position) <= 1.0005) return null; // beyond the horizon of the unit sphere
+    const p = v.clone().project(this.camera), w = this.canvas.clientWidth || 640, h = this.canvas.clientHeight || 480;
+    const x = ((p.x + 1) / 2) * w, y = ((1 - p.y) / 2) * h;
+    return x < 0 || x > w || y < 0 || y > h ? null : [x, y];
+  }
+
+  /** Pixels per radian of arc at the centre of the disc facing the camera (for scale-dependent detail such as rivers). */
+  pixelsPerRadian(): number {
+    const h = this.canvas.clientHeight || 480, d = this.camera.position.length();
+    return h / 2 / Math.tan((this.camera.fov * Math.PI) / 360) / Math.max(0.05, d - 1);
   }
 
   /** Turns the orbit controls off while an editing tool is active (a drag then paints instead of rotating). */

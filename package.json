@@ -9,6 +9,7 @@
   },
   "workspaces": [
     "apps/*",
+    "packages/carto",
     "packages/core",
     "packages/engine",
     "packages/gen-orogen",

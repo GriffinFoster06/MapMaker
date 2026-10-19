@@ -5,7 +5,7 @@ import type { EngineClient, EditState, StaleStage, SystemInfo } from '@mapmaker/
 import type { EditDraft, SystemMode } from '@mapmaker/core';
 import type { Globe } from '../globe/globe';
 import type { MapUi } from '../flat/map-ui';
-import { DEFAULT_BRUSH, TOOLS, type Tool, addStrokePoint, buildDraft, toolById } from './editing';
+import { DEFAULT_BRUSH, TOOLS, type Tool, addStrokePoint, brushRadiusRad, buildDraft, ringPoints, toolById } from './editing';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -25,7 +25,7 @@ export interface EditorHandle {
   /** A new world exists (or was re-run): reload the log, the switches and the stale list. */
   refresh(): Promise<void>;
   /** `sent`: every edit record this panel has sent to the engine, in order (test hook). */
-  state(): { tool: string; edits: number; cursor: number; stale: StaleStage[]; sent: EditDraft[] };
+  state(): { tool: string; edits: number; cursor: number; stale: StaleStage[]; sent: EditDraft[]; ring: { globe: number; flat: string } };
 }
 
 export function startEditor(host: EditorHost): EditorHandle {
@@ -138,8 +138,22 @@ export function startEditor(host: EditorHost): EditorHandle {
 
   // Strokes: pointer down starts one, moves add points (spaced a quarter radius apart), pointer up commits one edit.
   let stroke: { path: number[]; pick: (e: PointerEvent) => [number, number, number] | null; el: HTMLElement } | null = null;
-  const radiusRad = () => (Math.min(60, Math.max(0.05, brush.radiusDeg)) * Math.PI) / 180;
+  const radiusRad = () => brushRadiusRad(brush.radiusDeg);
+  // Brush ring under the pointer (Phase 5c): the edge of the region one stroke point edits; cheap, redrawn per frame.
+  let hover: { el: HTMLElement; pick: (e: PointerEvent) => [number, number, number] | null; v: [number, number, number] } | null = null;
+  let ringFrame = 0;
+  function drawRing(): void {
+    cancelAnimationFrame(ringFrame);
+    ringFrame = requestAnimationFrame(() => {
+      const on = !!tool() && ready && hover;
+      const pts = on && hover ? ringPoints(hover.v, radiusRad()) : null;
+      if (globe) globe.setRing(pts && hover?.el === host.globeCanvas ? pts : null);
+      ui.setRing(pts && hover?.el === ui.element ? pts : null);
+    });
+  }
   function attach(el: HTMLElement, pick: (e: PointerEvent) => [number, number, number] | null): void {
+    el.addEventListener('pointermove', (e) => { const v = pick(e); hover = v ? { el, pick, v } : null; drawRing(); });
+    el.addEventListener('pointerleave', () => { hover = null; drawRing(); });
     el.addEventListener('pointerdown', (e) => {
       const t = tool();
       if (!t || !ready || host.busy() || e.button !== 0) return;
@@ -177,9 +191,9 @@ export function startEditor(host: EditorHost): EditorHandle {
 
   // Controls.
   fillTools(); buildParams(); applyToolState();
-  toolSel.addEventListener('change', () => { buildParams(); applyToolState(); });
+  toolSel.addEventListener('change', () => { buildParams(); applyToolState(); drawRing(); });
   const num = (id: string, f: (v: number) => void) => { const i = $<HTMLInputElement>(id); const upd = () => { f(Number(i.value)); $(`${id}Val`).textContent = i.value; }; i.addEventListener('input', upd); upd(); };
-  num('brushRadius', (v) => { brush.radiusDeg = v; });
+  num('brushRadius', (v) => { brush.radiusDeg = v; drawRing(); });
   num('brushFalloff', (v) => { brush.falloff = v; });
   num('brushWeight', (v) => { brush.weight = v; });
   $<HTMLSelectElement>('brushMode').addEventListener('change', (e) => { brush.mode = (e.target as HTMLSelectElement).value === 'soft' ? 'soft' : 'pin'; applyToolState(); });
@@ -194,6 +208,6 @@ export function startEditor(host: EditorHost): EditorHandle {
 
   return {
     async refresh() { ready = true; fillTools(); await reload(); },
-    state: () => ({ tool: toolSel.value, edits: log?.length ?? 0, cursor: log?.cursor ?? 0, stale, sent }),
+    state: () => ({ tool: toolSel.value, edits: log?.length ?? 0, cursor: log?.cursor ?? 0, stale, sent, ring: { globe: globe?.ringPoints() ?? 0, flat: ui.ringPath() } }),
   };
 }

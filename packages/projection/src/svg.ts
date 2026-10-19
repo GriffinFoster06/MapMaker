@@ -29,7 +29,7 @@ export function svgDocument(view: ProjectionView, layers: SvgLayers = {}): strin
     body += `<g fill="#c33" fill-opacity="0.3" stroke="#a11" stroke-width="0.75">\n${f.circles.map((c) => path(p(c), '')).join('')}</g>\n`;
     body += `<g fill="none" stroke="#a11" stroke-width="0.75">\n${f.axes.map((a) => path(p(a), '')).join('')}</g>\n`;
   }
-  if (layers.outline !== false) body += path(p({ type: 'Sphere' }), 'fill="none" stroke="#000" stroke-width="1"');
+  if (layers.outline !== false) body += path(p(view.outline()), 'fill="none" stroke="#000" stroke-width="1"');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${view.width}" height="${view.height}" viewBox="0 0 ${view.width} ${view.height}">
 <!-- MapMaker: ${view.spec.id} rotate ${rot.join(' ')} -->

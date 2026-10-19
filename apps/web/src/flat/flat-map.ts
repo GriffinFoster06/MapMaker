@@ -6,7 +6,8 @@ import { type LocatedRaster, ProjectionView, type ViewOptions, isGpuProjection }
 import { colorize } from './colorize';
 import { GpuMap, type GpuLayer } from './gpu-map';
 
-export interface MapState { projection: string; rotate: [number, number, number]; zoom: number; pan: [number, number] }
+/** `parallels`: the standard parallels of a conic projection, degrees (ignored by the others). */
+export interface MapState { projection: string; rotate: [number, number, number]; zoom: number; pan: [number, number]; parallels?: [number, number] }
 
 /** Linear resolution factor of the CPU path (half the pixels in each dimension). */
 export const CPU_REDUCTION = 2;
@@ -55,7 +56,7 @@ export class FlatMap {
 
   /** The stock view of a state at a size (interactive display). */
   static view(st: MapState, width: number, height: number, scale = 1): ProjectionView {
-    const opts: ViewOptions = { projection: st.projection, width, height, rotate: st.rotate, zoom: st.zoom, pan: [st.pan[0] / scale, st.pan[1] / scale] };
+    const opts: ViewOptions = { projection: st.projection, width, height, rotate: st.rotate, zoom: st.zoom, pan: [st.pan[0] / scale, st.pan[1] / scale], ...(st.parallels ? { parallels: st.parallels } : {}) };
     return new ProjectionView(opts);
   }
 
@@ -103,7 +104,7 @@ export class FlatMap {
     ctx.clearRect(0, 0, w, h);
     this.gpuCanvas.hidden = true; c.hidden = false;
     const layer = this.layer, tris = this.mesh.triangles;
-    const spec: ViewOptions = { projection: st.projection, width: w, height: h, rotate: st.rotate, zoom: st.zoom, pan: [st.pan[0] / CPU_REDUCTION, st.pan[1] / CPU_REDUCTION] };
+    const spec: ViewOptions = { projection: st.projection, width: w, height: h, rotate: st.rotate, zoom: st.zoom, pan: [st.pan[0] / CPU_REDUCTION, st.pan[1] / CPU_REDUCTION], ...(st.parallels ? { parallels: st.parallels } : {}) };
     for (let y0 = 0; y0 < h; y0 += CPU_ROWS) {
       const y1 = Math.min(h, y0 + CPU_ROWS);
       const r = await this.client.worldKernel<LocatedRaster>('projection.locate', { view: spec, y0, y1 });

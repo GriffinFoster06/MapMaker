@@ -67,6 +67,37 @@ export function addStrokePoint(path: number[], v: readonly [number, number, numb
   return true;
 }
 
+/** The brush radius in radians as an edit records it: the slider's degrees, kept within 0.05° to 60°. */
+export const brushRadiusRad = (radiusDeg: number): number => (Math.min(60, Math.max(0.05, radiusDeg)) * Math.PI) / 180;
+
+/**
+ * The brush ring (Phase 5c): `n` unit vectors on the small circle of angular radius `radius` about the unit vector
+ * `centre`, xyz interleaved, the first point not repeated. Shown under the pointer, so it is exactly the edge of the
+ * region a stroke point would rasterise (hard edge; the falloff shapes the weights inside it).
+ */
+export function ringPoints(centre: readonly [number, number, number], radius: number, n = 96): Float64Array {
+  const [cx, cy, cz] = centre;
+  const len = Math.hypot(cx, cy, cz) || 1;
+  const c: [number, number, number] = [cx / len, cy / len, cz / len];
+  // A helper axis not parallel to the centre, then an orthonormal pair in the tangent plane.
+  const h: [number, number, number] = Math.abs(c[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0];
+  let e1: [number, number, number] = [c[1] * h[2] - c[2] * h[1], c[2] * h[0] - c[0] * h[2], c[0] * h[1] - c[1] * h[0]];
+  const l1 = Math.hypot(...e1);
+  e1 = [e1[0] / l1, e1[1] / l1, e1[2] / l1];
+  const e2: [number, number, number] = [c[1] * e1[2] - c[2] * e1[1], c[2] * e1[0] - c[0] * e1[2], c[0] * e1[1] - c[1] * e1[0]];
+  const out = new Float64Array(3 * n), cr = Math.cos(radius), sr = Math.sin(radius);
+  for (let i = 0; i < n; i++) {
+    const t = (2 * Math.PI * i) / n, a = Math.cos(t) * sr, b = Math.sin(t) * sr;
+    for (let k = 0; k < 3; k++) out[3 * i + k] = cr * c[k]! + a * e1[k]! + b * e2[k]!;
+  }
+  return out;
+}
+
+/** Longitude and latitude in degrees of a canonical unit vector. */
+export function unitToLonLatDeg(x: number, y: number, z: number): [number, number] {
+  return [(Math.atan2(y, x) * 180) / Math.PI, (Math.atan2(z, Math.hypot(x, y)) * 180) / Math.PI];
+}
+
 /** The edit record of one stroke (note 16 §2). `gesture` groups strokes for undo. */
 export function buildDraft(tool: Tool, brush: BrushSettings, values: Record<string, number>, path: readonly number[], gesture: number): EditDraft {
   if (path.length < 3) throw new Error('an edit needs at least one point');
@@ -76,7 +107,7 @@ export function buildDraft(tool: Tool, brush: BrushSettings, values: Record<stri
     const v = values[prm.key] ?? prm.value;
     payload[prm.key] = Math.min(prm.max, Math.max(prm.min, v));
   }
-  const radius = (Math.min(60, Math.max(0.05, brush.radiusDeg)) * Math.PI) / 180;
+  const radius = brushRadiusRad(brush.radiusDeg);
   const pts = tool.brush === 'point' ? path.slice(0, 3) : path.slice();
   return {
     target: { kind: 'layer', id: tool.target },

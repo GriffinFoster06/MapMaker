@@ -83,8 +83,12 @@ uniform int uTexW;               // width of the flat data textures
 uniform int uRule;               // 0 nearest, 1 barycentric
 uniform sampler2D uValue;        // per-cell value (R32F), barycentric layers
 uniform sampler2D uColor;        // per-cell colour (RGBA8), nearest layers
-uniform int uPalette;            // 0 orogen elevation colours, 1 ramp
+uniform int uPalette;            // 0 orogen elevation colours, 1 ramp, 2 style lookup, 3 style lookup with nearest land colours
 uniform float uLo, uHi;          // ramp range
+uniform sampler2D uShade;        // per-cell relief factor (R32F), styled layers (uHasShade)
+uniform sampler2D uLut;          // style lookup (RGBA32F): the ocean half then the land half, uLutN texels each
+uniform int uHasShade, uLutN;
+uniform float uOceanMin, uLandMax; // elevations (metres) of the ends of the lookup
 
 #if DEBUG
 layout(location = 0) out highp uvec4 outU;
@@ -413,6 +417,19 @@ vec3 rampColor(float x) {
   return a + (b - a) * u;
 }
 
+// The style's colour at elevation m (packages/carto/src/colour.ts lutColor, float32): sea (m <= 0) and land are separate
+// halves of the table, so the coastline is a step, never a blend.
+vec3 lutColor(float m) {
+  bool sea = m <= 0.0;
+  float t = sea ? (m - uOceanMin) / (0.0 - uOceanMin) : m / uLandMax;
+  float x = clamp(t, 0.0, 1.0) * float(uLutN - 1);
+  int i0 = min(uLutN - 2, int(floor(x)));
+  float f = x - float(i0);
+  int base = (sea ? 0 : uLutN) + i0;
+  vec3 a = texelFetch(uLut, ivec2(base, 0), 0).rgb, b = texelFetch(uLut, ivec2(base + 1, 0), 0).rgb;
+  return a + (b - a) * f;
+}
+
 // three.js's linear -> sRGB transfer (the globe's MeshBasicMaterial output), so both views show the same colours.
 vec3 toSRGB(vec3 c) { return mix(pow(c, vec3(0.41666)) * 1.055 - vec3(0.055), c * 12.92, vec3(lessThanEqual(c, vec3(0.0031308)))); }
 
@@ -471,7 +488,10 @@ void main() {
 #else
   vec3 rgb;
   if (uRule == 0) rgb = texelFetch(uColor, at(int(cur)), 0).rgb;
-  else rgb = uPalette == 0 ? elevationColor(value) : rampColor((value - uLo) / (uHi - uLo));
+  else if (uPalette == 0) rgb = elevationColor(value);
+  else if (uPalette == 1) rgb = rampColor((value - uLo) / (uHi - uLo));
+  else rgb = (uPalette == 3 && value > 0.0) ? texelFetch(uColor, at(int(cur)), 0).rgb : lutColor(value);
+  if (uHasShade == 1) rgb *= wc.x * texelFetch(uShade, at(int(ids.x)), 0).r + wc.y * texelFetch(uShade, at(int(ids.y)), 0).r + wc.z * texelFetch(uShade, at(int(ids.z)), 0).r;
   outColor = vec4(toSRGB(rgb), 1.0);
 #endif
 }

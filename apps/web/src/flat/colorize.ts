@@ -5,6 +5,7 @@ import { elevationToColor } from '@mapmaker/gen-orogen/palettes';
 import type { LocatedRaster } from '@mapmaker/projection';
 import type { GpuLayer } from './gpu-map';
 import { ramp } from '../globe/colors';
+import { styleBand } from '@mapmaker/carto';
 
 /** three.js LinearTosRGB (r160 colorspace_pars_fragment), per channel. */
 export const toSRGB = (c: number) => (c <= 0.0031308 ? c * 12.92 : Math.pow(c, 0.41666) * 1.055 - 0.055);
@@ -12,6 +13,9 @@ const byte = (c: number) => Math.round(Math.min(1, Math.max(0, toSRGB(c))) * 255
 
 /** RGBA8 pixels (transparent outside the domain) of a located row band for a layer. */
 export function colorize(r: LocatedRaster, l: GpuLayer, triangles: Int32Array): Uint8ClampedArray {
+  // A styled map (Phase 5c) is the exact path's arithmetic (packages/carto/src/raster.ts), the interactive path's pixels
+  // equal its pixels except for the view's native math.
+  if (l.rule === 'styled') return styleBand(r, triangles, l.elevation, l, l.lut);
   const n = r.tri.length, out = new Uint8ClampedArray(4 * n);
   for (let o = 0; o < n; o++) {
     const t = r.tri[o]!;

@@ -9,13 +9,17 @@ import {
 import type { MultiLineString } from 'geojson';
 import type { HeightmapArgs } from '@mapmaker/projection/exact/kernels';
 import { CPU_REDUCTION, FlatMap, type MapState } from './flat-map';
-import { lonLatDegToUnit } from '../editor/editing';
+import { lonLatDegToUnit, unitToLonLatDeg } from '../editor/editing';
+import { type CartoData, type OverlayOptions, type Style, furnitureLayout, overlaySvg, planLabels, riverThreshold } from '@mapmaker/carto';
+import type { LabelPlan } from '@mapmaker/carto';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 export const MAX_ZOOM = 16;
 /** Linear resolution factor of the distortion heatmap (computed on the CPU in the engine worker). */
 const DISTORTION_REDUCTION = 4;
+
+export interface StyledArgs { view: { projection: string; width: number; height: number; rotate: [number, number, number]; parallels?: [number, number] }; style: Style }
 
 export interface MapUi {
   /** Whether the flat map is showing. */
@@ -31,6 +35,23 @@ export interface MapUi {
   pick(clientX: number, clientY: number): [number, number, number] | null;
   /** The element that receives the pointer events of the flat map. */
   readonly element: HTMLElement;
+  /** The brush ring (Phase 5c): the small circle of `points` (unit vectors, xyz interleaved) projected under the current view; null hides it. */
+  setRing(points: ArrayLike<number> | null): void;
+  /** The ring's SVG path data (test hook), '' when hidden. */
+  ringPath(): string;
+  /**
+   * Phase 5c: the styled map. `style()` is the style the controls choose; `active()` says whether the styled layer is on (then
+   * the overlays are the style's, with rivers, labels, scale bar and legend). Exports always use `style()`.
+   */
+  setStyleSource(style: () => Style, active: () => boolean, data: () => Promise<CartoData>): void;
+  /** The cartographic data of the world changed (a new world, or a re-run that changed the terrain). */
+  dataChanged(): void;
+  /** Redraws the overlays (a style control changed). */
+  restyle(): void;
+  /** Number of labels in the last styled overlay (test hook). */
+  labelCount(): number;
+  /** The styled export through the exact path: the raster PNG, the SVG with vectors and labels, and the composed PNG. */
+  exportStyled(): Promise<{ raster: Uint8Array; svg: string; png: Uint8Array; args: StyledArgs }>;
   /** Resolves when the map and its overlays are drawn for the current state. */
   rendered(): Promise<void>;
   /** Exports with the current controls; resolves with the file's bytes (also offered for download) and the kernel args. */
@@ -39,9 +60,9 @@ export interface MapUi {
 }
 
 /** Natural aspect (width / height) of a projection's outline. */
-function aspect(projection: string): number {
-  const v = new ProjectionView({ projection, width: 1000, height: 1000 });
-  const [[x0, y0], [x1, y1]] = pathFor(v).bounds({ type: 'Sphere' });
+function aspect(projection: string, parallels?: [number, number]): number {
+  const v = new ProjectionView({ projection, width: 1000, height: 1000, ...(parallels ? { parallels } : {}) });
+  const [[x0, y0], [x1, y1]] = pathFor(v).bounds(v.outline());
   return (x1 - x0) / (y1 - y0);
 }
 
@@ -64,13 +85,30 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
   const viewSel = $<HTMLSelectElement>('viewMode');
   const ovGrat = $<HTMLInputElement>('ovGraticule'), ovCoast = $<HTMLInputElement>('ovCoast'), ovTissot = $<HTMLInputElement>('ovTissot');
   const ovDist = $<HTMLSelectElement>('ovDistortion');
+  const ovRivers = $<HTMLInputElement>('ovRivers'), ovLabels = $<HTMLInputElement>('ovLabels'), ovFurniture = $<HTMLInputElement>('ovFurniture');
+  let styleOf: () => Style = () => { throw new Error('no style source'); };
+  let styledOn: () => boolean = () => false;
+  let dataOf: () => Promise<CartoData> = () => { throw new Error('no style source'); };
+  let labelCount = 0;
 
   let zoom = 1, pan: [number, number] = [0, 0];
   let coast: Promise<MultiLineString> | undefined;
   let pending: Promise<void> = Promise.resolve();
   let scheduled = false, gen = 0, distBusy = false, distStale = false;
 
-  const state = (): MapState => ({ projection: projSel.value, rotate: [Number(rot[0]!.value), Number(rot[1]!.value), Number(rot[2]!.value)], zoom, pan: [pan[0], pan[1]] });
+  const par = [$<HTMLInputElement>('par1'), $<HTMLInputElement>('par2')] as const;
+  const isConic = () => projectionSpec(projSel.value).conic !== undefined;
+  const state = (): MapState => ({
+    projection: projSel.value, rotate: [Number(rot[0]!.value), Number(rot[1]!.value), Number(rot[2]!.value)], zoom, pan: [pan[0], pan[1]],
+    ...(isConic() ? { parallels: [Number(par[0].value), Number(par[1].value)] as [number, number] } : {}),
+  });
+  /** Shows the parallels controls for a conic and loads its default pair. */
+  const syncParallels = (resetToDefault: boolean) => {
+    const conic = projectionSpec(projSel.value).conic;
+    $('parallelsBox').hidden = !conic;
+    if (conic && resetToDefault) { par[0].value = String(conic.defaultParallels[0]); par[1].value = String(conic.defaultParallels[1]); }
+    $('parValue').textContent = `${par[0].value}, ${par[1].value}`;
+  };
 
   async function draw(): Promise<void> {
     const my = ++gen;
@@ -85,13 +123,31 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
     // Overlays, through the same stock view at the map's device-pixel size.
     const view = FlatMap.view(st, W, H), p = pathFor(view);
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-    let body = `<path d="${p({ type: 'Sphere' }) ?? ''}" fill="none" stroke="#9aa" stroke-width="${W / 600}"/>`;
-    if (ovGrat.checked) body += `<path class="graticule" d="${p(graticule(view, 15)) ?? ''}" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="${W / 1200}"/>`;
-    if (ovCoast.checked) {
-      coast ??= client.worldKernel<MultiLineString>('projection.coastlines', {});
-      const c = await coast;
+    let body = '';
+    if (styledOn()) {
+      // The styled map's vector layers: the same geometry the exports draw, through this stock view.
+      const style = styleOf();
+      const data = await dataOf();
       if (my !== gen) return;
-      body += `<path class="coast" d="${p(c) ?? ''}" fill="none" stroke="#111" stroke-width="${W / 900}"/>`;
+      const o: OverlayOptions = { graticule: ovGrat.checked, coast: ovCoast.checked, rivers: ovRivers.checked, outline: true, labels: null, scaleBar: ovFurniture.checked, legend: ovFurniture.checked };
+      let plan: LabelPlan | null = null;
+      if (ovLabels.checked) {
+        const fur = furnitureLayout(W, H, style, o);
+        plan = planLabels(data, view, style, { obstacles: [fur.scale, fur.legend].filter((b): b is NonNullable<typeof b> => !!b), riverMinArea: riverThreshold(style, view.scale) });
+        o.labels = plan;
+      }
+      labelCount = plan?.labels.length ?? 0;
+      body = overlaySvg(view, data, style, o);
+    } else {
+      labelCount = 0;
+      body = `<path d="${p(view.outline()) ?? ''}" fill="none" stroke="#9aa" stroke-width="${W / 600}"/>`;
+      if (ovGrat.checked) body += `<path class="graticule" d="${p(graticule(view, 15)) ?? ''}" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="${W / 1200}"/>`;
+      if (ovCoast.checked) {
+        coast ??= client.worldKernel<MultiLineString>('projection.coastlines', {});
+        const c = await coast;
+        if (my !== gen) return;
+        body += `<path class="coast" d="${p(c) ?? ''}" fill="none" stroke="#111" stroke-width="${W / 900}"/>`;
+      }
     }
     if (ovTissot.checked) {
       const f = tissotFeatures(tissot(view, { step: 30, radius: 5 }));
@@ -101,7 +157,7 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
     const q = ovDist.value as DistortionQuantity | '';
     if (q) {
       const w = Math.ceil(W / DISTORTION_REDUCTION), h = Math.ceil(H / DISTORTION_REDUCTION);
-      const opts = { projection: st.projection, width: w, height: h, rotate: st.rotate, zoom, pan: [pan[0] / DISTORTION_REDUCTION, pan[1] / DISTORTION_REDUCTION] as [number, number] };
+      const opts = { projection: st.projection, width: w, height: h, rotate: st.rotate, zoom, pan: [pan[0] / DISTORTION_REDUCTION, pan[1] / DISTORTION_REDUCTION] as [number, number], ...(st.parallels ? { parallels: st.parallels } : {}) };
       // One heatmap request at a time in the worker: while one runs, newer states wait, and the latest is drawn after it.
       if (distBusy) { distStale = true; return; }
       distBusy = true;
@@ -129,14 +185,16 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
     mapEl.hidden = !isFlat;
     globeCanvas.hidden = isFlat;
     $('mapControls').hidden = !isFlat;
+    $('globeLabels').hidden = isFlat;
     schedule();
   }
 
   viewSel.addEventListener('change', show);
-  projSel.addEventListener('change', () => { zoom = 1; pan = [0, 0]; schedule(); });
+  projSel.addEventListener('change', () => { zoom = 1; pan = [0, 0]; syncParallels(true); schedule(); });
+  for (const r of par) r.addEventListener('input', () => { syncParallels(false); schedule(); });
   for (const r of rot) r.addEventListener('input', schedule);
-  for (const el of [ovGrat, ovCoast, ovTissot, ovDist]) el.addEventListener('change', schedule);
-  $('mapReset').addEventListener('click', () => { for (const r of rot) r.value = '0'; zoom = 1; pan = [0, 0]; schedule(); });
+  for (const el of [ovGrat, ovCoast, ovTissot, ovDist, ovRivers, ovLabels, ovFurniture]) el.addEventListener('change', schedule);
+  $('mapReset').addEventListener('click', () => { for (const r of rot) r.value = '0'; zoom = 1; pan = [0, 0]; syncParallels(true); schedule(); });
   new ResizeObserver(() => schedule()).observe(mapEl);
 
   // Zoom about the cursor: the map point under it stays put (pan in device pixels, ProjectionView's zoom and pan).
@@ -165,10 +223,11 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
   // Exports: full outline (zoom 1) at the chosen width, the height from the projection's natural aspect.
   const exportSize = (): [number, number] => {
     const w = Math.max(16, Math.min(16384, Math.round(Number($<HTMLInputElement>('exportWidth').value) || 2048)));
-    return [w, Math.max(8, Math.round(w / aspect(projSel.value)))];
+    return [w, Math.max(8, Math.round(w / aspect(projSel.value, state().parallels)))];
   };
   const updateSize = () => { const [w, h] = exportSize(); $('exportSize').textContent = `${w} × ${h}`; };
   projSel.addEventListener('change', updateSize);
+  for (const r of par) r.addEventListener('input', updateSize);
   $<HTMLInputElement>('exportWidth').addEventListener('input', updateSize);
   updateSize();
   const mappingSel = $<HTMLSelectElement>('exportMapping');
@@ -182,27 +241,81 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
       : kind === 'land' ? { kind: 'land' } : { kind: 'absolute' };
     const outside = $<HTMLInputElement>('exportTransparent').checked ? 'transparent' : 'zero';
     $('exportStatus').textContent = `exporting ${width} × ${height}…`;
-    const args: HeightmapArgs = { view: { projection: st.projection, width, height, rotate: st.rotate }, mapping, png: { outside } };
+    const args: HeightmapArgs = { view: { projection: st.projection, width, height, rotate: st.rotate, ...(st.parallels ? { parallels: st.parallels } : {}) }, mapping, png: { outside } };
     const png = await client.worldKernel<Uint8Array>('projection.heightmap', args);
     download(`heightmap-${st.projection}-${width}x${height}.png`, png as Uint8Array<ArrayBuffer>, 'image/png');
     $('exportStatus').textContent = `heightmap: ${(png.length / 1e6).toFixed(1)} MB`;
     return { png, args };
   }
+  /** The view of an export at the chosen size, with the conic's parallels when it has them. */
+  const exportView = (): StyledArgs['view'] => {
+    const [width, height] = exportSize(), st = state();
+    return { projection: st.projection, width, height, rotate: st.rotate, ...(st.parallels ? { parallels: st.parallels } : {}) };
+  };
+
+  /**
+   * The styled export (Phase 5c): the raster comes from the exact path in the worker; the vectors, labels, scale bar and legend
+   * are an SVG from the same worker, laid over it on a canvas for the PNG, and embedded with it in the SVG file.
+   */
+  async function exportStyled(): Promise<{ raster: Uint8Array; svg: string; png: Uint8Array; args: StyledArgs }> {
+    const args: StyledArgs = { view: exportView(), style: styleOf() };
+    const { width, height } = args.view;
+    $('exportStatus').textContent = `exporting styled map ${width} × ${height}…`;
+    const [raster, overlay, svg] = await Promise.all([
+      client.worldKernel<Uint8Array>('carto.png', args),
+      client.worldKernel<string>('carto.svg', { ...args, layers: { raster: false, background: false } }),
+      client.worldKernel<string>('carto.svg', args),
+    ]);
+    const bmp = await createImageBitmap(new Blob([raster as Uint8Array<ArrayBuffer>], { type: 'image/png' }));
+    const canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(bmp, 0, 0);
+    const img = new Image();
+    const url = URL.createObjectURL(new Blob([overlay], { type: 'image/svg+xml' }));
+    try { img.src = url; await img.decode(); ctx.drawImage(img, 0, 0, width, height); } finally { URL.revokeObjectURL(url); }
+    const blob = await new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('PNG encoding failed'))), 'image/png'));
+    const png = new Uint8Array(await blob.arrayBuffer());
+    $('exportStatus').textContent = `styled map: ${(png.length / 1e6).toFixed(1)} MB PNG, ${(svg.length / 1e6).toFixed(1)} MB SVG`;
+    return { raster, svg, png, args };
+  }
   async function exportSvg(): Promise<string> {
     const [width, height] = exportSize(), st = state();
     $('exportStatus').textContent = 'exporting SVG…';
-    const text = await client.worldKernel<string>('projection.svg', { view: { projection: st.projection, width, height, rotate: st.rotate }, layers: { graticule: ovGrat.checked ? 15 : false, tissot: ovTissot.checked ? { step: 30, radius: 5 } : false }, coastlines: true });
+    const text = await client.worldKernel<string>('projection.svg', { view: { projection: st.projection, width, height, rotate: st.rotate, ...(st.parallels ? { parallels: st.parallels } : {}) }, layers: { graticule: ovGrat.checked ? 15 : false, tissot: ovTissot.checked ? { step: 30, radius: 5 } : false }, coastlines: true });
     download(`map-${st.projection}.svg`, text, 'image/svg+xml');
     $('exportStatus').textContent = `SVG: ${(text.length / 1e6).toFixed(1)} MB`;
     return text;
   }
+  $('exportStyledPng').addEventListener('click', () => { void exportStyled().then((r) => { download(`map-styled-${r.args.view.projection}-${r.args.view.width}x${r.args.view.height}.png`, r.png as Uint8Array<ArrayBuffer>, 'image/png'); }).catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
+  $('exportStyledSvg').addEventListener('click', () => { void exportStyled().then((r) => { download(`map-styled-${r.args.view.projection}.svg`, r.svg, 'image/svg+xml'); }).catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
   $('exportHeightmap').addEventListener('click', () => { void exportHeightmap().catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
   $('exportSvg').addEventListener('click', () => { void exportSvg().catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
 
+  // Brush ring: one SVG path in its own element above the map, redrawn on pointer moves (not with the map draw).
+  const ringSvg = $<HTMLElement>('mapRing'), ringEl = ringSvg.querySelector('path')!;
+  let ringView: { key: string; view: ProjectionView } | undefined;
+  function setRing(points: ArrayLike<number> | null): void {
+    if (!points || !flat.ready) { ringEl.setAttribute('d', ''); return; }
+    const [W, H] = flat.size(), st = state(), key = `${W}x${H} ${JSON.stringify(st)}`;
+    if (ringView?.key !== key) ringView = { key, view: FlatMap.view(st, W, H) };
+    const n = points.length / 3, coords: [number, number][] = [];
+    for (let i = 0; i <= n; i++) { const k = i % n; coords.push(unitToLonLatDeg(points[3 * k]!, points[3 * k + 1]!, points[3 * k + 2]!)); }
+    ringSvg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    ringEl.setAttribute('stroke-width', String(Math.max(1.5, W / 500)));
+    ringEl.setAttribute('d', pathFor(ringView.view)({ type: 'LineString', coordinates: coords }) ?? '');
+  }
+
+  syncParallels(true);
   show();
   return {
     get flatShown() { return viewSel.value === 'flat'; },
     worldChanged() { coast = undefined; schedule(); },
+    dataChanged() { coast = undefined; schedule(); },
+    setStyleSource(style, active, data) { styleOf = style; styledOn = active; dataOf = data; },
+    restyle() { schedule(); },
+    labelCount: () => labelCount,
+    exportStyled,
     layerChanged() { schedule(); },
     state: () => ({ ...state(), view: viewSel.value as 'globe' | 'flat' }),
     setEditing(on) { editing = on; drag = null; },
@@ -223,5 +336,7 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
     },
     exportHeightmap,
     exportSvg,
+    setRing,
+    ringPath: () => ringEl.getAttribute('d') ?? '',
   };
 }

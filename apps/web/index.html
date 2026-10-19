@@ -11,9 +11,12 @@
     #controls { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; margin: .5rem 0; }
     #controls input { width: 7rem; }
     #globe { width: 100%; height: min(70vh, 640px); background: #05060d; border-radius: 6px; display: block; touch-action: none; }
+    #globeWrap { position: relative; }
+    #globeLabels { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
     #map { position: relative; width: 100%; height: min(70vh, 640px); background: #05060d; border-radius: 6px; overflow: hidden; touch-action: none; }
     #map > canvas, #map > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
     #map > svg { pointer-events: none; }
+    #mapRing path { vector-effect: non-scaling-stroke; }
     #mapDist { opacity: .7; image-rendering: pixelated; }
     [hidden] { display: none !important; }
     #mapControls { display: flex; flex-wrap: wrap; gap: .4rem 1rem; align-items: center; margin: .5rem 0; }
@@ -44,7 +47,11 @@
     <label>Pipeline <select id="pipeline"><option value="structured">structured</option><option value="parity">stock (parity)</option></select></label>
     <label><input id="preview" type="checkbox" checked /> preview first</label>
     <button id="generate">Generate</button>
+    <button id="saveWorld" type="button">Save world…</button>
+    <button id="loadWorld" type="button">Load world…</button><input id="loadFile" type="file" accept=".mapmaker" hidden />
     <label>Layer <select id="layer"></select></label>
+    <span id="styleBox"><label>Style <select id="styleSel"></select></label>
+      <label title="How strongly the QGIS hillshade darkens and lightens the land">relief <input id="reliefStrength" type="range" min="0" max="1" step="0.05" value="0.75" /></label></span>
     <label>View <select id="viewMode"><option value="globe">globe</option><option value="flat">flat map</option></select></label>
     <span id="status">idle</span>
     <span id="webglNotice" hidden>WebGL2 is not available in this browser, so the globe is disabled and the flat map is drawn on the CPU (slower, same results).</span>
@@ -83,20 +90,29 @@
     <div class="erow">Systems: <span id="systemsList"></span></div>
     <ol id="editList"></ol>
   </details>
-  <canvas id="globe"></canvas>
+  <div id="globeWrap"><canvas id="globe"></canvas><svg id="globeLabels" xmlns="http://www.w3.org/2000/svg"></svg></div>
   <div id="mapControls" hidden>
     <fieldset><legend>Projection</legend>
       <select id="projection"></select>
       <label>λ <input id="rotLambda" type="range" min="-180" max="180" step="1" value="0" /></label>
       <label>φ <input id="rotPhi" type="range" min="-90" max="90" step="1" value="0" /></label>
       <label>γ <input id="rotGamma" type="range" min="-180" max="180" step="1" value="0" /></label>
+      <span id="parallelsBox" hidden>standard parallels
+        <label>φ₁ <input id="par1" type="range" min="-89" max="89" step="0.5" value="30" /></label>
+        <label>φ₂ <input id="par2" type="range" min="-89" max="89" step="0.5" value="60" /></label>
+        <span id="parValue">30, 60</span>°</span>
       <span>rotate <span id="rotValue">0, 0, 0</span>; zoom <span id="zoomValue">1.00×</span></span>
       <button id="mapReset" type="button">Reset view</button>
     </fieldset>
     <fieldset><legend>Overlays</legend>
       <label><input id="ovGraticule" type="checkbox" checked /> graticule</label>
-      <label><input id="ovCoast" type="checkbox" /> coastlines</label>
+      <label><input id="ovCoast" type="checkbox" checked /> coastlines</label>
       <label><input id="ovTissot" type="checkbox" /> Tissot indicatrices</label>
+      <span id="styledOverlays" hidden>
+        <label><input id="ovRivers" type="checkbox" checked /> rivers</label>
+        <label><input id="ovLabels" type="checkbox" checked /> labels</label>
+        <label><input id="ovFurniture" type="checkbox" checked /> scale bar and legend</label>
+      </span>
       <label>distortion <select id="ovDistortion"><option value="">none</option><option value="areal">areal scale</option><option value="omega">max angular (ω)</option><option value="h">meridian scale h</option><option value="k">parallel scale k</option></select></label>
     </fieldset>
     <fieldset><legend>Export (whole map, exact path)</legend>
@@ -106,11 +122,13 @@
       <label><input id="exportTransparent" type="checkbox" /> transparent outside</label>
       <button id="exportHeightmap" type="button">Export heightmap (16-bit PNG)</button>
       <button id="exportSvg" type="button">Export SVG</button>
+      <button id="exportStyledPng" type="button" title="The styled map (the style chosen above): raster, vector layers and labels">Export styled map (PNG)</button>
+      <button id="exportStyledSvg" type="button">Export styled map (SVG)</button>
       <span id="exportStatus"></span>
     </fieldset>
     <span id="mapStatus"></span>
   </div>
-  <div id="map" hidden><canvas id="mapGpu"></canvas><canvas id="mapCpu" hidden></canvas><canvas id="mapDist" hidden></canvas><svg id="mapSvg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"></svg></div>
+  <div id="map" hidden><canvas id="mapGpu"></canvas><canvas id="mapCpu" hidden></canvas><canvas id="mapDist" hidden></canvas><svg id="mapSvg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"></svg><svg id="mapRing" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"><path d="" fill="none" stroke="#fff" stroke-opacity=".9" style="filter: drop-shadow(0 0 1px #000)"/></svg></div>
   <pre id="timing"></pre>
   <details>
   <summary>Diagnostics: determinism probe and cross-origin isolation</summary>
