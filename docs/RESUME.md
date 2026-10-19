@@ -3,7 +3,7 @@
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
 - **Last updated:** 2026-10-19, by the local agent (Claude Code), at Checkpoint 5 (M5 done; PR #8 ready for review).
-- **Authorized through: Checkpoint 5 (end of Phase 5).** Edit this line to extend or shorten; the agent never goes past it. The autonomous run through Phase 5c (the items below Phase 5) starts only after the user confirms Phase 5 and extends this line.
+- **Authorized through: Checkpoint 5c and Q4** (end of Phase 5c, Cartography v1, then the Electron desktop app for macOS and Windows). Edit this line to extend or shorten; the agent never goes past it.
 - **Suggested model/effort for the next batch:** Sonnet 5.5 medium for M3 and M5; Opus 5.5 medium for M4 (GLSL and cross-browser float32), high only after a failed attempt.
 
 ## Branches
