@@ -52,10 +52,22 @@ export interface ProjectionSpec {
   rawScale?: number;
   /** One of the GPU shader projections (Phase 5 M4); the rest use the CPU path at reduced resolution. */
   gpu?: boolean;
+  /**
+   * Conic projections (Phase 5c): the two standard parallels (degrees) are a view parameter. `rawAt` is the raw
+   * projection for a pair, in radians (`raw` is `rawAt` at the default pair). `bounded: false` means the map is
+   * unbounded on the side away from the apex (Lambert conformal): the view cuts it `cutDeg` degrees short of that pole.
+   */
+  conic?: { defaultParallels: [number, number]; rawAt: (phi0: number, phi1: number) => GeoRawProjection; bounded: boolean; cutDeg?: number };
 }
 
 /** Mercator's latitude limit, where its square map ends: atan(sinh π) ≈ 85.0511°. */
 export const MERCATOR_MAX_LAT = dmath.atan(dmath.sinh(Math.PI));
+
+const RAD = Math.PI / 180;
+/** Default standard parallels of the conics, degrees. */
+export const CONIC_DEFAULT: [number, number] = [30, 60];
+/** The Lambert conformal conic's pole opposite the apex is at infinity; the map stops this many degrees short of it. */
+export const LCC_CUT_DEG = 30;
 
 /** The registry over a set of d3 modules. */
 export function buildRegistry(d3: D3Modules): readonly ProjectionSpec[] {
@@ -81,6 +93,21 @@ export function buildRegistry(d3: D3Modules): readonly ProjectionSpec[] {
     spec({ id: 'azimuthalEqualArea', label: 'Azimuthal equal-area', create: g.geoAzimuthalEqualArea, raw: g.geoAzimuthalEqualAreaRaw, poleClass: 'point', equalArea: true, gpu: true }),
     spec({ id: 'azimuthalEquidistant', label: 'Azimuthal equidistant', create: g.geoAzimuthalEquidistant, raw: g.geoAzimuthalEquidistantRaw, poleClass: 'point', gpu: true }),
     spec({ id: 'gnomonic', label: 'Gnomonic', create: g.geoGnomonic, raw: g.geoGnomonicRaw, poleClass: 'point' }),
+    // Conics (Phase 5c, decision 5c-1). With two standard parallels both poles of the equal-area and equidistant maps
+    // are arcs (line class); the conformal's apex is a point where meridians arrive at different angles (cusp class)
+    // and its other pole is at infinity (the view cuts it).
+    spec({
+      id: 'conicEqualArea', label: 'Albers (conic equal-area)', create: g.geoConicEqualArea, raw: g.geoConicEqualAreaRaw(CONIC_DEFAULT[0] * RAD, CONIC_DEFAULT[1] * RAD),
+      poleClass: 'line', equalArea: true, conic: { defaultParallels: CONIC_DEFAULT, rawAt: g.geoConicEqualAreaRaw, bounded: true },
+    }),
+    spec({
+      id: 'conicConformal', label: 'Lambert conformal conic', create: g.geoConicConformal, raw: g.geoConicConformalRaw(CONIC_DEFAULT[0] * RAD, CONIC_DEFAULT[1] * RAD),
+      poleClass: 'cusp', conformal: true, conic: { defaultParallels: CONIC_DEFAULT, rawAt: g.geoConicConformalRaw, bounded: false, cutDeg: LCC_CUT_DEG },
+    }),
+    spec({
+      id: 'conicEquidistant', label: 'Conic equidistant', create: g.geoConicEquidistant, raw: g.geoConicEquidistantRaw(CONIC_DEFAULT[0] * RAD, CONIC_DEFAULT[1] * RAD),
+      poleClass: 'line', conic: { defaultParallels: CONIC_DEFAULT, rawAt: g.geoConicEquidistantRaw, bounded: true },
+    }),
   ];
 }
 

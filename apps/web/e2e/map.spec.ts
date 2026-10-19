@@ -77,3 +77,48 @@ test('flat map: switch, projections, overlays, zoom, and the heightmap export eq
   expect(await page.evaluate(() => window.__flat!.worldHash())).toBe(hash);
   expect(errors).toEqual([]);
 });
+
+// Phase 5c: conic projections with standard parallels (decision 5c-1). Drawn by the CPU path; the controls set the
+// view's parallels, the export carries them, and the exported heightmap equals Node's exact export.
+test('conic projections: parallels controls, CPU draw, and an export equal to Node', async ({ page }) => {
+  test.setTimeout(300_000);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  await page.goto('./');
+  await page.waitForFunction(() => !!window.__globe && !!window.__flat);
+  await page.evaluate(([n, seed]) => window.__globe!.generate({ N: n!, seed: seed! }), [N, SEED]);
+  const hash = await page.evaluate(() => window.__flat!.worldHash());
+  const rendered = () => page.evaluate(() => window.__flat!.ui.rendered());
+  const slide = (id: string, v: number) => page.locator(id).evaluate((el, x) => { (el as HTMLInputElement).value = String(x); el.dispatchEvent(new Event('input')); }, v);
+
+  await page.selectOption('#viewMode', 'flat');
+  await rendered();
+  await expect(page.locator('#parallelsBox')).toBeHidden();
+  for (const id of ['conicEqualArea', 'conicConformal', 'conicEquidistant']) {
+    await page.selectOption('#projection', id);
+    await rendered();
+    await expect(page.locator('#parallelsBox')).toBeVisible();
+    await expect(page.locator('#mapStatus')).toContainText('CPU');
+    expect((await page.evaluate(() => window.__flat!.ui.state())).parallels).toEqual([30, 60]);
+  }
+  await page.selectOption('#projection', 'conicEqualArea');
+  await slide('#par1', 15);
+  await slide('#par2', 45);
+  await page.locator('#exportWidth').fill('512');
+  await rendered();
+  expect((await page.evaluate(() => window.__flat!.ui.state())).parallels).toEqual([15, 45]);
+  const exp = await page.evaluate(() => window.__flat!.ui.exportHeightmap());
+  expect(exp.args.view).toMatchObject({ projection: 'conicEqualArea', width: 512, parallels: [15, 45] });
+  const w = createOrogenWorld({ N, seed: SEED });
+  await runPipeline(w, [...orogenStages, ...structuredStages], { variant: STRUCTURED, strict: false });
+  const node = exportHeightmap(exp.args.view, new MeshSampler(w.meshes.get('global')!.mesh), w.layers.get('global', 'elevation'), exp.args.mapping, exp.args.png ?? {});
+  expect(exp.sha256).toBe(createHash('sha256').update(node.png).digest('hex'));
+  // A non-conic projection carries no parallels.
+  await page.selectOption('#projection', 'robinson');
+  await rendered();
+  await expect(page.locator('#parallelsBox')).toBeHidden();
+  expect((await page.evaluate(() => window.__flat!.ui.state())).parallels).toBeUndefined();
+  expect(await page.evaluate(() => window.__flat!.worldHash())).toBe(hash);
+  expect(errors).toEqual([]);
+});

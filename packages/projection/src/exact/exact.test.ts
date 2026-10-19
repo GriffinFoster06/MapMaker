@@ -30,7 +30,9 @@ const ulps = (a: number, b: number, floor: number) => Math.abs(a - b) / ulp(Math
  */
 const FORWARD_ULPS = 8;
 const INVERSE_ULPS = 32;
-const INVERSE_ULPS_BY_ID: Record<string, number> = { hammer: 128 };
+// conicConformal (Phase 5c): its inverse takes pow(f / r, 1 / n), which multiplies the relative error of pow by 1 / n
+// (n ≈ 0.7 at the default parallels); measured 80 ULPs against stock d3 in the 'fdlibm' mode, a new projection's tolerance.
+const INVERSE_ULPS_BY_ID: Record<string, number> = { hammer: 128, conicConformal: 128 };
 
 const W = 512, H = 256;
 const ROTATIONS: [number, number, number][] = [[0, 0, 0], [17, -23, 5], [-140, 60, -30]];

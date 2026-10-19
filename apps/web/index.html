@@ -90,6 +90,10 @@
       <label>λ <input id="rotLambda" type="range" min="-180" max="180" step="1" value="0" /></label>
       <label>φ <input id="rotPhi" type="range" min="-90" max="90" step="1" value="0" /></label>
       <label>γ <input id="rotGamma" type="range" min="-180" max="180" step="1" value="0" /></label>
+      <span id="parallelsBox" hidden>standard parallels
+        <label>φ₁ <input id="par1" type="range" min="-89" max="89" step="0.5" value="30" /></label>
+        <label>φ₂ <input id="par2" type="range" min="-89" max="89" step="0.5" value="60" /></label>
+        <span id="parValue">30, 60</span>°</span>
       <span>rotate <span id="rotValue">0, 0, 0</span>; zoom <span id="zoomValue">1.00×</span></span>
       <button id="mapReset" type="button">Reset view</button>
     </fieldset>

@@ -3,7 +3,7 @@
 //
 // Coordinates: longitude and latitude in degrees (d3's convention, east and north positive); pixels with x right and
 // y down, the centre of pixel (i, j) at (i + 0.5, j + 0.5). `rotate` is d3's [λ, φ, γ] rotation in degrees.
-import type { GeoProjection, GeoRotation } from 'd3-geo';
+import type { GeoPermissibleObjects, GeoProjection, GeoRawProjection, GeoRotation } from 'd3-geo';
 import { dmath } from '@mapmaker/core';
 import { type ProjectionSpec, projectionSpec } from './registry';
 
@@ -25,12 +25,20 @@ export interface ViewOptions {
    */
   zoom?: number;
   pan?: [number, number];
+  /** Conic projections: the two standard parallels in degrees (default: the projection's own pair). Ignored otherwise. */
+  parallels?: [number, number];
 }
 
 /** Round-trip tolerance of the domain check, in pixels (§3.7 raster path, step 2). */
 export const ROUND_TRIP_PX = 0.5;
 
 const RAD = Math.PI / 180;
+
+/** Standard parallels are kept within ±90° (d3 accepts any value; the formulas do not). */
+export function clampParallels(p: readonly [number, number]): [number, number] {
+  const c = (v: number) => Math.min(89.9, Math.max(-89.9, Number.isFinite(v) ? v : 0));
+  return [c(p[0]), c(p[1])];
+}
 
 export class ProjectionView {
   readonly spec: ProjectionSpec;
@@ -46,6 +54,13 @@ export class ProjectionView {
   readonly scale: number;
   /** The geographic point at the raw origin (the clip circle's centre). */
   private readonly centre: [number, number];
+  /** Standard parallels in effect (degrees) for a conic, else null. */
+  readonly parallels: [number, number] | null;
+  /** The raw projection in effect (radians in, y up): `spec.raw`, or the conic's for this view's parallels. */
+  readonly raw: GeoRawProjection;
+  /** Raw-frame latitude range (degrees) of a conic that is unbounded on one side, else null. */
+  private readonly latBand: [number, number] | null;
+  private readonly outlineGeometry: GeoPermissibleObjects;
 
   constructor(opts: ViewOptions) {
     this.spec = projectionSpec(opts.projection, opts.registry);
@@ -54,7 +69,31 @@ export class ProjectionView {
     const p = this.spec.create();
     if (opts.rotate) p.rotate(opts.rotate);
     if (opts.precision !== undefined) p.precision(opts.precision);
-    p.fitExtent([[0, 0], [opts.width, opts.height]], { type: 'Sphere' });
+    const conic = this.spec.conic;
+    let par = conic ? clampParallels(opts.parallels ?? conic.defaultParallels) : null;
+    // Lambert conformal with parallels summing to 0 is Mercator, whose map is a strip with no apex; nudge to a cone.
+    if (conic && !conic.bounded && par && Math.abs(par[0] + par[1]) < 0.01) par = [par[0], par[0] + 0.01 > 89.9 ? par[1] : par[1] + 0.01];
+    this.parallels = par;
+    this.raw = conic ? conic.rawAt(this.parallels![0] * RAD, this.parallels![1] * RAD) : this.spec.raw;
+    let latBand: [number, number] | null = null;
+    let outline: GeoPermissibleObjects = { type: 'Sphere' };
+    if (conic) {
+      (p as unknown as { parallels(v: [number, number]): GeoProjection }).parallels(this.parallels!);
+      if (!conic.bounded) {
+        // Lambert conformal: the far pole is at infinity, so the domain is the cap about the apex (decision 5c-1).
+        const cut = conic.cutDeg ?? 30;
+        const north = this.parallels![0] + this.parallels![1] > 0;
+        latBand = north ? [-90 + cut, 90] : [-90, 90 - cut];
+        const rot = this.spec.d3.geo.geoRotation(this.spec.rawRotation ? this.spec.rawRotation(p.rotate() as [number, number, number]) : (p.rotate() as [number, number, number]));
+        const centre = rot.invert([0, north ? 90 : -90]);
+        outline = this.spec.d3.geo.geoCircle().center(centre).radius(180 - cut).precision(1)();
+        // Vector geometry beyond the cut projects far outside the map; clip to the image (a little outside).
+        p.clipExtent([[-2, -2], [opts.width + 2, opts.height + 2]]);
+      }
+    }
+    this.latBand = latBand;
+    this.outlineGeometry = outline;
+    p.fitExtent([[0, 0], [opts.width, opts.height]], outline as never);
     if ((opts.zoom ?? 1) !== 1 || opts.pan) {
       const z = opts.zoom ?? 1, [px, py] = opts.pan ?? [0, 0], [tx, ty] = p.translate(), cx = opts.width / 2, cy = opts.height / 2;
       p.scale(p.scale() * z).translate([cx + (tx - cx) * z + px, cy + (ty - cy) * z + py]);
@@ -76,8 +115,15 @@ export class ProjectionView {
       const [, rlat] = this.toRaw([lon, lat]);
       if (Math.abs(rlat) * RAD > this.spec.maxRawLat) return false;
     }
+    if (this.latBand) {
+      const [, rlat] = this.toRaw([lon, lat]);
+      if (rlat < this.latBand[0] || rlat > this.latBand[1]) return false;
+    }
     return true;
   }
+
+  /** The projection's outline as geometry for d3.geoPath: the sphere, or the cut cap of an unbounded conic. */
+  outline(): GeoPermissibleObjects { return this.outlineGeometry; }
 
   /** Pixel position of a geographic point, or null outside the domain. */
   forward(lon: number, lat: number): [number, number] | null {

@@ -39,9 +39,9 @@ export interface MapUi {
 }
 
 /** Natural aspect (width / height) of a projection's outline. */
-function aspect(projection: string): number {
-  const v = new ProjectionView({ projection, width: 1000, height: 1000 });
-  const [[x0, y0], [x1, y1]] = pathFor(v).bounds({ type: 'Sphere' });
+function aspect(projection: string, parallels?: [number, number]): number {
+  const v = new ProjectionView({ projection, width: 1000, height: 1000, ...(parallels ? { parallels } : {}) });
+  const [[x0, y0], [x1, y1]] = pathFor(v).bounds(v.outline());
   return (x1 - x0) / (y1 - y0);
 }
 
@@ -70,7 +70,19 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
   let pending: Promise<void> = Promise.resolve();
   let scheduled = false, gen = 0, distBusy = false, distStale = false;
 
-  const state = (): MapState => ({ projection: projSel.value, rotate: [Number(rot[0]!.value), Number(rot[1]!.value), Number(rot[2]!.value)], zoom, pan: [pan[0], pan[1]] });
+  const par = [$<HTMLInputElement>('par1'), $<HTMLInputElement>('par2')] as const;
+  const isConic = () => projectionSpec(projSel.value).conic !== undefined;
+  const state = (): MapState => ({
+    projection: projSel.value, rotate: [Number(rot[0]!.value), Number(rot[1]!.value), Number(rot[2]!.value)], zoom, pan: [pan[0], pan[1]],
+    ...(isConic() ? { parallels: [Number(par[0].value), Number(par[1].value)] as [number, number] } : {}),
+  });
+  /** Shows the parallels controls for a conic and loads its default pair. */
+  const syncParallels = (resetToDefault: boolean) => {
+    const conic = projectionSpec(projSel.value).conic;
+    $('parallelsBox').hidden = !conic;
+    if (conic && resetToDefault) { par[0].value = String(conic.defaultParallels[0]); par[1].value = String(conic.defaultParallels[1]); }
+    $('parValue').textContent = `${par[0].value}, ${par[1].value}`;
+  };
 
   async function draw(): Promise<void> {
     const my = ++gen;
@@ -85,7 +97,7 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
     // Overlays, through the same stock view at the map's device-pixel size.
     const view = FlatMap.view(st, W, H), p = pathFor(view);
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-    let body = `<path d="${p({ type: 'Sphere' }) ?? ''}" fill="none" stroke="#9aa" stroke-width="${W / 600}"/>`;
+    let body = `<path d="${p(view.outline()) ?? ''}" fill="none" stroke="#9aa" stroke-width="${W / 600}"/>`;
     if (ovGrat.checked) body += `<path class="graticule" d="${p(graticule(view, 15)) ?? ''}" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="${W / 1200}"/>`;
     if (ovCoast.checked) {
       coast ??= client.worldKernel<MultiLineString>('projection.coastlines', {});
@@ -101,7 +113,7 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
     const q = ovDist.value as DistortionQuantity | '';
     if (q) {
       const w = Math.ceil(W / DISTORTION_REDUCTION), h = Math.ceil(H / DISTORTION_REDUCTION);
-      const opts = { projection: st.projection, width: w, height: h, rotate: st.rotate, zoom, pan: [pan[0] / DISTORTION_REDUCTION, pan[1] / DISTORTION_REDUCTION] as [number, number] };
+      const opts = { projection: st.projection, width: w, height: h, rotate: st.rotate, zoom, pan: [pan[0] / DISTORTION_REDUCTION, pan[1] / DISTORTION_REDUCTION] as [number, number], ...(st.parallels ? { parallels: st.parallels } : {}) };
       // One heatmap request at a time in the worker: while one runs, newer states wait, and the latest is drawn after it.
       if (distBusy) { distStale = true; return; }
       distBusy = true;
@@ -133,10 +145,11 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
   }
 
   viewSel.addEventListener('change', show);
-  projSel.addEventListener('change', () => { zoom = 1; pan = [0, 0]; schedule(); });
+  projSel.addEventListener('change', () => { zoom = 1; pan = [0, 0]; syncParallels(true); schedule(); });
+  for (const r of par) r.addEventListener('input', () => { syncParallels(false); schedule(); });
   for (const r of rot) r.addEventListener('input', schedule);
   for (const el of [ovGrat, ovCoast, ovTissot, ovDist]) el.addEventListener('change', schedule);
-  $('mapReset').addEventListener('click', () => { for (const r of rot) r.value = '0'; zoom = 1; pan = [0, 0]; schedule(); });
+  $('mapReset').addEventListener('click', () => { for (const r of rot) r.value = '0'; zoom = 1; pan = [0, 0]; syncParallels(true); schedule(); });
   new ResizeObserver(() => schedule()).observe(mapEl);
 
   // Zoom about the cursor: the map point under it stays put (pan in device pixels, ProjectionView's zoom and pan).
@@ -165,10 +178,11 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
   // Exports: full outline (zoom 1) at the chosen width, the height from the projection's natural aspect.
   const exportSize = (): [number, number] => {
     const w = Math.max(16, Math.min(16384, Math.round(Number($<HTMLInputElement>('exportWidth').value) || 2048)));
-    return [w, Math.max(8, Math.round(w / aspect(projSel.value)))];
+    return [w, Math.max(8, Math.round(w / aspect(projSel.value, state().parallels)))];
   };
   const updateSize = () => { const [w, h] = exportSize(); $('exportSize').textContent = `${w} × ${h}`; };
   projSel.addEventListener('change', updateSize);
+  for (const r of par) r.addEventListener('input', updateSize);
   $<HTMLInputElement>('exportWidth').addEventListener('input', updateSize);
   updateSize();
   const mappingSel = $<HTMLSelectElement>('exportMapping');
@@ -182,7 +196,7 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
       : kind === 'land' ? { kind: 'land' } : { kind: 'absolute' };
     const outside = $<HTMLInputElement>('exportTransparent').checked ? 'transparent' : 'zero';
     $('exportStatus').textContent = `exporting ${width} × ${height}…`;
-    const args: HeightmapArgs = { view: { projection: st.projection, width, height, rotate: st.rotate }, mapping, png: { outside } };
+    const args: HeightmapArgs = { view: { projection: st.projection, width, height, rotate: st.rotate, ...(st.parallels ? { parallels: st.parallels } : {}) }, mapping, png: { outside } };
     const png = await client.worldKernel<Uint8Array>('projection.heightmap', args);
     download(`heightmap-${st.projection}-${width}x${height}.png`, png as Uint8Array<ArrayBuffer>, 'image/png');
     $('exportStatus').textContent = `heightmap: ${(png.length / 1e6).toFixed(1)} MB`;
@@ -191,7 +205,7 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
   async function exportSvg(): Promise<string> {
     const [width, height] = exportSize(), st = state();
     $('exportStatus').textContent = 'exporting SVG…';
-    const text = await client.worldKernel<string>('projection.svg', { view: { projection: st.projection, width, height, rotate: st.rotate }, layers: { graticule: ovGrat.checked ? 15 : false, tissot: ovTissot.checked ? { step: 30, radius: 5 } : false }, coastlines: true });
+    const text = await client.worldKernel<string>('projection.svg', { view: { projection: st.projection, width, height, rotate: st.rotate, ...(st.parallels ? { parallels: st.parallels } : {}) }, layers: { graticule: ovGrat.checked ? 15 : false, tissot: ovTissot.checked ? { step: 30, radius: 5 } : false }, coastlines: true });
     download(`map-${st.projection}.svg`, text, 'image/svg+xml');
     $('exportStatus').textContent = `SVG: ${(text.length / 1e6).toFixed(1)} MB`;
     return text;
@@ -199,6 +213,7 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
   $('exportHeightmap').addEventListener('click', () => { void exportHeightmap().catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
   $('exportSvg').addEventListener('click', () => { void exportSvg().catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
 
+  syncParallels(true);
   show();
   return {
     get flatShown() { return viewSel.value === 'flat'; },
