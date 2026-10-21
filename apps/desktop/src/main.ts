@@ -1,6 +1,6 @@
 // Electron main process. Serves the web bundle (dist/web) from the privileged scheme mapmaker://app/ with the COOP/COEP
 // headers the engine needs (SharedArrayBuffer, crossOriginIsolated), exactly as the web app's _headers file does.
-import { app, BrowserWindow, dialog, ipcMain, net, protocol, shell, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, net, protocol, screen, shell, type IpcMainInvokeEvent } from 'electron';
 import { readFile, writeFile } from 'node:fs/promises';
 import { basename, join, normalize, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -71,22 +71,36 @@ function registerIpc(getWindow: () => BrowserWindow | undefined): void {
   });
 }
 
-// Test modes (never on by default; the normal launch is unchanged). Tests and scripts must not take the user's focus:
-//   MAPMAKER_TEST=1          hidden window, no Dock icon (the smoke test sets it);
-//   MAPMAKER_TEST_VISIBLE=1  window shown with showInactive() (no keyboard focus), for the rare checks that need the real on-screen path.
-// Both keep the window rendering when hidden or in the background, and on macOS use the accessory activation policy.
-const TEST_VISIBLE = process.env['MAPMAKER_TEST_VISIBLE'] === '1';
-const TEST_MODE = TEST_VISIBLE || process.env['MAPMAKER_TEST'] === '1';
+// Test modes (never on by default; the normal launch is unchanged). Tests and scripts must never open a window in front of the
+// user's work. There are two modes:
+//   MAPMAKER_TEST=1        hidden (the default for every test and script): the window is never shown, no Dock icon. It keeps
+//                          painting, so webContents.capturePage() and Playwright screenshots work. "Recorded" runs are this mode
+//                          plus Playwright video and numbered screenshots saved by the harness (apps/desktop/e2e/session.ts).
+//   MAPMAKER_TEST_WATCH=1  watch, only on the user's request: a small window in the bottom-right corner at 40% opacity that clicks
+//                          pass through, shown with showInactive() (no keyboard focus).
+// Both stop Chromium from throttling a hidden, covered or minimised window, and on macOS use the accessory activation policy.
+const TEST_WATCH = process.env['MAPMAKER_TEST_WATCH'] === '1';
+const TEST_MODE = TEST_WATCH || process.env['MAPMAKER_TEST'] === '1';
+if (TEST_MODE) {
+  app.commandLine.appendSwitch('disable-renderer-backgrounding');
+  app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+  app.commandLine.appendSwitch('disable-background-timer-throttling');
+  // Windows 10/11 computes native occlusion and pauses a covered window's rendering; this turns that off.
+  app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
+}
 if (TEST_MODE && process.platform === 'darwin') {
   app.setActivationPolicy('accessory');
-  if (!TEST_VISIBLE) app.dock?.hide();
+  if (!TEST_WATCH) app.dock?.hide();
 }
 
 let mainWindow: BrowserWindow | undefined;
 
+const WATCH_W = 560, WATCH_H = 360, WATCH_MARGIN = 16, WATCH_OPACITY = 0.4;
+
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
-    width: 1400, height: 900, minWidth: 900, minHeight: 600, show: false,
+    width: TEST_WATCH ? WATCH_W : 1400, height: TEST_WATCH ? WATCH_H : 900, minWidth: TEST_WATCH ? 0 : 900, minHeight: TEST_WATCH ? 0 : 600, show: false,
+    ...(TEST_WATCH ? { focusable: false, skipTaskbar: true, alwaysOnTop: false } : {}),
     webPreferences: {
       preload: join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -97,8 +111,16 @@ function createWindow(): BrowserWindow {
       ...(TEST_MODE ? { backgroundThrottling: false } : {}),
     },
   });
-  // In test mode nothing calls show() or focus(): hidden stays hidden, visible uses showInactive().
-  win.once('ready-to-show', () => { if (!TEST_MODE) win.show(); else if (TEST_VISIBLE) win.showInactive(); });
+  // In test mode nothing calls show() or focus(): hidden stays hidden, watch uses showInactive().
+  win.once('ready-to-show', () => {
+    if (!TEST_MODE) { win.show(); return; }
+    if (!TEST_WATCH) return;
+    const { workArea } = screen.getPrimaryDisplay();
+    win.setBounds({ x: workArea.x + workArea.width - WATCH_W - WATCH_MARGIN, y: workArea.y + workArea.height - WATCH_H - WATCH_MARGIN, width: WATCH_W, height: WATCH_H });
+    win.setOpacity(WATCH_OPACITY);
+    win.setIgnoreMouseEvents(true);
+    win.showInactive();
+  });
   // Nothing but the app's own origin loads in the window; links open in the user's browser.
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) void shell.openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (ev, url) => { if (!url.startsWith(ORIGIN + '/')) { ev.preventDefault(); if (/^https?:/.test(url)) void shell.openExternal(url); } });
