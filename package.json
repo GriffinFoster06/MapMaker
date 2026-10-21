@@ -24,7 +24,11 @@
     "e2e": "playwright test",
     "provenance:check": "tsx tools/provenance/check.ts",
     "probe": "tsx --import ./packages/projection/alias/register.mjs tools/determinism/node-probe.ts",
-    "bench": "playwright test -c playwright.bench.config.ts"
+    "bench": "playwright test -c playwright.bench.config.ts",
+    "desktop:build": "npm run build && npm run build -w @mapmaker/desktop",
+    "desktop:dev": "npm run desktop:build && npm start -w @mapmaker/desktop",
+    "desktop:smoke": "playwright test -c playwright.desktop.config.ts",
+    "desktop:dist": "scripts/build-desktop.sh"
   },
   "devDependencies": {
     "@eslint/js": "9.36.0",

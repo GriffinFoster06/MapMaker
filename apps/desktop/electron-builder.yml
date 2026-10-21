@@ -1,0 +1,29 @@
+# electron-builder configuration (docs/RELEASING.md). Nothing is signed or notarized and nothing is published from here:
+# always run with --publish never. The `publish` block only tells electron-updater where releases live.
+appId: io.github.griffinfoster06.mapmaker
+productName: MapMaker
+copyright: GPL-3.0-only
+directories:
+  output: release
+files:
+  - dist/**
+  - package.json
+asar: true
+publish:
+  - provider: github
+    owner: GriffinFoster06
+    repo: MapMaker
+mac:
+  category: public.app-category.graphics-design
+  target: [dmg, zip]   # the zip carries latest-mac.yml for electron-updater
+  identity: null       # no Apple Developer ID: unsigned, not notarized
+  artifactName: MapMaker-${version}-mac-${arch}.${ext}
+dmg:
+  sign: false
+win:
+  target: [nsis]
+  signAndEditExecutable: false   # no code-signing certificate
+  artifactName: MapMaker-${version}-win-${arch}.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

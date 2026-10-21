@@ -1,0 +1,52 @@
+name: Desktop installers
+
+# Builds the unsigned macOS and Windows installers when a version tag (v*) is pushed, and uploads them as workflow
+# artifacts only. It never publishes a release and never signs anything (docs/RELEASING.md). The user publishes.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  installers:
+    name: installer (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # npm may skip install scripts; this fetches the Electron binary the smoke test launches. Idempotent.
+      - run: node node_modules/electron/install.js
+      - run: npm run desktop:build
+      # The Windows runner has no GPU (decision W7), so the smoke test runs on macOS only.
+      - name: Electron smoke test (World hash equals Node)
+        if: runner.os == 'macOS'
+        run: npm run desktop:smoke
+      - name: Build the installer (unsigned, not published)
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then T=--mac; else T=--win; fi
+          npx --no-install electron-builder --projectDir apps/desktop $T --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ runner.os }}
+          path: |
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*.zip
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.blockmap
+            apps/desktop/release/latest*.yml
+          if-no-files-found: error
+          retention-days: 30

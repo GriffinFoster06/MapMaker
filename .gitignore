@@ -42,3 +42,5 @@ tools/tuning/climate/maps/
 tools/tuning/results/
 tools/tuning/ab-current.json
 realism-current.json
+apps/desktop/release/
+apps/desktop/dist-types/

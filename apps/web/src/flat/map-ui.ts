@@ -10,6 +10,7 @@ import type { MultiLineString } from 'geojson';
 import type { HeightmapArgs } from '@mapmaker/projection/exact/kernels';
 import { CPU_REDUCTION, FlatMap, type MapState } from './flat-map';
 import { lonLatDegToUnit, unitToLonLatDeg } from '../editor/editing';
+import { saveFile } from '../desktop';
 import { type CartoData, type OverlayOptions, type Style, furnitureLayout, overlaySvg, planLabels, riverThreshold } from '@mapmaker/carto';
 import type { LabelPlan } from '@mapmaker/carto';
 
@@ -64,16 +65,6 @@ function aspect(projection: string, parallels?: [number, number]): number {
   const v = new ProjectionView({ projection, width: 1000, height: 1000, ...(parallels ? { parallels } : {}) });
   const [[x0, y0], [x1, y1]] = pathFor(v).bounds(v.outline());
   return (x1 - x0) / (y1 - y0);
-}
-
-function download(name: string, data: BlobPart, type: string): void {
-  const url = URL.createObjectURL(new Blob([data], { type }));
-  const a = document.createElement('a');
-  a.href = url; a.download = name;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTMLCanvasElement): MapUi {
@@ -243,7 +234,7 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
     $('exportStatus').textContent = `exporting ${width} × ${height}…`;
     const args: HeightmapArgs = { view: { projection: st.projection, width, height, rotate: st.rotate, ...(st.parallels ? { parallels: st.parallels } : {}) }, mapping, png: { outside } };
     const png = await client.worldKernel<Uint8Array>('projection.heightmap', args);
-    download(`heightmap-${st.projection}-${width}x${height}.png`, png as Uint8Array<ArrayBuffer>, 'image/png');
+    await saveFile('png', `heightmap-${st.projection}-${width}x${height}.png`, png);
     $('exportStatus').textContent = `heightmap: ${(png.length / 1e6).toFixed(1)} MB`;
     return { png, args };
   }
@@ -283,12 +274,12 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
     const [width, height] = exportSize(), st = state();
     $('exportStatus').textContent = 'exporting SVG…';
     const text = await client.worldKernel<string>('projection.svg', { view: { projection: st.projection, width, height, rotate: st.rotate, ...(st.parallels ? { parallels: st.parallels } : {}) }, layers: { graticule: ovGrat.checked ? 15 : false, tissot: ovTissot.checked ? { step: 30, radius: 5 } : false }, coastlines: true });
-    download(`map-${st.projection}.svg`, text, 'image/svg+xml');
+    await saveFile('svg', `map-${st.projection}.svg`, text);
     $('exportStatus').textContent = `SVG: ${(text.length / 1e6).toFixed(1)} MB`;
     return text;
   }
-  $('exportStyledPng').addEventListener('click', () => { void exportStyled().then((r) => { download(`map-styled-${r.args.view.projection}-${r.args.view.width}x${r.args.view.height}.png`, r.png as Uint8Array<ArrayBuffer>, 'image/png'); }).catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
-  $('exportStyledSvg').addEventListener('click', () => { void exportStyled().then((r) => { download(`map-styled-${r.args.view.projection}.svg`, r.svg, 'image/svg+xml'); }).catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
+  $('exportStyledPng').addEventListener('click', () => { void exportStyled().then(async (r) => { await saveFile('png', `map-styled-${r.args.view.projection}-${r.args.view.width}x${r.args.view.height}.png`, r.png); }).catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
+  $('exportStyledSvg').addEventListener('click', () => { void exportStyled().then(async (r) => { await saveFile('svg', `map-styled-${r.args.view.projection}.svg`, r.svg); }).catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
   $('exportHeightmap').addEventListener('click', () => { void exportHeightmap().catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
   $('exportSvg').addEventListener('click', () => { void exportSvg().catch((e: unknown) => { $('exportStatus').textContent = `error: ${String(e)}`; }); });
 

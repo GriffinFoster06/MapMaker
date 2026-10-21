@@ -2,26 +2,36 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-19, by the local agent (Claude Code), on `phase-5c`: Checkpoint 5c reached (`docs/checkpoints/CHECKPOINT_5C.md`, PR #10). Stopped; Q4 not started.
-- **Authorized through: Checkpoint 5c and Q4** (the user wants to review each stage; Q4 starts only on their next prompt) (end of Phase 5c, Cartography v1, then the Electron desktop app for macOS and Windows). Edit this line to extend or shorten; the agent never goes past it.
+- **Last updated:** 2026-10-20, by the local agent (Claude Code), on `phase-electron`: Q4 done (`docs/checkpoints/CHECKPOINT_ELECTRON.md`) and the newer orogen registered as candidate `orogen-evolution` (decision P5). Stopped; Phase 6 not started.
+- **Authorized through: Q4 (Electron).** Reached. The user does the final handoff setup next; edit this line to authorize more (the next work is the Phase 6 prerequisite below).
 
 ## Branches
 
-- `main` includes Phase 5 (PR #8) and Phase 5b (PR #9), both merged. `phase-5c` (PR #10) waits for review.
+- `main` includes Phases 5, 5b and 5c (PRs #8 to #10). `phase-electron` (PR to `main`, ready for review) holds Q4 and P5.
 
 ## Done (one line each)
 
 - **Phase 5** (projection and distortion; `docs/checkpoints/CHECKPOINT_5.md`): merged, PR #8.
+- **Phase 5c** (cartography v1; `docs/checkpoints/CHECKPOINT_5C.md`): merged, PR #10.
+- **Q4** (Electron desktop app, E1 to E3; `docs/checkpoints/CHECKPOINT_ELECTRON.md`; build and release: `docs/RELEASING.md`): on `phase-electron`.
 - **Q1 to Q3** (docs P1/P4, rectangular-continents study, Earth-like preset sweep) and **Phase 5b** (editor core; `docs/checkpoints/CHECKPOINT_5B.md`): merged, PR #9.
 
 ## Next
 
-- Review and merge PR #10 (Phase 5c). Then, only when the user sends the next prompt: Q4 (Electron wrapper for macOS and Windows, decision P4; native save/load dialogs replace the browser download and file input).
-- Missing for a polished first version, logged not built: settlements and political borders (Phase 18 names are placeholders); more than one font family; globe labels for river and range paths use the plan only; no styled export of the globe view; river drawing threshold is a heuristic.
+- Review and merge the `phase-electron` PR. Then, only when authorized: reconcile `orogen-evolution` with GPlates and the other tectonic candidates (P5; documentation only, per-component picks), then Phase 6 (planet physics).
+- Missing for a polished first version, logged not built: settlements and political borders (Phase 18 names are placeholders); more than one font family; globe labels for river and range paths use the plan only; no styled export of the globe view; river drawing threshold is a heuristic; an app icon.
 
 ## Waiting on the user
 
-- Review of Checkpoint 5c (`docs/checkpoints/CHECKPOINT_5C.md`). Nothing else.
+Exact steps for the desktop app (nothing here was done by the agent; see `docs/RELEASING.md`):
+
+1. Merge the `phase-electron` PR (review `docs/checkpoints/CHECKPOINT_ELECTRON.md`).
+2. Try the app locally: `scripts/node24.sh npm run desktop:dev` (opens the desktop window), or build the installer with `scripts/build-desktop.sh` and open `apps/desktop/release/MapMaker-0.1.0-mac-arm64.dmg` (first launch: right-click the app, Open, Open).
+3. To get both installers: on `main`, `git tag v0.1.0 && git push origin v0.1.0`; wait for the "Desktop installers" workflow, download the artifacts `installer-macOS` and `installer-Windows` from the run page.
+4. To publish: GitHub, Releases, Draft a new release on tag `v0.1.0`, attach every file from both artifacts (`.dmg`, `.zip`, `.exe`, `.blockmap`, `latest-mac.yml`, `latest.yml`), Publish. Later versions: bump `version` in `apps/desktop/package.json`, merge, tag `v<version>`, repeat.
+5. After a second release, install the older one and confirm the update dialog (macOS opens the release page; Windows downloads and installs).
+6. Optional, costs money: Apple Developer Program (about US$99 a year) and a Windows signing certificate to remove the Gatekeeper and SmartScreen warnings and enable macOS auto-install (E2, `docs/RELEASING.md` "Signing later").
+7. Optional: provide an app icon (1024 px PNG).
 
 User-only actions, whenever convenient and never blocking: merge the PRs the agent opens; enable branch protection on `main`; extend **Authorized through**.
 
@@ -37,6 +47,8 @@ You are continuing MapMaker autonomously. Read AGENTS.md, docs/OPERATING_GUIDE.m
 ```
 
 ## Work log (newest first; 2 to 4 lines per milestone)
+
+- 2026-10-20: Item 0 (P5: newer orogen `47edc28` registered as `orogen-evolution`, docs and manifest only) and Q4: `apps/desktop` Electron shell (E1), native save/load/export dialogs, Electron smoke test (World hash equals Node), electron-builder macOS build, tag-triggered artifacts workflow, update check (E2), `docs/RELEASING.md`. Checkpoint Electron written; stopped.
 
 - 2026-10-19: Phase 5c: conics, brush cursor, `packages/carto` (label-spread port, QGIS hillshade, styles and five themes, cartographic data, SVG overlay, exact styled PNG/SVG), styled GPU layer and globe labels in the app, save/load of `.mapmaker`. Checkpoint 5c written; stopped at the limit.
 
