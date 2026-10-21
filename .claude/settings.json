@@ -40,9 +40,7 @@
       "Bash(rm -rf:*)",
       "Bash(sudo:*)",
       "Edit(upstream/**)",
-      "Write(upstream/**)",
-      "Edit(packages/gen-orogen/vendor/**)",
-      "Write(packages/gen-orogen/vendor/**)"
+      "Edit(packages/gen-orogen/vendor/**)"
     ]
   }
 }
