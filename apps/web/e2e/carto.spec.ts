@@ -38,6 +38,7 @@ test('styled map: themes, relief, labels, GPU against the exact path, and an exp
   await expect(page.locator('#mapStatus')).toContainText('GPU');
   await expect(page.locator('#styledOverlays')).toBeVisible();
   const has = (css: string) => page.evaluate((c) => document.querySelectorAll(`#mapSvg ${c}`).length, css);
+  await page.waitForFunction(() => document.querySelectorAll('#mapSvg .carto-coast').length === 1 && document.querySelectorAll('#mapSvg path.carto-river').length > 0 && document.querySelectorAll('#mapSvg .carto-legend').length === 1 && document.querySelectorAll('#mapSvg .carto-scale').length === 1 && window.__flat!.ui.labelCount() > 3);
   expect(await has('.carto-coast')).toBe(1);
   expect(await has('path.carto-river')).toBeGreaterThan(0);
   expect(await has('.carto-legend')).toBe(1);
@@ -96,10 +97,12 @@ test('styled map: themes, relief, labels, GPU against the exact path, and an exp
   await page.selectOption('#projection', 'conicConformal');
   await rendered();
   await expect(page.locator('#mapStatus')).toContainText('CPU');
+  await page.waitForFunction(() => window.__flat!.ui.labelCount() > 0);
   expect(await page.evaluate(() => window.__flat!.ui.labelCount())).toBeGreaterThan(0);
   await page.selectOption('#projection', 'orthographic');
   await slide('#rotPhi', -35);
   await rendered();
+  await page.waitForFunction(() => document.querySelectorAll('#mapSvg .carto-coast').length === 1 && document.querySelectorAll('#mapSvg path.carto-river').length > 0 && document.querySelectorAll('#mapSvg .carto-legend').length === 1 && document.querySelectorAll('#mapSvg .carto-scale').length === 1 && window.__flat!.ui.labelCount() > 3);
   expect(await has('.carto-coast')).toBe(1);
 
   // The export: the raster PNG equals Node's exact export of the same world, view and style; the PNG is composed, the SVG whole.
