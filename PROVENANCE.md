@@ -182,6 +182,14 @@ These are used only in `spikes/` and are not shipped.
 | Node.js | 24.21.0 (pinned in `.nvmrc`) | MIT | Run through `scripts/node24.sh`. System Node 22.19.0 is unchanged |
 | Playwright browsers | Chromium 140.0.7339.186, Firefox 141.0, WebKit 26.0 | various | Installed to `.tools/ms-playwright` |
 
+## Reference upstreams not yet extracted
+
+Pinned in `upstream-manifest.json` and restorable with `scripts/restore-upstream.sh <name>`. No code has been taken from them.
+
+| Folder in `upstream/` | Repo | Commit | License | Role |
+|---|---|---|---|---|
+| `orogen-evolution` | https://github.com/raguilar011095/planet_heightmap_generation | `47edc28` (2026-10-19, merge of PR #63 `v2-tectonics`) | GPL-3.0 (`LICENSE`, unmodified GPL-3.0 text; same as `orogen`) | Candidate (decision P5): Orogen Evolution, Orogen Import, Orogen Classic. A second reference beside `orogen` (`cc2662b`, which stays the pin for `packages/gen-orogen/vendor/`). To be reconciled before Phases 6, 6b and 11 |
+
 ## Upstream code used in spikes
 
 Spikes run upstream code from copies in `spikes/_work/` (gitignored). `upstream/` is never modified.

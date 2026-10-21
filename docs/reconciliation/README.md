@@ -24,7 +24,7 @@ Used in `group-1.md` through `group-3.md` and `group-6a.md`:
 
 "Done" means a group file exists and the corrections were applied. The Prerequisite column matches the **Prerequisite** lines in `docs/ARCHITECTURE.md` §7 (Phases 5b, 5c, 7, 8b, 9b, 9c, 9d, 9e, 10, 10b, 11b, 13, 14, 16, 17, 18; placement ruled in `pending-decisions.md` D3). The group numbers 4, 5 and 6b were never defined in a record, so deferred work is listed by Prerequisite phase instead.
 
-### Manifest repos (30)
+### Manifest repos (30, plus the candidate orogen-evolution)
 
 | Repo | State | Record | Must be reconciled before |
 |---|---|---|---|
@@ -46,6 +46,7 @@ Used in `group-1.md` through `group-3.md` and `group-6a.md`:
 | CesiumJS | **Partly done**: Phases 5 and 5c only | group 6a | Phase 14 (LOD and tiling, note 38); Phase 16 (note 36) |
 | Godot | Done | group 5b | — |
 | orogen | Done (the claims in notes 17 and 21 and the audit were corrected) | group 5b | — |
+| orogen-evolution (candidate, decision P5; newer orogen at `47edc28`, GPL-3.0) | Not started | — | Phases 6 and 6b (with GPlates and the other tectonic candidates; per-component picks); Phase 11 (Orogen Import) |
 | LPJmL | Deferred | — | Phase 7 (`src/lpj/drain.c`, note 12) |
 | SLiM | Deferred | — | Phase 9b |
 | RangeShiftR | Deferred | — | Phase 9b |
@@ -59,7 +60,7 @@ Used in `group-1.md` through `group-3.md` and `group-6a.md`:
 | OpenSpiel | Deferred | — | Phase 13 |
 | SongsOfFOSS | Deferred | — | Phase 9e |
 
-Totals: 16 done, 3 partly done, 11 deferred (30).
+Totals: 16 done, 3 partly done, 11 deferred (30), plus 1 candidate not yet reconciled (31 entries in the manifest).
 
 ### Candidate upstreams and datasets (not in the manifest; audit with prompt 2)
 
