@@ -135,3 +135,4 @@ The GitHub Pages deploy (`pages.yml`), the Cloudflare Pages deploy and its deplo
 | Q7 A/B gate, 2.56M final | `nightly.yml` `ab-gate-full` | nightly |
 | realism gate, 2.56M | `nightly.yml` `realism-gate` | nightly |
 | Electron smoke test, installers | `desktop.yml` | tag or manual |
+
