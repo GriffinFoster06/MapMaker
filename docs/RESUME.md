@@ -2,16 +2,16 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-21, by the local agent (Claude Code), on `desktop-perf`: desktop speed investigation (decision E4), globe frame-starvation fix, `desktop:perf` tool. `handoff-setup` is merged (PR #12). Stopped; Phase 6 and its reconciliation not started.
+- **Last updated:** 2026-10-21, by the local agent (Claude Code), on `nightly-probe-fix` (user request, outside the authorization limit): nightly probe-test timeout fixed (C1), hidden and visible test modes for the desktop app (C2), parallel path-gated CI (C3). `desktop-perf` is merged (PR #13). Stopped; Phase 6 and its reconciliation not started.
 - **Authorized through: Q4 (Electron).** Set by `scripts/authorize.sh`; only the user changes this line.
 
 ## What the user does next
 
 Do these in order. Each step says why.
 
-1. On GitHub, open the repository's **Pull requests** tab and the pull request named `desktop-perf` (the desktop speed investigation). Wait until every check at the bottom shows a green tick. Why: the checks run the project's tests on a clean machine, and merging only green work keeps `main` working.
-2. Click **Merge pull request** (the default green button, not the arrow menu: do not choose "Squash" or "Rebase"), then **Confirm merge**. Then in the terminal, in the project folder, run `git checkout main && git pull` and `scripts/node24.sh npm run desktop:dev`, and rotate and zoom the globe. Why: the agent measured the desktop app as equal to the web app in Chromium (and found and fixed one frame-dropping flaw in the globe), but could not use a real trackpad, so only you can confirm it now feels right. If it still stutters, run `scripts/node24.sh npm run desktop:perf`, then type `/go desktop still stutters`; the agent reads decision E4 in `docs/DECISIONS_LOG.md` and goes on from there.
-3. Open the **Actions** tab, choose **Nightly upstream parity** and check the latest run (started 2026-10-21 on `handoff-setup`) has a green tick. Why: it confirms the timeout fix works. If it is red, type `/go` and the agent will investigate.
+1. On GitHub, open the repository's **Pull requests** tab and the pull request named `nightly-probe-fix` (nightly fix, tests that no longer take your focus, faster CI). Wait until every check at the bottom shows a green tick (about 10 minutes or less now; the checks are split into many small jobs). Why: merging only green work keeps `main` working.
+2. Click **Merge pull request** (the default green button, not the arrow menu), then **Confirm merge**. Why: the new CI rules apply from `main` on.
+3. Open the **Actions** tab, choose **Nightly upstream parity** and check the run started from `nightly-probe-fix` has a green tick (the agent's summary says what it showed). Why: it confirms the probe-test fix on GitHub's slow machine. If it is red, type `/go` and the agent will investigate.
 4. In the terminal, in the project folder, copy and paste exactly:
    `scripts/authorize.sh 6`
    Why: it tells the agent it may now do the Phase 6 preparation (the documentation-only comparison of the newer orogen, GPlates and the other tectonic sources) and then Phase 6 itself (planet physics). It prepares a small change on a new branch `authorize-6` and uploads it.
@@ -50,6 +50,8 @@ Nothing blocks the agent. User-only actions are in "What the user does next". Op
 Type `/go` (or any first message). `.claude/commands/go.md` is the whole prompt; the user does not write prompts (decision W10).
 
 ## Work log (newest first; 2 to 4 lines per milestone)
+
+- 2026-10-21: nightly-probe-fix (user request): probe stability test runs in a worker thread (C1); `MAPMAKER_TEST` and `MAPMAKER_TEST_VISIBLE` desktop modes and a standing no-focus rule (C2); `ci.yml` split into parallel jobs, heavy gates only when dependent files change, nightly schedule, caches (C3). Timings before and after: `docs/DECISIONS_LOG.md` C3.
 
 - 2026-10-21: desktop-perf (user request, outside the authorization limit): Electron, web Chromium and Firefox measured equal on the M5 Pro (hardware Metal GPU, same frame cost and generation time); found and fixed `Globe.render()` starving frames under frame-rate pointer input (1 -> 151 draws per 150 moves; also the brush ring), new `globe.spec.ts` test, `npm run desktop:perf`, `docs/RELEASING.md` section, decision E4. Not confirmed with real trackpad input.
 
