@@ -65,3 +65,34 @@ test('world settings panel: link state, Generate with settings equals Node', asy
   expect(new URL(page.url()).searchParams.get('landCoverage')).toBeNull();
   expect(errors).toEqual([]);
 });
+
+// Dragging the globe draws a frame for the pointer moves, not one frame per drag. The render request used to cancel the
+// pending frame and ask again on every camera change, so moves arriving about once per frame (as Playwright's do, and as a
+// 120 Hz trackpad's can) starved the globe: one draw for 150 moves. The count of GL draw calls is the evidence.
+test('globe: a drag draws frames while it moves (no starvation)', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('./');
+  await page.waitForFunction(() => !!window.__globe);
+  await page.evaluate(() => window.__globe!.generate({ N: 20000, seed: 12345 }));
+  await page.locator('#globe').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  await page.evaluate(() => {
+    const w = window as unknown as { __draws: number };
+    w.__draws = 0;
+    const proto = WebGL2RenderingContext.prototype;
+    for (const m of ['drawElements', 'drawElementsInstanced'] as const) {
+      const orig = proto[m] as (...a: unknown[]) => unknown;
+      (proto as unknown as Record<string, unknown>)[m] = function (this: WebGL2RenderingContext, ...a: unknown[]) { w.__draws++; return orig.apply(this, a); };
+    }
+  });
+  const box = (await page.locator('#globe').boundingBox())!;
+  const cx = box.x + box.width / 2, cy = box.y + box.height / 2, MOVES = 120;
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  for (let i = 0; i < MOVES; i++) await page.mouse.move(cx + 120 * Math.sin(i / 20), cy + 70 * Math.cos(i / 20));
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  const draws = await page.evaluate(() => (window as unknown as { __draws: number }).__draws);
+  expect(draws, `${draws} draws for ${MOVES} pointer moves`).toBeGreaterThan(MOVES / 2);
+  expect(errors).toEqual([]);
+});

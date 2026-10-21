@@ -2,15 +2,15 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-21, by the local agent (Claude Code), on `handoff-setup`: autonomy setup (`/go`, `scripts/authorize.sh`, decisions W9 and W10), nightly timeout fix, e2e race fix. Stopped; Phase 6 and its reconciliation not started.
+- **Last updated:** 2026-10-21, by the local agent (Claude Code), on `desktop-perf`: desktop speed investigation (decision E4), globe frame-starvation fix, `desktop:perf` tool. `handoff-setup` is merged (PR #12). Stopped; Phase 6 and its reconciliation not started.
 - **Authorized through: Q4 (Electron).** Set by `scripts/authorize.sh`; only the user changes this line.
 
 ## What the user does next
 
 Do these in order. Each step says why.
 
-1. On GitHub, open the repository's **Pull requests** tab and the pull request named `handoff-setup`. Wait until every check at the bottom shows a green tick. Why: the checks run the project's tests on a clean machine, and merging only green work keeps `main` working.
-2. Click **Merge pull request** (the default green button, not the arrow menu: do not choose "Squash" or "Rebase"), then **Confirm merge**. Why: a plain merge keeps the project's history intact, which the agent relies on.
+1. On GitHub, open the repository's **Pull requests** tab and the pull request named `desktop-perf` (the desktop speed investigation). Wait until every check at the bottom shows a green tick. Why: the checks run the project's tests on a clean machine, and merging only green work keeps `main` working.
+2. Click **Merge pull request** (the default green button, not the arrow menu: do not choose "Squash" or "Rebase"), then **Confirm merge**. Then in the terminal, in the project folder, run `git checkout main && git pull` and `scripts/node24.sh npm run desktop:dev`, and rotate and zoom the globe. Why: the agent measured the desktop app as equal to the web app in Chromium (and found and fixed one frame-dropping flaw in the globe), but could not use a real trackpad, so only you can confirm it now feels right. If it still stutters, run `scripts/node24.sh npm run desktop:perf`, then type `/go desktop still stutters`; the agent reads decision E4 in `docs/DECISIONS_LOG.md` and goes on from there.
 3. Open the **Actions** tab, choose **Nightly upstream parity** and check the latest run (started 2026-10-21 on `handoff-setup`) has a green tick. Why: it confirms the timeout fix works. If it is red, type `/go` and the agent will investigate.
 4. In the terminal, in the project folder, copy and paste exactly:
    `scripts/authorize.sh 6`
@@ -22,7 +22,7 @@ Optional, whenever convenient and never blocking: try the desktop app (`scripts/
 
 ## Branches
 
-- `main` includes Phases 5, 5b, 5c and Q4 (PRs #8 to #11). `handoff-setup` (PR to `main`, ready for review) holds the autonomy setup and CI fixes. The next phase branch is `phase-6`, created from updated `main` by `/go`.
+- `main` includes Phases 5, 5b, 5c, Q4 and the autonomy setup (PRs #8 to #12). `desktop-perf` (PR to `main`, ready for review) holds the desktop speed investigation and fix. The next phase branch is `phase-6`, created from updated `main` by `/go`.
 
 ## Done (one line each)
 
@@ -50,6 +50,8 @@ Nothing blocks the agent. User-only actions are in "What the user does next". Op
 Type `/go` (or any first message). `.claude/commands/go.md` is the whole prompt; the user does not write prompts (decision W10).
 
 ## Work log (newest first; 2 to 4 lines per milestone)
+
+- 2026-10-21: desktop-perf (user request, outside the authorization limit): Electron, web Chromium and Firefox measured equal on the M5 Pro (hardware Metal GPU, same frame cost and generation time); found and fixed `Globe.render()` starving frames under frame-rate pointer input (1 -> 151 draws per 150 moves; also the brush ring), new `globe.spec.ts` test, `npm run desktop:perf`, `docs/RELEASING.md` section, decision E4. Not confirmed with real trackpad input.
 
 - 2026-10-21: handoff-setup: `.claude/settings.json` deny rules fixed; nightly `testTimeout` 300 s and `--maxWorkers=2` (W9); e2e overlay waits in `map.spec.ts` and `carto.spec.ts`; `/go`, `scripts/authorize.sh`, CLAUDE.md standing rules, "What the user does next" (W10).
 

@@ -28,6 +28,7 @@
     "desktop:build": "npm run build && npm run build -w @mapmaker/desktop",
     "desktop:dev": "npm run desktop:build && npm start -w @mapmaker/desktop",
     "desktop:smoke": "playwright test -c playwright.desktop.config.ts",
+    "desktop:perf": "node scripts/desktop-perf.mjs",
     "desktop:dist": "scripts/build-desktop.sh"
   },
   "devDependencies": {
