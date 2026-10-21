@@ -26,16 +26,17 @@ export interface Session {
   app: ElectronApplication;
   page: Page;
   /** Full-window PNG through webContents.capturePage() (works hidden, covered or minimised). With `record`, also saved as NN-name.png. */
-  shot(name: string): Promise<Buffer>;
+  shot(name: string, rect?: { x: number; y: number; width: number; height: number }): Promise<Buffer>;
   close(): Promise<void>;
 }
 
 /** The PNG of the main window's web contents, as the compositor painted it, whether or not the window is visible. */
-export async function capture(app: ElectronApplication): Promise<Buffer> {
-  const b64 = await app.evaluate(async ({ BrowserWindow }) => {
+export async function capture(app: ElectronApplication, rect?: { x: number; y: number; width: number; height: number }): Promise<Buffer> {
+  const b64 = await app.evaluate(async ({ BrowserWindow }, r) => {
     const win = BrowserWindow.getAllWindows()[0]!;
-    return (await win.webContents.capturePage()).toPNG().toString('base64');
-  });
+    const img = r ? await win.webContents.capturePage({ x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height) }) : await win.webContents.capturePage();
+    return img.toPNG().toString('base64');
+  }, rect);
   return Buffer.from(b64, 'base64');
 }
 
@@ -52,8 +53,8 @@ export async function launchSession(opts: SessionOptions = {}): Promise<Session>
   let n = 0;
   return {
     app, page,
-    async shot(name) {
-      const png = await capture(app);
+    async shot(name, rect) {
+      const png = await capture(app, rect);
       if (dir) writeFileSync(join(dir, `${String(++n).padStart(2, '0')}-${name}.png`), png);
       return png;
     },
