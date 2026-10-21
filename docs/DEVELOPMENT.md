@@ -27,7 +27,7 @@ MapMaker is a new strict TypeScript shell around selected upstream implementatio
 | `tools/fdlibm-vectors/` | Reference C vector generation for the deterministic math port. |
 | `apps/web/e2e/`, `apps/web/bench/` | Firefox and Chromium correctness checks and separate performance measurements. |
 | `spikes/`, `audit/` | Historical feasibility experiments/results and upstream capability assessments. Not shipped in the app. |
-| `.github/workflows/` | CI checks, three-OS determinism matrix (Windows runs Node checks only, no GPU; Playwright e2e runs on macOS and Ubuntu in Firefox and Chromium), nightly upstream parity, and the **unmaintained** (decision W7) deployments with live smoke tests: Cloudflare Pages (`cloudflare.yml`, primary, native COOP/COEP from `apps/web/public/_headers`, a preview per pull request; needs the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets) and GitHub Pages (`pages.yml`, mirror, opt-in `?coi` shim). See ARCHITECTURE.md Q18. |
+| `.github/workflows/` | CI checks (parallel jobs, see "CI jobs" below; Windows runs Node checks only, no GPU; Playwright e2e runs on macOS and Ubuntu in Firefox and Chromium), nightly upstream parity, and the **unmaintained** (decision W7) deployments with live smoke tests: Cloudflare Pages (`cloudflare.yml`, primary, native COOP/COEP from `apps/web/public/_headers`, a preview per pull request; needs the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets) and GitHub Pages (`pages.yml`, mirror, opt-in `?coi` shim). See ARCHITECTURE.md Q18. |
 
 The runtime path is `app.ts` → `EngineClient` → browser engine worker → `startOrogenHost` → `runPipeline` (variant `structured`, or `parity` for stock) → `World`. Mesh/layer copies return to the main thread for rendering. Browser and Node hosts reuse the same generation packages.
 
@@ -118,3 +118,20 @@ The receiving agent reads that section and checks the working tree/recent commit
 ## Unmaintained since decision W7
 
 The GitHub Pages deploy (`pages.yml`), the Cloudflare Pages deploy and its deployed-site smoke test (`cloudflare.yml`, `E2E_BASE_URL`) and the `coi-serviceworker` shim (`apps/web/e2e/coi.spec.ts`) are kept as files but no longer maintained or extended: MapMaker is desktop software for macOS and Windows, not a hosted site. Their WebKit references are historical.
+
+## CI jobs
+
+`ci.yml` runs on pull requests, on pushes to `main`, nightly (03:47 UTC schedule) and by hand. A pull request runs the heavy jobs only when it touches `packages/`, `apps/`, `tools/`, `.github/workflows/` or root build, test and dependency config (job `changes`); docs-only and unrelated pull requests run `static` only, whose unit tests are those related to the changed files (`vitest --changed`). Pushes to `main`, the schedule and manual runs always run everything. Where every check runs:
+
+| Check | Job (`ci.yml` unless noted) | When |
+| --- | --- | --- |
+| lint, typecheck, provenance check | `static` (Windows also runs lint and typecheck in `unit`) | every run |
+| build | `static` | heavy runs |
+| unit tests, incl. mesh/RNG golden hashes | `unit`: Ubuntu, macOS, Windows, 2 shards each | heavy runs |
+| Node determinism probe vs `golden.json` | `probe`: Ubuntu, macOS, Windows | heavy runs |
+| browser probes, flat-map, globe, GPU specs | `e2e`: Ubuntu and macOS, Chromium and Firefox, one job each | heavy runs |
+| Q7 A/B gate (1M final) | `ab-gate` | heavy runs |
+| upstream parity tests, vendored-file byte comparison, Köppen ground truth | `nightly.yml` `upstream-parity` | nightly |
+| Q7 A/B gate, 2.56M final | `nightly.yml` `ab-gate-full` | nightly |
+| realism gate, 2.56M | `nightly.yml` `realism-gate` | nightly |
+| Electron smoke test, installers | `desktop.yml` | tag or manual |

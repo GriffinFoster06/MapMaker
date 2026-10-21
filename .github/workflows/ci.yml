@@ -1,35 +1,183 @@
 name: CI
 
+# Pull requests run the heavy gates only when files they depend on changed (job `changes`); docs-only and unrelated PRs
+# run lint, typecheck, provenance and the unit tests related to the changed files. Pushes to main, the nightly schedule
+# and manual runs always run everything. Which job covers which check: docs/DEVELOPMENT.md ("CI jobs").
 on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: '47 3 * * *'
+  workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # CI never launches Electron (the desktop workflow does), so skip its ~100 MB binary download in `npm ci`.
+  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
 jobs:
-  checks:
-    name: lint, types, unit tests, build, provenance (ubuntu)
+  # Decides whether the heavy gates run. Everything runs unless this is a pull request that touches only light files.
+  changes:
+    name: what changed
     runs-on: ubuntu-latest
+    outputs:
+      heavy: ${{ steps.diff.outputs.heavy }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then echo "heavy=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          files=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")
+          echo "$files"
+          # Heavy: code and tools (packages, apps, tools), the workflows, and the root build, test and dependency config.
+          if echo "$files" | grep -Eq '^(packages|apps|tools)/|^\.github/workflows/|^(package(-lock)?\.json|tsconfig[^/]*\.json|vitest\.config\.[^/]*|playwright[^/]*\.config\.[^/]*|eslint\.config\.[^/]*|\.nvmrc)$'; then
+            echo "heavy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "heavy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Always runs. On a light pull request the unit tests are only those related to the changed files (none for docs).
+  static:
+    name: lint, types, provenance, tests (ubuntu)
+    runs-on: ubuntu-latest
+    needs: changes
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --prefer-offline --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run provenance:check
+      - name: Unit tests related to the changed files (light pull requests)
+        if: needs.changes.outputs.heavy != 'true'
+        run: npx vitest run --changed ${{ github.event.pull_request.base.sha }} --passWithNoTests
+      - name: Build
+        if: needs.changes.outputs.heavy == 'true'
+        run: npm run build
+
+  # Q3: bit-exactness is a CI-tested goal (scope: decision W7). All unit tests, including the mesh and RNG golden hashes,
+  # run on Ubuntu, macOS and Windows/x64, in two shards each so the wall-clock time is half.
+  unit:
+    name: unit tests (${{ matrix.os }}, shard ${{ matrix.shard }}/2)
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
-      - run: npm run provenance:check
+      - run: npm ci --prefer-offline --no-audit --no-fund
+      # The Windows runner has no GPU, so it runs Node checks only; lint and typecheck also run there (path and line-ending differences).
+      - if: runner.os == 'Windows' && matrix.shard == 1
+        run: |
+          npm run lint
+          npm run typecheck
+      - run: npx vitest run --shard=${{ matrix.shard }}/2
+
+  # The determinism probe runs in Node on Ubuntu, macOS and Windows/x64 and is compared with tools/determinism/golden.json.
+  # Strict keys must match everywhere: RNG, topology, history, and every `fd.` key (the whole probe re-run with
+  # dmath.mode = 'fdlibm'). Native-mode libm-dependent keys are reported only. The browser probes run in the e2e jobs.
+  probe:
+    name: determinism probe (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --prefer-offline --no-audit --no-fund
+      - name: Node probe
+        shell: bash
+        run: npm run probe 2>&1 | tee probe-node-${{ matrix.os }}.txt
+      - name: Divergence report
+        if: always()
+        shell: bash
+        run: |
+          echo "## Determinism: ${{ matrix.os }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat probe-node-${{ matrix.os }}.txt >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: probe-${{ matrix.os }}
+          path: probe-node-${{ matrix.os }}.txt
+          retention-days: 30
+
+  # Playwright in Chromium and Firefox on Ubuntu and macOS, one job each: the browser probes (compared with golden.json),
+  # the flat-map and globe specs and the GPU spec (apps/web/e2e). The Windows runner has no GPU, so no Playwright there.
+  e2e:
+    name: e2e (${{ matrix.os }}, ${{ matrix.browser }})
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        browser: [chromium, firefox]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --prefer-offline --no-audit --no-fund
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.os == 'Linux' && '~/.cache/ms-playwright' || '~/Library/Caches/ms-playwright' }}
+          key: playwright-${{ runner.os }}-${{ matrix.browser }}-${{ hashFiles('package-lock.json') }}
+      - name: Install browser
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then npx playwright install --with-deps ${{ matrix.browser }}; else npx playwright install ${{ matrix.browser }}; fi
+      - name: Playwright (${{ matrix.browser }})
+        shell: bash
+        # Headless Firefox on Linux has no WebGL, so on Linux Firefox runs headed on a virtual display (playwright.config.ts).
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ] && [ "${{ matrix.browser }}" = "firefox" ]; then FIREFOX_HEADED=1 xvfb-run -a npx playwright test --project=firefox; else npx playwright test --project=${{ matrix.browser }}; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-${{ matrix.os }}-${{ matrix.browser }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 30
 
   # Q7 A/B gate (Phase 4b): the structured pipeline's previews (50k, 200k) against a 1M final, three seeds, compared
   # with tools/tuning/ab-baseline.structured.json. Fails on regression only. The 2.56M final runs nightly.
   ab-gate:
     name: Q7 A/B gate (structured)
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +185,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
+      - run: npm ci --prefer-offline --no-audit --no-fund
       - name: A/B run (seeds 1, 777, 12345; previews 50k, 200k; final 1M)
         env:
           NODE_OPTIONS: --max-old-space-size=12000
@@ -51,62 +199,4 @@ jobs:
           path: |
             tools/tuning/ab-current.json
             tools/tuning/results/ab/
-          retention-days: 30
-
-  # Q3: bit-exactness is a CI-tested goal (scope: decision W7). The probe runs in Node on Ubuntu, macOS and Windows/x64
-  # and in Chromium and Firefox on Ubuntu and macOS, and is compared with tools/determinism/golden.json. The Windows
-  # runner has no GPU, so it runs Node checks only (lint, typecheck, unit tests, the Node probe); no Playwright.
-  # Strict keys must match everywhere: RNG, topology, history, and every `fd.` key (the
-  # whole probe re-run with dmath.mode = 'fdlibm', including Float64 points, areas, circumcentres, the dmath sweep and
-  # a 1M-cell mesh). Native-mode libm-dependent keys are reported only.
-  determinism:
-    name: determinism (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - if: runner.os == 'Windows'
-        run: |
-          npm run lint
-          npm run typecheck
-      - name: Unit tests (include the mesh and RNG golden hashes)
-        run: npm test
-      - name: Node probe
-        shell: bash
-        run: npm run probe 2>&1 | tee probe-node-${{ matrix.os }}.txt
-      - name: Install browsers
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          if [ "${{ runner.os }}" = "Linux" ]; then npx playwright install --with-deps chromium firefox; else npx playwright install chromium firefox; fi
-      - name: Browser probes, flat-map and globe e2e (Chromium, Firefox)
-        if: runner.os != 'Windows'
-        shell: bash
-        # Headless Firefox on Linux has no WebGL, so on Linux Firefox runs headed on a virtual display (playwright.config.ts).
-        run: |
-          if [ "${{ runner.os }}" = "Linux" ]; then FIREFOX_HEADED=1 xvfb-run -a npx playwright test; else npx playwright test; fi
-      - name: Divergence report
-        if: always()
-        shell: bash
-        run: |
-          echo "## Determinism: ${{ matrix.os }}" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          cat probe-node-${{ matrix.os }}.txt >> "$GITHUB_STEP_SUMMARY" || true
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: determinism-${{ matrix.os }}
-          path: |
-            probe-node-${{ matrix.os }}.txt
-            test-results/
-            playwright-report/
           retention-days: 30
