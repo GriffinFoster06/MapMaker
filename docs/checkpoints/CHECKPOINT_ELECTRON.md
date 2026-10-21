@@ -13,7 +13,7 @@ Branch `phase-electron` (PR to `main`), 2026-10-20. Decisions P4, W7, and new E1
 ## 2. Checks run
 
 - Smoke test: passes against the dev bundle and against the packaged unsigned `MapMaker.app` (arm64).
-- Lint, typecheck, `provenance:check`: pass. Unit tests and web e2e: see `STATUS.md` for the counts of this run.
+- Lint, typecheck, `provenance:check`: pass. Unit tests: 450 passed in total; five heavy 200k-cell tests timed out when the machine was loaded (two runs at once) and passed when re-run alone (31 of 31). Web e2e (Chromium + Firefox): 26 of 26 pass; `map.spec.ts` failed once under load and passed on re-run. No engine, core or hash code changed.
 - Not run: the Windows installer and the GitHub workflow (no Windows machine here; the workflow runs on the first tag). Update flow against a real release (needs two published releases).
 
 ## 3. Decisions
