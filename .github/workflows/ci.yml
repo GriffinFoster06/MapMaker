@@ -130,10 +130,10 @@ jobs:
           path: probe-node-${{ matrix.os }}.txt
           retention-days: 30
 
-  # Playwright in Chromium and Firefox on Ubuntu and macOS, one job each: the browser probes (compared with golden.json),
+  # Playwright in Chromium and Firefox on Ubuntu and macOS, two shards each: the browser probes (compared with golden.json),
   # the flat-map and globe specs and the GPU spec (apps/web/e2e). The Windows runner has no GPU, so no Playwright there.
   e2e:
-    name: e2e (${{ matrix.os }}, ${{ matrix.browser }})
+    name: e2e (${{ matrix.os }}, ${{ matrix.browser }}, shard ${{ matrix.shard }}/2)
     needs: changes
     if: needs.changes.outputs.heavy == 'true'
     runs-on: ${{ matrix.os }}
@@ -142,6 +142,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         browser: [chromium, firefox]
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -162,11 +163,11 @@ jobs:
         shell: bash
         # Headless Firefox on Linux has no WebGL, so on Linux Firefox runs headed on a virtual display (playwright.config.ts).
         run: |
-          if [ "${{ runner.os }}" = "Linux" ] && [ "${{ matrix.browser }}" = "firefox" ]; then FIREFOX_HEADED=1 xvfb-run -a npx playwright test --project=firefox; else npx playwright test --project=${{ matrix.browser }}; fi
+          if [ "${{ runner.os }}" = "Linux" ] && [ "${{ matrix.browser }}" = "firefox" ]; then FIREFOX_HEADED=1 xvfb-run -a npx playwright test --project=firefox --shard=${{ matrix.shard }}/2; else npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/2; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: e2e-${{ matrix.os }}-${{ matrix.browser }}
+          name: e2e-${{ matrix.os }}-${{ matrix.browser }}-${{ matrix.shard }}
           path: |
             test-results/
             playwright-report/

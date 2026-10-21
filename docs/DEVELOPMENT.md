@@ -129,7 +129,7 @@ The GitHub Pages deploy (`pages.yml`), the Cloudflare Pages deploy and its deplo
 | build | `static` | heavy runs |
 | unit tests, incl. mesh/RNG golden hashes | `unit`: Ubuntu, macOS, Windows, 2 shards each | heavy runs |
 | Node determinism probe vs `golden.json` | `probe`: Ubuntu, macOS, Windows | heavy runs |
-| browser probes, flat-map, globe, GPU specs | `e2e`: Ubuntu and macOS, Chromium and Firefox, one job each | heavy runs |
+| browser probes, flat-map, globe, GPU specs | `e2e`: Ubuntu and macOS, Chromium and Firefox, 2 shards each | heavy runs |
 | Q7 A/B gate (1M final) | `ab-gate` | heavy runs |
 | upstream parity tests, vendored-file byte comparison, Köppen ground truth | `nightly.yml` `upstream-parity` | nightly |
 | Q7 A/B gate, 2.56M final | `nightly.yml` `ab-gate-full` | nightly |
