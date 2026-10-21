@@ -141,10 +141,12 @@ export function startEditor(host: EditorHost): EditorHandle {
   const radiusRad = () => brushRadiusRad(brush.radiusDeg);
   // Brush ring under the pointer (Phase 5c): the edge of the region one stroke point edits; cheap, redrawn per frame.
   let hover: { el: HTMLElement; pick: (e: PointerEvent) => [number, number, number] | null; v: [number, number, number] } | null = null;
-  let ringFrame = 0;
+  let ringPending = false;
   function drawRing(): void {
-    cancelAnimationFrame(ringFrame);
-    ringFrame = requestAnimationFrame(() => {
+    if (ringPending) return; // the frame reads the pointer state when it runs, so one pending frame covers every request
+    ringPending = true;
+    requestAnimationFrame(() => {
+      ringPending = false;
       const on = !!tool() && ready && hover;
       const pts = on && hover ? ringPoints(hover.v, radiusRad()) : null;
       if (globe) globe.setRing(pts && hover?.el === host.globeCanvas ? pts : null);

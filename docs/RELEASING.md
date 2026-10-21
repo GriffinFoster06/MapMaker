@@ -55,6 +55,18 @@ Install the older release, launch it, confirm the "MapMaker <new> is available" 
 - macOS: Apple Developer Program (about US$99 a year), a Developer ID Application certificate, notarization. Then set `mac.identity` and `mac.notarize` in `apps/desktop/electron-builder.yml`, add the certificate and Apple credentials as GitHub secrets, drop `CSC_IDENTITY_AUTO_DISCOVERY=false`, and macOS auto-install works (change `updates.ts` to download and install on macOS as on Windows).
 - Windows: a code-signing certificate or Azure Trusted Signing; set `win.*` signing options and secrets. Removes the SmartScreen warning once reputation builds.
 
+## Check the graphics and frame rate
+
+If the desktop app feels slow, run `scripts/node24.sh npm run desktop:perf` (after `desktop:build`; `DESKTOP_EXE=/path/to/MapMaker.app/Contents/MacOS/MapMaker` tests an installed build, `N=1000000` a bigger world). It launches the app, generates a world, drags the globe, and prints:
+
+- **WebGL renderer**: must say `hardware` (on a Mac: `ANGLE (Apple, ANGLE Metal Renderer: ...)`). `SwiftShader`, `llvmpipe` or `Software` means the app has no GPU and everything will be slow.
+- **GPU status**: `webgl`, `gpu_compositing` and `rasterization` should be `enabled`. The app sets no GPU switch and never calls `app.disableHardwareAcceleration()`; do not add one.
+- **Globe canvas**: size in CSS and buffer pixels (the app renders at the display's pixel ratio, at most 2).
+- **Globe drag**: draw calls per pointer move should be about one; far fewer means frames are dropped.
+- **Frame rate and cost per frame**: animation frames should match the display (120 on a ProMotion Mac); the cost per frame is the draw plus the GPU time, about 5 ms at 200k cells and 9 ms at 1M on an M5 Pro, the same in Chromium and Firefox. Under 8 ms keeps 120 Hz smooth, under 16 ms keeps 60 Hz.
+
+To compare with the web app, run the same world in the web build in Chromium (`npm run e2e` serves it); the figures should match. Findings so far: decision E4 in `docs/DECISIONS_LOG.md`. By hand: `app.getGPUFeatureStatus()` from the Playwright `_electron` handle gives the GPU status, and the page's `WEBGL_debug_renderer_info` extension gives the renderer string.
+
 ## Troubleshooting
 
 - `apps/web/dist is missing`: run `scripts/node24.sh npm run build` (the `desktop:build` script does it).

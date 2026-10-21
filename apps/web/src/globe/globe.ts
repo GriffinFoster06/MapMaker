@@ -15,7 +15,7 @@ export class Globe {
   private readonly controls: OrbitControls;
   private mesh: THREE.Mesh | undefined;
   private color: Float32Array | undefined;
-  private frame = 0;
+  private framePending = false;
   private ring: THREE.LineLoop | undefined;
   private readonly listeners = new Set<() => void>();
 
@@ -66,9 +66,15 @@ export class Globe {
     this.render();
   }
 
+  /**
+   * Draws the current scene on the next animation frame. At most one frame is pending: a request while one is pending is
+   * already covered, because the frame draws the scene as it is when it runs. (Cancelling and re-requesting on every
+   * camera change starved the globe of frames when pointer events arrived about once per frame: one draw per drag.)
+   */
   render(): void {
-    cancelAnimationFrame(this.frame);
-    this.frame = requestAnimationFrame(() => this.renderer.render(this.scene, this.camera));
+    if (this.framePending) return;
+    this.framePending = true;
+    requestAnimationFrame(() => { this.framePending = false; this.renderer.render(this.scene, this.camera); });
   }
 
   private resize(): void {
