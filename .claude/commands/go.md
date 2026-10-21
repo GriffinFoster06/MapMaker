@@ -25,6 +25,7 @@ Work through "Next" in `docs/RESUME.md` up to the "Authorized through" limit, fo
 - Commit before any `git checkout`, `git switch`, `git restore` or other command that overwrites files.
 - Do not update, upgrade or audit-fix dependencies unless a check fails because of them.
 - Supported targets (W7): Firefox and Chromium; macOS and Windows desktop only. No WebKit, no Linux target, no hosting.
+- Tests and scripts must not take focus: hidden windows and headless browsers only (`MAPMAKER_TEST=1` for the desktop app), except the rare visible-mode checks (`MAPMAKER_TEST_VISIBLE=1`, once per checkpoint at most; `docs/RELEASING.md`).
 - Do not run heavy jobs in parallel (full tests, e2e, builds, benchmarks, the Electron smoke test).
 - For changes touching `apps/web`, the engine or `apps/desktop`, run the Electron smoke test before the checkpoint (`scripts/node24.sh npm run desktop:smoke` after a build; details in `docs/RELEASING.md`).
 - Building and testing the desktop app is your job. Publishing releases, signing and spending money are the user's: never do them.

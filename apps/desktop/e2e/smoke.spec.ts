@@ -20,7 +20,7 @@ test('desktop app: isolated, worker engine, World hash equals Node, native save 
   test.setTimeout(180_000);
   // DESKTOP_EXE: test an installed/packaged build (apps/desktop/release/...) instead of the dev bundle.
   const exe = process.env['DESKTOP_EXE'];
-  const app = await electron.launch({ ...(exe ? { executablePath: exe } : { args: [APP] }), env: { ...process.env, MAPMAKER_NO_UPDATE_CHECK: '1' } });
+  const app = await electron.launch({ ...(exe ? { executablePath: exe } : { args: [APP] }), env: { ...process.env, MAPMAKER_NO_UPDATE_CHECK: '1', MAPMAKER_TEST: '1' } });
   try {
     const page = await app.firstWindow();
     const errors: string[] = [];

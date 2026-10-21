@@ -71,6 +71,17 @@ function registerIpc(getWindow: () => BrowserWindow | undefined): void {
   });
 }
 
+// Test modes (never on by default; the normal launch is unchanged). Tests and scripts must not take the user's focus:
+//   MAPMAKER_TEST=1          hidden window, no Dock icon (the smoke test sets it);
+//   MAPMAKER_TEST_VISIBLE=1  window shown with showInactive() (no keyboard focus), for the rare checks that need the real on-screen path.
+// Both keep the window rendering when hidden or in the background, and on macOS use the accessory activation policy.
+const TEST_VISIBLE = process.env['MAPMAKER_TEST_VISIBLE'] === '1';
+const TEST_MODE = TEST_VISIBLE || process.env['MAPMAKER_TEST'] === '1';
+if (TEST_MODE && process.platform === 'darwin') {
+  app.setActivationPolicy('accessory');
+  if (!TEST_VISIBLE) app.dock?.hide();
+}
+
 let mainWindow: BrowserWindow | undefined;
 
 function createWindow(): BrowserWindow {
@@ -82,9 +93,12 @@ function createWindow(): BrowserWindow {
       nodeIntegration: false,
       sandbox: true,
       webSecurity: true,
+      // Hidden or unfocused test windows must keep rendering (WebGL, rAF).
+      ...(TEST_MODE ? { backgroundThrottling: false } : {}),
     },
   });
-  win.once('ready-to-show', () => win.show());
+  // In test mode nothing calls show() or focus(): hidden stays hidden, visible uses showInactive().
+  win.once('ready-to-show', () => { if (!TEST_MODE) win.show(); else if (TEST_VISIBLE) win.showInactive(); });
   // Nothing but the app's own origin loads in the window; links open in the user's browser.
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) void shell.openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (ev, url) => { if (!url.startsWith(ORIGIN + '/')) { ev.preventDefault(); if (/^https?:/.test(url)) void shell.openExternal(url); } });
