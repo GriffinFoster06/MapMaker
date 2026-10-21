@@ -29,6 +29,7 @@ test('flat map: switch, projections, overlays, zoom, and the heightmap export eq
   await expect(page.locator('#map')).toBeVisible();
   await expect(page.locator('#globe')).toBeHidden();
   await expect(page.locator('#mapStatus')).toContainText('GPU');
+  await page.waitForFunction(() => document.querySelectorAll('#mapSvg path.graticule').length === 1);
   expect(await page.evaluate(() => document.querySelectorAll('#mapSvg path.graticule').length)).toBe(1);
 
   // Rotation and the overlays: coastlines, Tissot indicatrices and a distortion heatmap.
@@ -39,7 +40,9 @@ test('flat map: switch, projections, overlays, zoom, and the heightmap export eq
   await page.selectOption('#ovDistortion', 'omega');
   await rendered();
   expect((await page.evaluate(() => window.__flat!.ui.state())).rotate).toEqual([0, -40, 0]);
+  await page.waitForFunction(() => (document.querySelector('#mapSvg path.coast')?.getAttribute('d') ?? '').length > 1000);
   expect(await page.evaluate(() => (document.querySelector('#mapSvg path.coast')?.getAttribute('d') ?? '').length)).toBeGreaterThan(1000);
+  await page.waitForFunction(() => document.querySelectorAll('#mapSvg .tissot path').length > 10);
   expect(await page.evaluate(() => document.querySelectorAll('#mapSvg .tissot path').length)).toBeGreaterThan(10);
   await expect(page.locator('#mapDist')).toBeVisible();
 
