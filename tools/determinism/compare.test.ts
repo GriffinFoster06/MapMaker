@@ -1,6 +1,7 @@
+import { fileURLToPath } from 'node:url';
+import { Worker } from 'node:worker_threads';
 import { describe, expect, it } from 'vitest';
 import { compareHashes, isTranscendental, splitMismatches, ulpReport } from './compare';
-import { runProbe } from './probe';
 
 describe('compare', () => {
   it('reports missing, extra and changed keys', () => {
@@ -26,12 +27,25 @@ describe('strict vs transcendental-dependent keys', () => {
   });
 });
 
+/** Runs the probe `runs` times in ONE worker thread (one process, one module graph) and resolves with each run's hashes. */
+function probeRuns(runs: number): Promise<Record<string, string>[]> {
+  const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
+  return new Promise((resolve, reject) => {
+    const w = new Worker(here('./probe-worker.mjs'), { workerData: { runs } });
+    w.once('message', resolve);
+    w.once('error', reject);
+    w.once('exit', (code) => { if (code !== 0) reject(new Error(`probe worker exited with code ${code}`)); });
+  });
+}
+
 describe('probe', () => {
   // Two full probe runs; since v4 each includes the structured pipeline at 20k and 200k, 30 s per run on a 2-core
-  // CI runner and 40 s on the 4-core dev VM, so the 60 s default is too short.
+  // CI runner and 40 s on the 4-core dev VM, so the 60 s default is too short. The runs happen in a worker thread
+  // and the test awaits it: ~60 s of synchronous work inside the test body starved vitest's RPC to the main process
+  // (nightly run 39635272523, "Timeout calling onTaskUpdate", decision in docs/DECISIONS_LOG.md).
   it('is stable across repeated runs in one process', async () => {
-    const a = await runProbe(), b = await runProbe();
-    expect(a.hashes).toEqual(b.hashes);
-    expect(Object.keys(a.hashes).length).toBeGreaterThan(60);
+    const [a, b] = await probeRuns(2);
+    expect(a).toEqual(b);
+    expect(Object.keys(a!).length).toBeGreaterThan(60);
   }, 300_000);
 });
