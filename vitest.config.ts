@@ -9,6 +9,8 @@ export default defineConfig({
   resolve: { alias: [{ find: /^https:\/\/cdn\.jsdelivr\.net\/npm\/delaunator@[\d.]+\/\+esm$/, replacement: 'delaunator' }] },
   test: {
     include: ['packages/**/*.test.ts', 'tools/**/*.test.ts', 'apps/**/src/**/*.test.ts'],
-    testTimeout: 60_000,
+    // The 200k-cell parity tests build and compare whole meshes and pipelines (about 75 s on a loaded CI runner; the
+    // heaviest tests set their own larger limits). A limit is only a hang guard here, no assertion depends on it.
+    testTimeout: 300_000,
   },
 });

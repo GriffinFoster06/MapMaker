@@ -26,7 +26,7 @@ jobs:
       - name: Tests with upstream present (parity tests, stock-harness comparison; not skipped)
         env:
           REQUIRE_UPSTREAM: '1'
-        run: npm test
+        run: npm test -- --maxWorkers=2 # heavy 200k tests starve each other of CPU on the 4-core runner
       - name: Provenance check (byte-compares vendored files with upstream)
         run: npm run provenance:check
 
