@@ -9,6 +9,7 @@ import { type DebugMode, ProjectionView, type ViewOptions } from '@mapmaker/proj
 import { RAW_ELEVATION, makeLayers } from './globe/colors';
 import { type EditorHandle, startEditor } from './editor/editor-ui';
 import { THEMES, THEME_IDS, type CartoData, type Style, buildLut, lutColor } from '@mapmaker/carto';
+import { desktop, saveFile } from './desktop';
 import { GlobeLabels } from './globe/globe-labels';
 import { LEVELS, type Level, PRESETS, SETTING_GROUPS, SETTINGS, changedParams, decodeState, encodeState, visibleAt } from './settings';
 
@@ -312,23 +313,30 @@ export function startApp(): void {
   $('saveWorld').addEventListener('click', () => {
     void (async () => {
       const bytes = await client.snapshot();
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'application/zip' }));
-      a.download = `world-${seedInput.value || 'x'}.mapmaker`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
-      status.textContent = `saved ${(bytes.length / 1e6).toFixed(1)} MB`;
+      const saved = await saveFile('mapmaker', `world-${seedInput.value || 'x'}.mapmaker`, bytes);
+      status.textContent = saved ? `saved ${(bytes.length / 1e6).toFixed(1)} MB` : 'save cancelled';
     })().catch((e: unknown) => { status.textContent = `save failed: ${String(e)}`; });
   });
+  async function loadBytes(bytes: Uint8Array): Promise<void> {
+    const r = await client.load(bytes);
+    await refreshAfterLoad();
+    if (r.viewOnly) status.textContent += ' (view only: stage versions differ)';
+  }
   const loadFile = $<HTMLInputElement>('loadFile');
-  $('loadWorld').addEventListener('click', () => loadFile.click());
+  // Electron: a native open dialog. Browser: the hidden file input.
+  $('loadWorld').addEventListener('click', () => {
+    const d = desktop();
+    if (!d) { loadFile.click(); return; }
+    void (async () => {
+      const f = await d.openWorld();
+      if (f) await loadBytes(f.bytes);
+    })().catch((e: unknown) => { status.textContent = `load failed: ${String(e)}`; });
+  });
   loadFile.addEventListener('change', () => {
     const f = loadFile.files?.[0];
     if (!f) return;
     void (async () => {
-      const r = await client.load(new Uint8Array(await f.arrayBuffer()));
-      await refreshAfterLoad();
-      if (r.viewOnly) status.textContent += ' (view only: stage versions differ)';
+      await loadBytes(new Uint8Array(await f.arrayBuffer()));
       loadFile.value = '';
     })().catch((e: unknown) => { status.textContent = `load failed: ${String(e)}`; });
   });

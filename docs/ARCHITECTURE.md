@@ -998,6 +998,8 @@ Added at Checkpoint 1 (D5):
 - **Known defect (decision P3, 2026-10-19):** generated continents can look unrealistically rectangular, even with organic settings. Investigated in `docs/checkpoints/RECT_CONTINENTS.md` (queue item Q2) before this phase; Phase 6b's plate evolution may also change shapes. Metrics: share of coastline in long near-straight segments, and each landmass's fit to an axis-aligned box.
 - **Earth-like preset and Electron (decisions P1, P2, P4):** no seed reproduces Earth (statistical similarity only); the Earth-like preset (sweep `tools/tuning/earthlike/`) is repeated after Phase 6b and redone for all parameters in Phase 8. The Electron wrapper (Q4) is packaged after Checkpoint 5c for macOS and Windows.
 
+**Prerequisite (decision P5):** reconcile the newer orogen (`orogen-evolution`, pinned at `47edc28`; Orogen Evolution, Orogen Import and Orogen Classic) alongside the other tectonic candidates (GPlates, tectonics.js, ASPECT and the rest already listed) before this phase. Per-component picks on quality and fit; nothing is decided yet. It is a second reference; `upstream/orogen` (`cc2662b`) and `packages/gen-orogen/vendor/` are unchanged.
+
 **Checkpoint 6.** Stop and wait.
 
 ### Phase 6a: Astronomy (note 20)
@@ -1016,6 +1018,8 @@ Added at Checkpoint 1 (D5):
 - Present-day export to stage 2, with orogeny-age hooks in the structural stage. Geologic timeline and keyframes. The `plateEvolution` pipeline variant.
 - Fast/slow A/B in CI (regression-only failure), and Earth-likeness statistics (seafloor age, plate sizes, speeds).
 - Re-record the Q7 baseline with evolution on, in the same commit that enables it.
+
+**Prerequisite (decision P5):** reconcile the newer orogen (`orogen-evolution`, pinned at `47edc28`; Orogen Evolution, Orogen Import and Orogen Classic) alongside the other tectonic candidates (GPlates, tectonics.js, ASPECT and the rest already listed; its plate-evolution code is the direct comparison for `plate-physics.js`) before this phase. Per-component picks on quality and fit; nothing is decided yet. It is a second reference; `upstream/orogen` (`cc2662b`) and `packages/gen-orogen/vendor/` are unchanged.
 
 **Checkpoint 6b.** Stop and wait.
 
@@ -1168,6 +1172,8 @@ Azgaar generators (step 11 in §4) via the facade, with injected RNG. Settlement
 - Heightmap and layer import onto the sphere (orogen import sampling; a GeoTIFF decoder library if wanted).
 - Partial-world inference (design note 3), including the plate-stage pins from spike 1d and the required elevation hold (§4, step 0p.5).
 - Regional-patch refinement with the R/P consistency test (design note 6). Revisit D9: approximate agreement and a warning for non-nested overlaps, or a fixed tiling.
+
+**Prerequisite (decision P5):** reconcile the newer orogen (`orogen-evolution`, pinned at `47edc28`; Orogen Evolution, Orogen Import and Orogen Classic) alongside the other tectonic candidates (for Orogen Import: compare its import sampling with the current orogen import) before this phase. Per-component picks on quality and fit; nothing is decided yet. It is a second reference; `upstream/orogen` (`cc2662b`) and `packages/gen-orogen/vendor/` are unchanged.
 
 **Checkpoint 11.** Stop and wait.
 

@@ -122,7 +122,7 @@ Written for MapMaker. Where a published algorithm was implemented from its refer
 | `packages/projection/src/gpu/lookup.ts`, `uniforms.ts`, `apps/web/src/flat/` | Phase 5 M4: triangle-id cube map and flat data-texture layout, view → shader parameters, the three.js host (`gpu-map.ts`), the flat-map controller with the CPU fallback (`flat-map.ts`) and its colouring (`colorize.ts`); M5: the map UI (`map-ui.ts`) and the `projection.coastlines` kernel. Original. Tests: `packages/projection/src/gpu/gpu.test.ts` (texel round trip, every texel's triangle contains its centre, rotation matrix, uniforms, zoom and pan), `exact/kernels.test.ts` (`projection.locate`, `projection.gpuLookup` through the worker), `apps/web/e2e/gpu.spec.ts`, `apps/web/e2e/map.spec.ts` (UI, exported heightmap bytes equal Node's). | n/a |
 | `packages/projection/src/registry.ts`, `view.ts`, `d3-geo-projection.d.ts` | Phase 5 M1: projection registry with pole classes and the scale factors that make d3's stereographic and Robinson raws true to their published definitions; `ProjectionView` (d3 projection fitted to an output size, inverse with the §3.7 domain check). Wrappers around d3-geo and d3-geo-projection, which are used unmodified. Test: `packages/projection/src/view.test.ts`. | n/a |
 | `packages/gen-orogen/src/**` (except `orchestration.ts`) | The orogen adapter (F1–F4): layer descriptors, per-world scratch, the six stages, the stock-shape view and the stock oracle runner. Defined as new work by ARCHITECTURE §3.6. | n/a |
-| `packages/core/src/**` (everything else), `packages/engine/src/**`, `tools/**`, `apps/web/src/**` | Shell infrastructure defined as new work by ARCHITECTURE §3–§6: frame, units, `dmath`, layer registry, entity tables, timeline, event log, `World`, save format, stage runner, worker protocol, probe, provenance checker. | n/a |
+| `packages/core/src/**` (everything else), `packages/engine/src/**`, `tools/**`, `apps/web/src/**`, `apps/desktop/**` | Shell infrastructure defined as new work by ARCHITECTURE §3–§6: frame, units, `dmath`, layer registry, entity tables, timeline, event log, `World`, save format, stage runner, worker protocol, probe, provenance checker. | n/a |
 
 ## Runtime dependencies
 
@@ -156,6 +156,16 @@ Written for MapMaker. Where a published algorithm was implemented from its refer
 | @types/d3-geo | 3.1.1 | MIT | Types for d3-geo (Phase 5). d3-geo-projection has no types package; `packages/projection/src/d3-geo-projection.d.ts` declares the parts used |
 | @types/geojson | 7946.0.16 | MIT | GeoJSON types used by @types/d3-geo (Phase 5) |
 
+## Desktop app dependencies (queue item Q4, decisions P4, E1 to E3)
+
+Exact-pinned in `apps/desktop/package.json`; installed by `npm install` (no existing dependency changed). Electron's own Chromium and Node are bundled into the installers.
+
+| Package | Version | License | Purpose |
+|---|---|---|---|
+| electron | 44.9.2 | MIT | The desktop shell (Chromium). Dev dependency: the packaged app carries its own copy |
+| electron-builder | 26.15.3 | MIT | Packages the unsigned macOS (.dmg, .zip) and Windows (NSIS) installers and writes `latest*.yml` |
+| electron-updater | 6.8.9 | MIT | Checks GitHub Releases for a newer version (`apps/desktop/src/updates.ts`); bundled into `main.cjs` by esbuild |
+
 ## CI deployment tools (not npm dependencies)
 
 | Tool | Version | License | Purpose |
@@ -181,6 +191,14 @@ These are used only in `spikes/` and are not shipped.
 | fnm | 1.39.0 | GPL-3.0 | Release binary in `.tools/bin`, with `FNM_DIR=.tools/fnm` |
 | Node.js | 24.21.0 (pinned in `.nvmrc`) | MIT | Run through `scripts/node24.sh`. System Node 22.19.0 is unchanged |
 | Playwright browsers | Chromium 140.0.7339.186, Firefox 141.0, WebKit 26.0 | various | Installed to `.tools/ms-playwright` |
+
+## Reference upstreams not yet extracted
+
+Pinned in `upstream-manifest.json` and restorable with `scripts/restore-upstream.sh <name>`. No code has been taken from them.
+
+| Folder in `upstream/` | Repo | Commit | License | Role |
+|---|---|---|---|---|
+| `orogen-evolution` | https://github.com/raguilar011095/planet_heightmap_generation | `47edc28` (2026-10-19, merge of PR #63 `v2-tectonics`) | GPL-3.0 (`LICENSE`, unmodified GPL-3.0 text; same as `orogen`) | Candidate (decision P5): Orogen Evolution, Orogen Import, Orogen Classic. A second reference beside `orogen` (`cc2662b`, which stays the pin for `packages/gen-orogen/vendor/`). To be reconciled before Phases 6, 6b and 11 |
 
 ## Upstream code used in spikes
 
