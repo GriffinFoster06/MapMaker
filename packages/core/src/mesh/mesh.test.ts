@@ -20,6 +20,10 @@ function build(N: number, seed: number, precision: 'f32' | 'f64' = 'f32') {
   return SphereMesh.build({ N, jitter: JITTER, rng: () => rng.next(), precision });
 }
 
+// The 200k builds are ~8 s each of synchronous work here and about 3x that on a CI runner; yielding to the event loop between
+// them lets vitest's worker answer its RPC to the main process (a block over 60 s fails the run: "Timeout calling onTaskUpdate").
+const yieldToLoop = () => new Promise<void>((r) => setTimeout(r, 0));
+
 const buildNative = (N: number, seed: number, precision: 'f32' | 'f64' = 'f32') => dmath.withMode('native', () => build(N, seed, precision));
 
 describe.skipIf(!HAVE_UPSTREAM)('SphereMesh vs upstream orogen sphere-mesh.js @ cc2662b', () => {
@@ -29,13 +33,16 @@ describe.skipIf(!HAVE_UPSTREAM)('SphereMesh vs upstream orogen sphere-mesh.js @ 
       const { makeRng } = await import(pathToFileURL(OROGEN_RNG).href);
       om.setDelaunator(Delaunator);
       const ref = om.buildSphere(N, JITTER, makeRng(seed));
+      await yieldToLoop();
       const mine = buildNative(N, seed, 'f32'); // parity path: native mode, as orogen runs
+      await yieldToLoop();
       expect(Buffer.from(mine.triangles.buffer)).toEqual(Buffer.from(ref.mesh.triangles.buffer));
       expect(Buffer.from(mine.halfedges.buffer)).toEqual(Buffer.from(ref.mesh.halfedges.buffer));
       expect(Buffer.from(mine.adjOffset.buffer)).toEqual(Buffer.from(ref.mesh.adjOffset.buffer));
       expect(Buffer.from(mine.adjList.buffer)).toEqual(Buffer.from(ref.mesh.adjList.buffer));
       expect(Buffer.from(mine.adjTriList.buffer)).toEqual(Buffer.from(ref.mesh._adjTriList.buffer));
       // Inverse permutation recovers orogen's Float32 r_xyz exactly (F1, §3.1).
+      await yieldToLoop();
       const back = mine.orogenPoints() as Float32Array;
       expect(Buffer.from(back.buffer)).toEqual(Buffer.from(ref.r_xyz.buffer));
       // neighborDist: orogen computes it in orogen's frame; distances are permutation-invariant up to rounding.
