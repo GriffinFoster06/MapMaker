@@ -124,7 +124,7 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
       let plan: LabelPlan | null = null;
       if (ovLabels.checked) {
         const fur = furnitureLayout(W, H, style, o);
-        plan = planLabels(data, view, style, { obstacles: [fur.scale, fur.legend].filter((b): b is NonNullable<typeof b> => !!b), riverMinArea: riverThreshold(style, view.scale) });
+        plan = planLabels(data, view, style, { obstacles: [fur.scale, fur.legend].filter((b): b is NonNullable<typeof b> => !!b), riverMinArea: riverThreshold(style, view.scale), limb: st.projection === 'orthographic' });
         o.labels = plan;
       }
       labelCount = plan?.labels.length ?? 0;

@@ -72,7 +72,7 @@ export function cartoKernels(opts: CellStyleOptions = {}) {
     'carto.data': (world: World, a: { mesh?: string }): CartoData => {
       // Copies of the typed arrays: the worker transfers what a kernel returns, which would detach the cached ones.
       const d = dataFor(world, a.mesh);
-      return { ...d, landmass: d.landmass.slice(), rivers: d.rivers.map((r) => ({ pts: r.pts.slice(), area: r.area.slice() })) };
+      return { ...d, regions: { ...d.regions, id: d.regions.id.slice() }, landmass: d.landmass.slice(), rivers: d.rivers.map((r) => ({ pts: r.pts.slice(), area: r.area.slice() })) };
     },
     /** The relief factor per cell, and the land colour per cell for the climate and landmass modes. */
     'carto.cellStyle': (world: World, a: { style: Style; mesh?: string }) => {
@@ -98,7 +98,7 @@ export function cartoKernels(opts: CellStyleOptions = {}) {
       };
       if (L.labels ?? true) {
         const fur = furnitureLayout(view.width, view.height, style, o);
-        o.labels = planLabels(data, view, style, { obstacles: [fur.scale, fur.legend].filter((b): b is NonNullable<typeof b> => !!b), riverMinArea: riverThreshold(style, view.scale) });
+        o.labels = planLabels(data, view, style, { obstacles: [fur.scale, fur.legend].filter((b): b is NonNullable<typeof b> => !!b), riverMinArea: riverThreshold(style, view.scale), limb: view.spec.id === 'orthographic' });
       }
       let raster = '';
       if (L.raster ?? true) {

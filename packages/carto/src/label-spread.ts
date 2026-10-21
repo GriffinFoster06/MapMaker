@@ -8,6 +8,8 @@
 //   - no DOM. Text is measured by font-metrics.ts and described to the solver as data (a `LabelRequest`); the SVG measurement
 //     sandbox, the icon lookup in the page and the patches written back to the map are gone;
 //   - the solver runs in screen pixels of the view (Azgaar's `viewport.scale` is the `scale` option, default 1);
+//   - a point request may carry an `accept` filter on its candidate positions (placement.ts uses it to keep a name on its own
+//     ground and inside the map); the solver itself is unchanged;
 //   - determinism: Math.exp/pow/cos/sin/hypot go through dmath, `**` is multiplication or dmath.pow, ties between ids compare
 //     code units instead of calling localeCompare (which depends on the locale), and the random stream is core's Alea with a
 //     seed string built from the seed and the sorted item ids, as upstream.
@@ -125,7 +127,7 @@ function toMapUnits(screenValue: number, vp: LabelViewport): number {
 /** The label to place: measured by the caller (font-metrics.ts), not by the solver. */
 export type LabelRequest =
   /** A label with a free position: `bounds` and `inkBounds` at its anchor (dx = dy = 0). */
-  | { type: 'point'; id: string; bounds: LabelBounds; inkBounds: LabelBounds[] }
+  | { type: 'point'; id: string; bounds: LabelBounds; inkBounds: LabelBounds[]; accept?: (candidate: { bounds: LabelBounds; inkBounds: LabelBounds[] }) => boolean }
   /** A settlement name: it may not cover its icon, and takes one of six slots around it. */
   | { type: 'burg'; id: string; bounds: LabelBounds; inkBounds: LabelBounds[]; iconBounds: LabelBounds }
   /** A label on a path (river, range, route): it slides along it. `measure` lays the text out at a start offset in percent. */
@@ -177,7 +179,10 @@ function buildPlacementItem(r: LabelRequest, vp: LabelViewport): LabelPlacementI
       }),
     };
   }
-  return { id: r.id, kind: 'label', candidates: buildPointCandidates(currentCandidate, vp) };
+  const candidates = buildPointCandidates(currentCandidate, vp);
+  // MapMaker change: the caller may rule out positions (a name must stay on its own ground); the requested position itself is kept.
+  const accept = r.accept;
+  return { id: r.id, kind: 'label', candidates: accept ? candidates.filter((c, i) => i === 0 || accept({ bounds: c.bounds, inkBounds: c.inkBounds ?? [c.bounds] })) : candidates };
 }
 
 /**

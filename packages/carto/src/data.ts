@@ -4,7 +4,7 @@
 // world's seed, in sphere units (steradians, radians), so the result does not depend on the resolution except through the
 // mesh's own detail, and is the same in every browser and in Node.
 import type { MultiLineString } from 'geojson';
-import { type SphereMesh, type World, EARTH_RADIUS_M, MinHeap, dmath, priorityFlood } from '@mapmaker/core';
+import { type SphereMesh, type World, EARTH_RADIUS_M, MinHeap, SpatialIndex, dmath, priorityFlood } from '@mapmaker/core';
 import { coastlines, lonLat } from '@mapmaker/projection';
 import { nameFeatures } from './names';
 import type { LabelKind } from './style';
@@ -34,8 +34,23 @@ export interface RiverChain {
   area: Float32Array;
 }
 
+/** The regions raster: which named feature (or other land or water) lies under each pixel of an equirectangular grid. */
+export interface RegionGrid {
+  /** Columns (longitude −180 to 180) and rows (latitude 90 to −90); pixel (i, j) is centred at lon −180 + (i + ½)·360/w, lat 90 − (j + ½)·180/h. */
+  w: number;
+  h: number;
+  /** Per pixel: an index into `features` (a continent, island, ocean or sea), `REGION_WATER` or `REGION_LAND` for unnamed ground. */
+  id: Int16Array;
+}
+
+/** Unnamed water and unnamed land in a `RegionGrid`. */
+export const REGION_WATER = -1;
+export const REGION_LAND = -2;
+
 export interface CartoData {
   seed: string;
+  /** Where each named feature's ground is, for label placement (labels stay on their own ground). */
+  regions: RegionGrid;
   /** Land cell → landmass index (the order of `landmasses`), −1 for sea. */
   landmass: Int32Array;
   /** Landmass component sizes (steradians) and anchors (degrees), indexed by landmass index, for colouring. */
@@ -153,12 +168,16 @@ export function computeCartoData(world: World, opts: CartoOptions = {}): CartoDa
   });
   const maxIslands = 40;
   let islands = 0;
+  // Raw feature index per landmass component (−1: unnamed), and per cell below (`cellRaw`: −1 water, −2 other land, ≥0 raw index).
+  const landRaw = new Int32Array(lc.count).fill(-1);
   for (const c of lOrder) {
     const frac = lArea[c]! / FOUR_PI;
     const [lon, lat] = ll(mesh, lBest[c]!);
-    if (frac >= o.continentFraction) raw.push({ kind: 'continent', lon, lat, area: lArea[c]!, radius: capRadius(lArea[c]!) });
-    else if (frac >= o.islandFraction && islands < maxIslands) { islands++; raw.push({ kind: 'island', lon, lat, area: lArea[c]!, radius: capRadius(lArea[c]!) }); }
+    if (frac >= o.continentFraction) { landRaw[c] = raw.length; raw.push({ kind: 'continent', lon, lat, area: lArea[c]!, radius: capRadius(lArea[c]!) }); }
+    else if (frac >= o.islandFraction && islands < maxIslands) { islands++; landRaw[c] = raw.length; raw.push({ kind: 'island', lon, lat, area: lArea[c]!, radius: capRadius(lArea[c]!) }); }
   }
+  const cellRaw = new Int32Array(n).fill(REGION_WATER);
+  for (let i = 0; i < n; i++) if (lc.id[i]! >= 0) cellRaw[i] = landRaw[lc.id[i]!]! >= 0 ? landRaw[lc.id[i]!]! : REGION_LAND;
 
   // Water: the open sea of each connected body is divided into basins by farthest-point seeds over open water; small
   // enclosed bodies are seas.
@@ -174,7 +193,12 @@ export function computeCartoData(world: World, opts: CartoOptions = {}): CartoDa
   for (let c = 0; c < sc.count; c++) {
     const frac = sArea[c]! / FOUR_PI;
     if (frac < 4e-4) continue;
-    if (frac < 0.02) { const [lon, lat] = ll(mesh, sBest[c]!); raw.push({ kind: 'sea', lon, lat, area: sArea[c]!, radius: capRadius(sArea[c]!) }); continue; }
+    if (frac < 0.02) {
+      const [lon, lat] = ll(mesh, sBest[c]!);
+      for (let i = 0; i < n; i++) if (sc.id[i] === c) cellRaw[i] = raw.length;
+      raw.push({ kind: 'sea', lon, lat, area: sArea[c]!, radius: capRadius(sArea[c]!) });
+      continue;
+    }
     // An ocean body: K basins, each ~12% of the sphere at most.
     const K = Math.max(1, Math.min(6, Math.round(sArea[c]! / (0.12 * FOUR_PI))));
     const cells: number[] = [];
@@ -192,11 +216,12 @@ export function computeCartoData(world: World, opts: CartoOptions = {}): CartoDa
       if (best < 0 || bestD < 0.35) break; // no open water far enough from the others
       seeds.push(best);
     }
-    const terr = new Float64Array(seeds.length);
+    const terr = new Float64Array(seeds.length), firstRaw = raw.length;
     for (const i of cells) {
       let bs = 0, bd = -2;
       for (let s = 0; s < seeds.length; s++) { const d = dotc(i, seeds[s]!); if (d > bd) { bd = d; bs = s; } }
       terr[bs]! += area[i]!;
+      cellRaw[i] = firstRaw + bs;
     }
     seeds.forEach((s, k) => { const [lon, lat] = ll(mesh, s); raw.push({ kind: 'ocean', lon, lat, area: terr[k]!, radius: capRadius(terr[k]!) }); });
   }
@@ -226,11 +251,34 @@ export function computeCartoData(world: World, opts: CartoOptions = {}): CartoDa
 
   // Names and ids; features ordered by kind then importance so names do not depend on discovery order.
   const kindOrder: Record<LabelKind, number> = { continent: 0, ocean: 1, sea: 2, island: 3, range: 4, river: 5 };
+  const rawIndex = new Map(raw.map((f, i) => [f, i]));
   raw.sort((x, y) => kindOrder[x.kind] - kindOrder[y.kind] || y.area - x.area || x.lon - y.lon || x.lat - y.lat);
+  const finalOf = new Int32Array(raw.length);
+  raw.forEach((f, k) => { finalOf[rawIndex.get(f)!] = k; });
   const seed = worldNameSeed(world);
   const names = nameFeatures(seed, raw);
   const features: CartoFeature[] = raw.map((f, i) => ({ ...f, id: fid(f.kind, f.lon, f.lat), name: names[i]! }));
-  return { seed, landmass, landmasses, features, rivers: riverData, coast: coastlines(mesh, (i) => elev[i]! > 0), radius_m };
+  const regions = regionGrid(mesh, cellRaw, finalOf);
+  return { seed, regions, landmass, landmasses, features, rivers: riverData, coast: coastlines(mesh, (i) => elev[i]! > 0), radius_m };
+}
+
+/** Grid size of the regions raster: 0.5° pixels. */
+const GRID_W = 720, GRID_H = 360;
+
+/** Rasterises `cellRaw` (per cell: a raw feature index, `REGION_WATER` or `REGION_LAND`) onto the equirectangular grid, through `finalOf`. */
+function regionGrid(mesh: SphereMesh, cellRaw: Int32Array, finalOf: Int32Array): RegionGrid {
+  const index = new SpatialIndex(mesh), id = new Int16Array(GRID_W * GRID_H);
+  for (let j = 0; j < GRID_H; j++) {
+    const lat = ((90 - (j + 0.5) * (180 / GRID_H)) * Math.PI) / 180, cf = dmath.cos(lat), sf = dmath.sin(lat);
+    let hint = -1;
+    for (let i = 0; i < GRID_W; i++) {
+      const lon = (((i + 0.5) * (360 / GRID_W) - 180) * Math.PI) / 180;
+      hint = index.nearestCell(cf * dmath.cos(lon), cf * dmath.sin(lon), sf, hint);
+      const r = cellRaw[hint]!;
+      id[j * GRID_W + i] = r >= 0 ? finalOf[r]! : r;
+    }
+  }
+  return { w: GRID_W, h: GRID_H, id };
 }
 
 /** The spine of a range: unit vectors at the centres of up to 7 bins along the cells' principal axis; null if too short. */

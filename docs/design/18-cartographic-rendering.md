@@ -44,6 +44,8 @@ symbolizer = fill (ramp | categorical | texture) | relief (hillshade, multi-dire
 
 Labels for every named entity (seas, ranges, rivers, settlements, regions), placed by priority with collision avoidance; curved labels along rivers and ranges; area labels spread along a region's skeleton. Deterministic for a given world, style and viewport. Fonts from the asset library (note 19).
 
+*As built (labels-quality, decisions L1 to L7 in `docs/DECISIONS_LOG.md`):* `packages/carto/src/placement.ts` plans a view in this order: a screen-space mask of what lies under the view (`label-mask.ts`, from the world's regions raster in `data.ts`), area names (continents, oceans, seas) at the visible pole of inaccessibility of their own ground and sized by the room they have, then ranges and rivers on smoothed, least-turning stretches of their paths, then islands; the label-spread solver (with an `accept` filter on its candidate positions) resolves what is left. On a sphere (`limb`) names stay off the outline and fade towards it. Invariants are tested in `placement.test.ts` and `placement.world.test.ts`; `scripts/label-shots.mjs` renders the matrix for review.
+
 The collision solver is a port of Azgaar's `src/controllers/label-spread.ts` (Phase 5c; §4): candidate positions, conflict components, refinement and seeded simulated annealing. Its SVG DOM text measurement is replaced by our own font metrics, and its screen-space run (paddings in screen pixels) is keyed by style and viewport. QGIS PAL is a later, richer option (polygon, line and curved placement costs).
 
 ### 3.4 Themes
