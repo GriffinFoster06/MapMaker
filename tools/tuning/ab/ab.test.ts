@@ -14,7 +14,8 @@ const strip = (o: unknown) => JSON.parse(JSON.stringify(o, (k, v) => (['finalBel
 describe('Q7 A/B harness', () => {
   it('reproduces spike 1c (seed 12345, 20k → 50k → 200k, spike reference mesh) exactly, through the shell pipeline', async () => {
     const spike = JSON.parse(readFileSync(resolve(ROOT, 'spikes/1c/results/ab-s12345.json'), 'utf8'));
-    const r = await runAb({ seed: 12345, Ns: [20000, 50000, 200000], refMode: 'spike' });
+    // Spike 1c ran orogen's slider defaults at cc2662b; the shell's land coverage and temperature defaults differ since P6.
+    const r = await runAb({ seed: 12345, Ns: [20000, 50000, 200000], refMode: 'spike', params: { landCoverage: 0.3, temperatureOffset: 0 } });
     expect(strip(r.consecutive[0])).toEqual(strip(spike.consecutive[0]));
     expect(strip(r.consecutive[1])).toEqual(strip(spike.consecutive[1]));
   }, 120_000);
