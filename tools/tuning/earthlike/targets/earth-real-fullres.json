@@ -1,0 +1,49 @@
+{
+ "grid": "5 arc-minute, land if Natural Earth covers at least half of the pixel",
+ "landFrac": 0.28765029490687216,
+ "landAreaMkm2": 146.72019576636862,
+ "afroEurasiaJoined": {
+  "landmassesOver1e6": 6,
+  "areasMkm2": [
+   79.5,
+   20.2,
+   17.7,
+   12.1,
+   7.6,
+   2.1
+  ],
+  "top1": 0.5560186448016705,
+  "top3": 0.8209572273950299,
+  "boxFill": 0.38714257388085854
+ },
+ "afroEurasiaSplit": {
+  "landmassesOver1e6": 7,
+  "areasMkm2": [
+   50.2,
+   29.3,
+   20.2,
+   17.7,
+   12.1,
+   7.6,
+   2.1
+  ],
+  "top1": 0.3510310948422112,
+  "top3": 0.6973611412988558,
+  "boxFill": 0.4283144829658019
+ },
+ "asPolygons": {
+  "landmassesOver1e6": 5,
+  "areasMkm2": [
+   79.5,
+   37.9,
+   12.1,
+   7.6,
+   2.1
+  ],
+  "top1": 0.5560107367710525,
+  "top3": 0.9052899111417633,
+  "boxFill": 0.33952567805177397
+ },
+ "straight": 0.309976425981822,
+ "axisStraight": 0.039199673329972776
+}
