@@ -117,7 +117,8 @@ test('globe: the faster draw path, where it is used, paints the same pixels as t
   const seen = new Set<number>();
   for (const [dx, dy, wheel] of [[0, 0, 0], [140, 40, 0], [-90, -120, 400], [200, 10, -300]] as const) {
     if (dx || dy) { await page.mouse.move(cx, cy); await page.mouse.down(); await page.mouse.move(cx + dx / 2, cy + dy / 2, { steps: 4 }); await page.mouse.move(cx + dx, cy + dy, { steps: 4 }); await page.mouse.up(); }
-    if (wheel) { await page.mouse.move(cx, cy); await page.mouse.wheel(0, wheel); await page.waitForTimeout(200); }
+    if (wheel) { await page.mouse.move(cx, cy); await page.mouse.wheel(0, wheel); }
+    await page.waitForTimeout(300); // the camera and its pending frame settle before the pictures are taken
     for (const layer of ['elevation', 'koppen']) {
       await page.evaluate((l) => window.__globe!.setLayer(l), layer);
       const r = await page.evaluate(async () => {

@@ -1,4 +1,4 @@
-/* global console, document, Image, Path2D, encodeURIComponent */
+/* global console, document, Image, Path2D*/
 // Is a canvas (Path2D) drawing of the flat map's overlay paths the same picture as the SVG? Rasterizes the same d3 path strings both
 // ways in Chromium and Firefox (headless) and counts the pixels that differ (docs/checkpoints/PERFORMANCE_STUDY.md, "After the first
 // fixes", item 3). Usage: scripts/node24.sh npx tsx scripts/perf-overlay-aa.mjs

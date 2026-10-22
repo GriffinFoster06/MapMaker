@@ -235,3 +235,106 @@ node scripts/perf-prof.mjs <pan.json> <config>      # functions per spike, from 
 scripts/node24.sh node scripts/perf-render.mjs electron 2560000 out.json base,cull,sortTris
 scripts/node24.sh npx tsx scripts/perf-noise-bench/bench.mjs 2000000 5
 ```
+
+## 10. After the first fixes
+
+Items 1 to 4 of section 8 ("pull forward"), made on branch `perf-fixes` with the study's own scripts, measured before and after on the same machine (Apple M5 Pro, hardware GL, hidden windows) in the same way: `scripts/perf-fixes-all.sh before|after` (`perf-pan.mjs`, `perf-render.mjs`; new configurations `flat-switch`, `flat-pan`, `flat-pan-styled`), both builds unminified as in section 9. Raw data: `docs/perf-study/before/` and `after/`; tables: `node scripts/perf-fixes-summary.mjs`. No engine, generator, hash or golden changed (nothing re-recorded).
+
+**What was changed, and what it costs in quality**
+1. *Label re-plan.* `Globe.lonLatSampler` and `projectSampler` read the camera once and allocate nothing per call (bit-identical to the former per-call code; tested, the projector on a 3000-point grid in both browsers); `buildMask` is sliced by rows (2 ms budget) with a yield between slices, the distance transforms, the placement and the SVG write each a slice of their own, and a new camera move cancels the plan. Sliced and unsliced masks and plans are byte-identical (unit tests). Quality: unchanged.
+2. *Globe culling and triangle order.* Done as `FrontSide` plus lowest-vertex order, but **only where it draws the same picture**. Measured: the Metal GPU of Chromium and Electron draws it identically (0 differing pixels on real layers at four viewpoints; 1 limb pixel on random colours at the farthest view); software GL (SwiftShader) differs at 350 to 1000 limb pixels (the former path draws far-side triangles at the depth of the front ones), and Firefox differs at 45 000 to 170 000 pixels of 2.3 M with random colours (tie-breaking along shared edges; 16 500 pixels, mean 0.23 of 255, on the real layer). So the faster path is verified at mesh time on the machine itself (random colours, five viewpoints, identical inside 97% of the disc radius and at most 3e-5 of the disc area on the limb) and otherwise the former path stays: Firefox and software GL keep the former path and nothing changes there. The claim in section 5 that `pixelSum` was identical in every variant held for one view only.
+3. *Flat map.* The map-bound overlay paths are cached while only the pan changes and moved with an SVG transform (exact: a pan shifts every d3 coordinate by the pan; the unbounded conics clip to the image and still re-project; `pan-cache.test.ts` checks every projection to 0.0011 px). Rasterized, the transform against the baked pan differs only at edge samples (overlay-pan.spec, noise floor recorded in the test annotations). The mesh textures are uploaded in 1 MB row bands with a yield every 4 ms; the GPU-against-exact specs run through it. Exports keep the exact SVG path (`overlaySvg` is unchanged). **Canvas and worker drawing were not adopted**: a canvas drawing of the same path strings is pixel-identical to the SVG (`scripts/perf-overlay-aa.mjs`: 0 differing pixels in Chromium and Firefox), so it stays available, but with the cache the Chromium and Electron pan frames are already at the frame interval (p95 9 ms), so there is nothing measurable to gain there. Correction to section 5: the first switch to the flat map does **not** stall the page for 1.8 s. The page was blocked 87 to 99 ms (message handler: copies and texture objects) plus about 30 ms of GL upload; the 2.6 to 3 s at 2.56M is the engine worker computing the lookup (`projection.gpuLookup`), during which the page stays responsive. That worker time is unchanged and is the remaining cost of the first switch.
+4. *Layer switch.* The worker makes the globe colours and the flat layer (`globe.layer`, `carto.styledLayer`, same code as before, byte-identical colours tested for all 15 layers and three themes) and transfers them; the page adopts the colour array. `carto.data` now transfers instead of cloning. The brush ring's program is compiled when a tool is chosen.
+
+#### Label re-plan: main-thread cost of one stretch of work (ms)
+
+Before: the whole re-plan is one task (the 140 ms timer: plan and SVG write); n, median, max. After: each slice (n, median, p95, max). Styled layer with labels, 540-move stop-and-go drag.
+
+| browser | cells | before: re-plans, median, max | after: slices, median, p95, max | after: re-plans (slice 1 of each) | 
+| --- | --- | --- | --- | --- |
+| chromium | 500k | 6, 22.1, 28.5 | 30, 1.4, 4.3, 7.0 | 6 |
+| chromium | 1M | 6, 23.0, 27.6 | 30, 1.4, 4.3, 6.1 | 6 |
+| chromium | 2.56M | 6, 19.1, 22.7 | 30, 1.5, 4.7, 7.5 | 6 |
+| firefox | 500k | 4, 10.0, 25.0 | 19, 1.0, 5.0, 5.0 | 1 |
+| firefox | 1M | 4, 27.0, 28.0 | 20, 1.0, 4.0, 5.0 | 3 |
+| firefox | 2.56M | 4, 25.0, 26.0 | 20, 2.0, 6.0, 7.0 | 1 |
+| electron | 500k | 6, 19.1, 31.1 | 30, 1.5, 4.3, 5.4 | 6 |
+| electron | 1M | 6, 18.3, 20.4 | 29, 1.8, 4.0, 5.9 | 6 |
+| electron | 2.56M | 6, 24.0, 33.8 | 33, 2.1, 7.4, 8.4 | 6 |
+
+#### Panning the zoomed-out globe: longest frame gap in ms (gaps over 25 ms), before -> after
+
+| browser | cells | styled+labels | styled+labels+ov | elev | ring-elev | ring-styled+labels | 
+| --- | --- | --- | --- | --- | --- | --- |
+| chromium | 500k | 25 (1) -> 10 (0) | 26 (4) -> 10 (0) | 10 (0) -> 10 (0) | 9 (0) -> 10 (0) | 9 (0) -> 10 (0) |
+| chromium | 1M | 25 (0) -> 10 (0) | 25 (1) -> 10 (0) | 9 (0) -> 11 (0) | 9 (0) -> 10 (0) | 9 (0) -> 10 (0) |
+| chromium | 2.56M | 17 (0) -> 10 (0) | 25 (0) -> 11 (0) | 9 (0) -> 10 (0) | 9 (0) -> 10 (0) | 9 (0) -> 10 (0) |
+| firefox | 500k | 25 (2) -> 10 (0) | 25 (1) -> 10 (0) | 9 (0) -> 10 (0) | 17 (0) -> 10 (0) | 17 (0) -> 17 (0) |
+| firefox | 1M | 25 (2) -> 10 (0) | 25 (1) -> 10 (0) | 10 (0) -> 10 (0) | 9 (0) -> 17 (0) | 9 (0) -> 16 (0) |
+| firefox | 2.56M | 26 (2) -> 17 (0) | 25 (1) -> 222 (1) | 24 (0) -> 10 (0) | 25 (0) -> 17 (0) | 17 (0) -> 333 (1) |
+| electron | 500k | 25 (0) -> 10 (0) | 25 (1) -> 10 (0) | 9 (0) -> 10 (0) | 9 (0) -> 10 (0) | 9 (0) -> 10 (0) |
+| electron | 1M | 17 (0) -> 10 (0) | 17 (0) -> 10 (0) | 9 (0) -> 10 (0) | 9 (0) -> 10 (0) | 9 (0) -> 10 (0) |
+| electron | 2.56M | 25 (1) -> 9 (0) | 25 (2) -> 9 (0) | 9 (0) -> 11 (0) | 9 (0) -> 9 (0) | 9 (0) -> 9 (0) |
+
+#### Layer switches (elevation, styled, koppen): latency of `setLayer` (ms, median of 5; the worker now does the colouring, so latency can rise) and what the page felt: longest frame gap in ms (gaps over 25 ms), before -> after
+
+| browser | cells | setLayer latency | longest frame gap (n over 25 ms) | 
+| --- | --- | --- | --- |
+| chromium | 500k | 14 -> 15 | 33 (1) -> 10 (0) |
+| chromium | 1M | 23 -> 24 | 50 (1) -> 10 (0) |
+| chromium | 2.56M | 44 -> 47 | 108 (4) -> 9 (0) |
+| firefox | 500k | 26 -> 21 | 33 (1) -> 10 (0) |
+| firefox | 1M | 36 -> 34 | 50 (3) -> 10 (0) |
+| firefox | 2.56M | 63 -> 61 | 100 (5) -> 231 (2) |
+| electron | 500k | 10 -> 14 | 17 (0) -> 10 (0) |
+| electron | 1M | 24 -> 23 | 50 (1) -> 10 (0) |
+| electron | 2.56M | 33 -> 45 | 92 (2) -> 9 (0) |
+
+#### Render cost: GPU plus draw per frame, ms (median / p95), before -> after
+
+| browser | cells | globe, zoomed out | flat, elevation shader | globe pixelSum | 
+| --- | --- | --- | --- | --- |
+| chromium | 1M | 6.80 / 7.70 -> 4.90 / 6.00 | 5.70 / 6.40 -> 5.60 / 6.60 | 682973225 -> 682973181 |
+| chromium | 2.56M | 6.00 / 11.10 -> 7.40 / 8.70 | 12.50 / 12.80 -> 12.20 / 12.70 | 682905042 -> 682905105 |
+| electron | 1M | 7.15 / 7.94 -> 5.13 / 6.27 | 5.53 / 6.24 -> 5.77 / 6.34 | 745545104 -> 745545104 |
+| electron | 2.56M | 7.88 / 11.27 -> 7.60 / 9.19 | 12.23 / 12.69 -> 12.57 / 13.09 | 745478996 -> 745478996 |
+| firefox | 1M | 7.00 / 8.00 -> 6.00 / 8.00 | 5.00 / 6.00 -> 5.00 / 7.00 | 682970299 -> 682970299 |
+| firefox | 2.56M | 6.00 / 8.00 -> 7.00 / 8.00 | 6.00 / 7.00 -> 6.00 / 7.00 | 682901239 -> 682901239 |
+
+#### Flat map: first switch from the globe (ms to drawn, longest frame gap, longest worker-message handler ms), before -> after
+
+| browser | cells | time to drawn | longest frame gap | main-thread handler of the lookup message | 
+| --- | --- | --- | --- | --- |
+| chromium | 1M | 897 -> 994 | 25 -> 9 | 34 -> 4 |
+| firefox | 1M | 1774 -> 1811 | 42 -> 17 | 47 -> 4 |
+| electron | 1M | 788 -> 935 | 33 -> 9 | 34 -> 4 |
+| chromium | 2.56M | 3063 -> 3081 | 83 -> 25 | 88 -> 6 |
+| firefox | 2.56M | 6061 -> 6165 | 67 -> 25 | 99 -> 15 |
+| electron | 2.56M | 2634 -> 2698 | 75 -> 25 | 87 -> 4 |
+
+#### Flat map, drag-panning at 4x zoom with overlays: gap p50/p95/max in ms (gaps over 25 ms), rAF callback ms (median), SVG writes (count, median ms), before -> after
+
+| browser | cells | configuration | before | after | 
+| --- | --- | --- | --- | --- |
+| chromium | 1M | flat-pan | 8.3/16.6/25 (1); raf 0.0; svg 364, 3.1 | 8.3/9.0/9 (0); raf 0.0; svg 0, 0.0 |
+| chromium | 1M | flat-pan-styled | 8.4/41.6/59 (355); raf 0.0; svg 364, 7.7 | 8.3/9.0/25 (0); raf 0.0; svg 11, 0.3 |
+| firefox | 1M | flat-pan | 8.3/25.0/33 (13); raf 0.0; svg 187, 3.0 | 8.3/16.7/33 (1); raf 0.0; svg 0, 0.0 |
+| firefox | 1M | flat-pan-styled | 8.3/50.0/67 (189); raf 2.0; svg 188, 7.0 | 8.3/41.7/43 (170); raf 2.0; svg 31, 1.0 |
+| electron | 1M | flat-pan | 8.3/9.1/35 (5); raf 0.0; svg 364, 3.3 | 8.3/8.9/9 (0); raf 0.0; svg 0, 0.0 |
+| electron | 1M | flat-pan-styled | 8.3/41.6/67 (364); raf 0.0; svg 364, 7.5 | 8.3/9.2/17 (0); raf 0.0; svg 0, 0.0 |
+| chromium | 2.56M | flat-pan | 8.4/24.9/50 (21); raf 0.0; svg 364, 4.9 | 8.3/9.0/9 (0); raf 0.0; svg 0, 0.0 |
+| chromium | 2.56M | flat-pan-styled | 8.4/58.4/83 (364); raf 0.0; svg 364, 13.0 | 8.3/9.1/18 (0); raf 0.0; svg 10, 0.3 |
+| firefox | 2.56M | flat-pan | 8.4/33.3/50 (101); raf 0.0; svg 187, 5.0 | 8.3/25.0/42 (40); raf 0.0; svg 0, 0.0 |
+| firefox | 2.56M | flat-pan-styled | 8.4/83.3/100 (189); raf 2.0; svg 188, 12.0 | 8.3/66.7/75 (186); raf 0.0; svg 27, 1.0 |
+| electron | 2.56M | flat-pan | 8.3/17.4/42 (23); raf 0.0; svg 364, 5.2 | 8.3/8.7/9 (0); raf 0.0; svg 0, 0.0 |
+| electron | 2.56M | flat-pan-styled | 8.3/66.6/84 (364); raf 0.0; svg 364, 12.5 | 8.3/8.8/17 (0); raf 0.0; svg 0, 0.0 |
+
+
+**Reading the tables**
+- *Label re-plan:* the one 19 to 34 ms task is now slices with a median of 1.0 to 2.1 ms and p95 of 4.0 to 4.7 ms up to 1M cells (5.0 to 7.4 at 2.56M); the longest slice is 5.4 to 8.4 ms (the placement, `planLabels`, 3 to 4 ms of it on the first run, plus garbage collection). The target of slices of at most 4 ms is met for the median and nearly for the p95, **not for the longest slice**. Total work per re-plan fell from 19 to 30 ms to about 7 ms. No frame gap over 25 ms in Chromium and Electron at any size (before: 0 to 4 per run); the largest is 9 to 11 ms.
+- *Layer switch:* the longest frame gap per switch fell from 33 to 108 ms to 9 to 10 ms in Chromium and Electron; the latency of `setLayer` is unchanged to slightly higher at 2.56M (the colouring moved to the worker).
+- *Render:* the globe's GPU time at 1M fell 28 to 30% (7.0 to 4.9 ms Chromium, 7.15 to 5.13 ms Electron), at 2.56M 6 to 8% in the median (p95 11.3 to 9.2 ms in Electron): culling and ordering measured separately gave 13% and 16%, but together they are not additive (section 5 already said 7.9 ms). Firefox keeps the former path (unchanged). The flat shader is unchanged (not touched). Chromium's `pixelSum` differs by 44 and 63 of 6.8e8 (a few limb pixels, inside the tolerance above); Electron's is identical.
+- *Flat map:* dragging the zoomed flat map with overlays: p95 frame gap 41 to 67 ms (styled, 364 gaps over 25 ms in 364 frames) became 9 ms with none over 25 ms in Chromium and Electron at 1M and 2.56M; without the styled layer 17 to 25 ms became 9 ms. Firefox improves less and still misses frames with the styled layer (170 to 186 gaps over 25 ms; unexplained, Firefox cannot be profiled here).
+- *Open:* Firefox at 2.56M shows single gaps of 222, 231 and 333 ms in this run (one each in three configurations; the section 6 "unexplained, Firefox only" item, likely garbage or cycle collection); the layer switch's 231 ms is above the 100 ms before and I could not tell a regression from the same unexplained spikes with one run. The flat label plan (per frame in the flat view) is not sliced; it is not among the four items.
+
+Reproduce the before and after tables: `scripts/perf-fixes-all.sh before` on the previous commit and `after` on this one (preview on 127.0.0.1:4173, `apps/desktop/dist` built), then `node scripts/perf-fixes-summary.mjs`.
