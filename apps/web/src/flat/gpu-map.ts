@@ -35,7 +35,9 @@ export class GpuMap {
   private readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   private readonly quad: THREE.Mesh;
   private readonly materials = new Map<string, THREE.RawShaderMaterial>();
-  private textures: Record<string, THREE.DataTexture> = {};
+  private textures: Record<string, THREE.Texture> = {};
+  /** GL textures made by `rawTexture` (three.js did not make them and does not free them). */
+  private rawGl: WebGLTexture[] = [];
   private texW = 1;
   private layer: GpuLayer | undefined;
   readonly maxTextureSize: number;
@@ -78,23 +80,86 @@ export class GpuMap {
     return this.dataTexture(padTo(data, this.texW * h), this.texW, h, kind);
   }
 
-  setMesh(m: GpuMesh): void {
+  /**
+   * The mesh textures, uploaded in slices (the data go straight from the arrays to the GPU in row bands; nothing is copied or padded
+   * for the whole texture, which was a stall of seconds at 2.56M cells). Resolves when every texel is there; `yieldNow` is awaited
+   * whenever `sliceMs` of main-thread time has passed, and `cancelled` abandons the upload (the textures made so far are freed).
+   * The texels are those of the former one-piece upload: rows of `texW`, the last row zero-padded.
+   */
+  async setMeshSliced(m: GpuMesh, s: { sliceMs: number; yieldNow(): Promise<void>; cancelled(): boolean }): Promise<boolean> {
     this.dispose();
     const longest = Math.max(m.triangles.length, m.adjList.length, 3 * m.numRegions + 1);
     const size = flatTextureWidth(longest, this.maxTextureSize);
     if (!size) throw new Error('mesh too large for this GPU');
-    this.texW = size.width;
+    const texW = size.width;
     const u32 = (a: Int32Array) => new Uint32Array(a.buffer, a.byteOffset, a.length);
-    this.textures = {
-      uCube: this.dataTexture(m.cube, 3 * m.cubeR, 2 * m.cubeR, 'u32'),
-      uTri: this.flat(u32(m.triangles), 'u32'),
-      uHalf: this.flat(u32(m.halfedges), 'u32'),
-      uPos: this.flat(Float32Array.from(m.points), 'f32'),
-      uAdjOff: this.flat(u32(m.adjOffset), 'u32'),
-      uAdj: this.flat(u32(m.adjList), 'u32'),
-    };
+    const jobs: [string, ArrayLike<number>, 'u32' | 'f32', number, number][] = [
+      ['uCube', m.cube, 'u32', 3 * m.cubeR, 2 * m.cubeR],
+      ['uTri', u32(m.triangles), 'u32', texW, Math.ceil(m.triangles.length / texW)],
+      ['uHalf', u32(m.halfedges), 'u32', texW, Math.ceil(m.halfedges.length / texW)],
+      ['uPos', m.points, 'f32', texW, Math.ceil(m.points.length / texW)],
+      ['uAdjOff', u32(m.adjOffset), 'u32', texW, Math.ceil(m.adjOffset.length / texW)],
+      ['uAdj', u32(m.adjList), 'u32', texW, Math.ceil(m.adjList.length / texW)],
+    ];
+    this.texW = texW;
     this.cubeR = m.cubeR;
     this.regions = m.numRegions;
+    let t0 = performance.now();
+    for (const [name, data, kind, w, h] of jobs) {
+      const tex = this.rawTexture(kind, w, h);
+      this.textures[name] = tex.texture;
+      // Rows per band: about 1 MB; the clock is read between bands.
+      const band = Math.max(1, Math.floor(262144 / w));
+      const gl = this.renderer.getContext() as WebGL2RenderingContext, stage = kind === 'f32' && !(data instanceof Float32Array) ? new Float32Array(band * w) : null;
+      for (let r0 = 0; r0 < h; r0 += band) {
+        const r1 = Math.min(h, r0 + band);
+        this.putRows(gl, tex.glTexture, kind, w, r0, r1, data, stage);
+        if (performance.now() - t0 >= s.sliceMs) {
+          await s.yieldNow();
+          if (s.cancelled()) { this.dispose(); return false; }
+          t0 = performance.now();
+        }
+      }
+    }
+    return true;
+  }
+
+  /** A GL texture of one 32-bit channel and its three.js handle (version 0: three.js binds it without uploading). */
+  private rawTexture(kind: 'u32' | 'f32', w: number, h: number): { texture: THREE.Texture; glTexture: WebGLTexture } {
+    const gl = this.renderer.getContext() as WebGL2RenderingContext, glTexture = gl.createTexture()!;
+    gl.bindTexture(gl.TEXTURE_2D, glTexture);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, kind === 'u32' ? gl.R32UI : gl.R32F, w, h);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    this.rawGl.push(glTexture);
+    const texture = new THREE.Texture();
+    const props = this.renderer.properties.get(texture) as { __webglTexture?: WebGLTexture; __webglInit?: boolean };
+    props.__webglTexture = glTexture;
+    props.__webglInit = true;
+    return { texture, glTexture };
+  }
+
+  /** Rows `r0..r1` of a texture of width `w` from `data` (a short last row is zero-padded). */
+  private putRows(gl: WebGL2RenderingContext, glTexture: WebGLTexture, kind: 'u32' | 'f32', w: number, r0: number, r1: number, data: ArrayLike<number>, stage: Float32Array | null): void {
+    const from = r0 * w, to = Math.min(data.length, r1 * w), n = (r1 - r0) * w;
+    let src: Uint32Array | Float32Array;
+    if (to - from === n && (kind === 'u32' ? data instanceof Uint32Array : data instanceof Float32Array)) src = (data as Uint32Array | Float32Array).subarray(from, to);
+    else {
+      // Converted (float64 positions) or padded rows: staged in a band-sized array, zero past the data.
+      const buf = kind === 'u32' ? new Uint32Array(n) : stage && stage.length >= n ? stage : new Float32Array(n);
+      for (let i = 0; i < n; i++) buf[i] = from + i < data.length ? data[from + i]! : 0;
+      src = buf;
+    }
+    gl.bindTexture(gl.TEXTURE_2D, glTexture);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, r0, w, r1 - r0, kind === 'u32' ? gl.RED_INTEGER : gl.RED, kind === 'u32' ? gl.UNSIGNED_INT : gl.FLOAT, src);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    this.renderer.resetState();
   }
 
   private cubeR = 0;
@@ -205,5 +270,7 @@ export class GpuMap {
   dispose(): void {
     for (const t of Object.values(this.textures)) t.dispose();
     this.textures = {};
+    for (const t of this.rawGl) this.renderer.getContext().deleteTexture(t);
+    this.rawGl = [];
   }
 }

@@ -29,6 +29,8 @@ export interface MaskView {
   height: number;
   forward(lon: number, lat: number): [number, number] | null;
   invert(x: number, y: number): [number, number] | null;
+  /** Same as `invert` without allocating: writes longitude and latitude to `out[0..1]` and returns whether the pixel is on the map. Optional; `buildMask` prefers it. */
+  invertInto?(x: number, y: number, out: Float64Array): boolean;
 }
 
 /** Map points tried, in order, as the grid's anchor: the first that is on the view. */
@@ -77,17 +79,71 @@ export function regionAt(g: RegionGrid, lon: number, lat: number): number {
  * cell. A zoom or a rotation changes the grid, as it changes the map.
  */
 export function buildMask(view: MaskView, regions: RegionGrid, cell: number): LabelMask {
+  const g = maskGrid(view, cell), region = new Int16Array(g.cols * g.rows), out = new Float64Array(2);
+  fillRows(view, regions, cell, g, region, 0, g.rows, out);
+  return finishMask(cell, g, region);
+}
+
+/** What `buildMaskSliced` needs from its caller. */
+export interface MaskSlicing {
+  /** Longest stretch of rows computed before `yieldNow` (milliseconds of main-thread time). */
+  sliceMs: number;
+  /** Lets other work run (a macrotask turn). */
+  yieldNow(): Promise<void>;
+  /** True when the plan is no longer wanted (the view moved on): the mask is abandoned and null returned. */
+  cancelled(): boolean;
+  now(): number;
+}
+
+/**
+ * `buildMask` in slices of rows. The slicing only decides when the work is paused, never what is computed, so the result is
+ * identical to `buildMask`'s (tested). The caller must abandon the plan when the view changes (`cancelled`, checked between slices).
+ */
+export async function buildMaskSliced(view: MaskView, regions: RegionGrid, cell: number, s: MaskSlicing): Promise<LabelMask | null> {
+  const g = maskGrid(view, cell), region = new Int16Array(g.cols * g.rows), out = new Float64Array(2);
+  let y = 0, t0 = s.now();
+  while (y < g.rows) {
+    const y1 = Math.min(g.rows, y + 4); // a few rows between clock reads (a row is some 100 cells)
+    fillRows(view, regions, cell, g, region, y, y1, out);
+    y = y1;
+    if (y < g.rows && s.now() - t0 >= s.sliceMs) {
+      await s.yieldNow();
+      if (s.cancelled()) return null;
+      t0 = s.now();
+    }
+  }
+  // The distance transforms are two linear passes (1 to 2 ms): a slice of their own.
+  await s.yieldNow();
+  if (s.cancelled()) return null;
+  return finishMask(cell, g, region);
+}
+
+interface MaskGrid { ox: number; oy: number; cols: number; rows: number }
+
+function maskGrid(view: MaskView, cell: number): MaskGrid {
   let ox = 0, oy = 0;
   for (const [lon, lat] of ANCHORS) {
     const xy = view.forward(lon, lat);
     if (xy && Number.isFinite(xy[0]) && Number.isFinite(xy[1])) { ox = (((xy[0] % cell) + cell) % cell) - cell; oy = (((xy[1] % cell) + cell) % cell) - cell; break; }
   }
   const cols = Math.max(1, Math.ceil((view.width - ox) / cell)), rows = Math.max(1, Math.ceil((view.height - oy) / cell));
-  const region = new Int16Array(cols * rows);
-  for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
-    const ll = view.invert(ox + (x + 0.5) * cell, oy + (y + 0.5) * cell);
-    region[y * cols + x] = ll ? regionAt(regions, ll[0], ll[1]) : OUTSIDE;
+  return { ox, oy, cols, rows };
+}
+
+function fillRows(view: MaskView, regions: RegionGrid, cell: number, g: MaskGrid, region: Int16Array, y0: number, y1: number, out: Float64Array): void {
+  const { ox, oy, cols } = g;
+  for (let y = y0; y < y1; y++) for (let x = 0; x < cols; x++) {
+    const px = ox + (x + 0.5) * cell, py = oy + (y + 0.5) * cell;
+    if (view.invertInto) region[y * cols + x] = view.invertInto(px, py, out) ? regionAt(regions, out[0]!, out[1]!) : OUTSIDE;
+    else {
+      const ll = view.invert(px, py);
+      region[y * cols + x] = ll ? regionAt(regions, ll[0], ll[1]) : OUTSIDE;
+    }
   }
+}
+
+function finishMask(cell: number, g: MaskGrid, region: Int16Array): LabelMask {
+  const { ox, oy, cols, rows } = g;
   const clear = new Float32Array(cols * rows).fill(FAR), edge = new Float32Array(cols * rows).fill(FAR);
   for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
     const i = y * cols + x, r = region[i]!;

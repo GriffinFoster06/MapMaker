@@ -1,0 +1,23 @@
+== pan electron 2560000
+[electron 2560000] ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Pro, Unspecified Version) dpr 2 canvas 2048,1216
+generated 2560000 in 29.3 s
+  styled+labels        frames 1390 gap p50 8.3 p95 9.0 p99 9.3 max 9.3  >25ms 0  longtasks 0 loaf 0
+  styled+labels+ov     frames 1388 gap p50 8.3 p95 9.3 p99 9.3 max 9.3  >25ms 0  longtasks 0 loaf 0
+  elev                 frames 1389 gap p50 8.3 p95 9.3 p99 9.3 max 10.5  >25ms 0  longtasks 0 loaf 0
+  ring-elev            frames 1333 gap p50 8.3 p95 9.2 p99 9.3 max 9.3  >25ms 0  longtasks 0 loaf 0
+  ring-styled+labels   frames 1335 gap p50 8.3 p95 9.1 p99 9.3 max 9.3  >25ms 0  longtasks 0 loaf 0
+  switch               frames 660 gap p50 8.3 p95 8.9 p99 9.2 max 9.3  >25ms 0  longtasks 0 loaf 0
+  flat-styled          frames 286 gap p50 8.3 p95 50.1 p99 58.3 max 133.4  >25ms 91  longtasks 10 loaf 8
+== render chromium 1000000
+base globe out full {"n":121,"median":4.9,"p95":6,"max":6.6} flat elev {"n":150,"median":5.6,"p95":6.6,"max":33.2}
+== render chromium 2560000
+base globe out full {"n":121,"median":7.4,"p95":8.7,"max":11.2} flat elev {"n":150,"median":12.2,"p95":12.7,"max":38.5}
+== render electron 1000000
+base globe out full {"n":121,"median":5.13,"p95":6.27,"max":6.68} flat elev {"n":150,"median":5.77,"p95":6.34,"max":31.67}
+== render electron 2560000
+base globe out full {"n":121,"median":7.6,"p95":9.19,"max":34} flat elev {"n":150,"median":12.57,"p95":13.09,"max":29.15}
+== render firefox 1000000
+base globe out full {"n":121,"median":6,"p95":8,"max":9} flat elev {"n":150,"median":5,"p95":7,"max":19}
+== render firefox 2560000
+base globe out full {"n":121,"median":7,"p95":8,"max":14} flat elev {"n":150,"median":6,"p95":7,"max":24}
+DONE

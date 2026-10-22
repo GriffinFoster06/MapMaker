@@ -11,7 +11,7 @@ import type { HeightmapArgs } from '@mapmaker/projection/exact/kernels';
 import { CPU_REDUCTION, FlatMap, type MapState } from './flat-map';
 import { lonLatDegToUnit, unitToLonLatDeg } from '../editor/editing';
 import { saveFile } from '../desktop';
-import { type CartoData, type OverlayOptions, type Style, furnitureLayout, overlaySvg, planLabels, riverThreshold } from '@mapmaker/carto';
+import { type CartoData, type OverlayOptions, type Style, furnitureLayout, overlayMapSvg, overlayScreenSvg, planLabels, riverThreshold } from '@mapmaker/carto';
 import type { LabelPlan } from '@mapmaker/carto';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -82,6 +82,11 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
   let dataOf: () => Promise<CartoData> = () => { throw new Error('no style source'); };
   let labelCount = 0;
 
+  // The overlay's three layers, in the drawing order of the former single string: map-bound paths, labels and furniture, Tissot circles.
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const [gBelow, gScreen, gAbove] = [0, 1, 2].map(() => svg.appendChild(document.createElementNS(SVGNS, 'g'))) as [SVGGElement, SVGGElement, SVGGElement];
+  let geoCache: { key: string; data: unknown; below: string; above: string } | null = null, geoKeyNow = '';
+
   let zoom = 1, pan: [number, number] = [0, 0];
   let coast: Promise<MultiLineString> | undefined;
   let pending: Promise<void> = Promise.resolve();
@@ -111,16 +116,27 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
     if (!flat.ready) { mapStatus.textContent = 'generate a world first'; return; }
     const path = await flat.render(st);
     if (path === 'superseded' || my !== gen) return;
-    // Overlays, through the same stock view at the map's device-pixel size.
-    const view = FlatMap.view(st, W, H), p = pathFor(view);
+    // Overlays, through the same stock view at the map's device-pixel size. The map-bound paths (graticule, rivers, coastline,
+    // outline, Tissot) are made at pan 0 and moved with a transform: while only the pan changes they are kept as they are (every
+    // coordinate of the path of a panned view is the pan-0 coordinate plus the pan). Labels, scale bar and legend are per view.
+    const view = FlatMap.view(st, W, H);
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-    let body = '';
+    const shift = view.panInvariant;
+    const geoView = shift ? FlatMap.view({ ...st, pan: [0, 0] }, W, H) : view, p = pathFor(geoView);
+    const flags = `${ovGrat.checked}${ovCoast.checked}${ovRivers.checked}${ovFurniture.checked}${ovTissot.checked}`;
+    const geoKey = [st.projection, st.rotate.join(), st.parallels?.join() ?? '', zoom, W, H, shift ? '' : st.pan.join(), flags].join('|');
+    let below = '', above = '', screen = '', geoData: unknown;
     if (styledOn()) {
       // The styled map's vector layers: the same geometry the exports draw, through this stock view.
       const style = styleOf();
       const data = await dataOf();
       if (my !== gen) return;
+      geoData = data;
       const o: OverlayOptions = { graticule: ovGrat.checked, coast: ovCoast.checked, rivers: ovRivers.checked, outline: true, labels: null, scaleBar: ovFurniture.checked, legend: ovFurniture.checked };
+      const key = `${geoKey}|${JSON.stringify(style)}`;
+      if (!geoCache || geoCache.key !== key || geoCache.data !== data) below = overlayMapSvg(geoView, data, style, o);
+      else below = geoCache.below;
+      geoKeyNow = key;
       let plan: LabelPlan | null = null;
       if (ovLabels.checked) {
         const fur = furnitureLayout(W, H, style, o);
@@ -128,23 +144,39 @@ export function startMapUi(client: EngineClient, flat: FlatMap, globeCanvas: HTM
         o.labels = plan;
       }
       labelCount = plan?.labels.length ?? 0;
-      body = overlaySvg(view, data, style, o);
+      screen = overlayScreenSvg(view, data, style, o);
     } else {
       labelCount = 0;
-      body = `<path d="${p(view.outline()) ?? ''}" fill="none" stroke="#9aa" stroke-width="${W / 600}"/>`;
-      if (ovGrat.checked) body += `<path class="graticule" d="${p(graticule(view, 15)) ?? ''}" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="${W / 1200}"/>`;
+      let c: MultiLineString | null = null;
       if (ovCoast.checked) {
         coast ??= client.worldKernel<MultiLineString>('projection.coastlines', {});
-        const c = await coast;
+        c = await coast;
         if (my !== gen) return;
-        body += `<path class="coast" d="${p(c) ?? ''}" fill="none" stroke="#111" stroke-width="${W / 900}"/>`;
       }
+      geoData = c;
+      const key = `${geoKey}|plain`;
+      if (!geoCache || geoCache.key !== key || geoCache.data !== c) {
+        below = `<path d="${p(geoView.outline()) ?? ''}" fill="none" stroke="#9aa" stroke-width="${W / 600}"/>`;
+        if (ovGrat.checked) below += `<path class="graticule" d="${p(graticule(geoView, 15)) ?? ''}" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="${W / 1200}"/>`;
+        if (c) below += `<path class="coast" d="${p(c) ?? ''}" fill="none" stroke="#111" stroke-width="${W / 900}"/>`;
+      } else below = geoCache.below;
+      geoKeyNow = key;
     }
     if (ovTissot.checked) {
-      const f = tissotFeatures(tissot(view, { step: 30, radius: 5 }));
-      body += `<g class="tissot" fill="#e33" fill-opacity="0.35" stroke="#b11" stroke-width="${W / 1200}">${f.circles.map((c) => `<path d="${p(c) ?? ''}"/>`).join('')}${f.axes.map((a) => `<path d="${p(a) ?? ''}" fill="none"/>`).join('')}</g>`;
+      if (geoCache && geoCache.key === geoKeyNow && geoCache.data === geoData) above = geoCache.above;
+      else {
+        const f = tissotFeatures(tissot(geoView, { step: 30, radius: 5 }));
+        above = `<g class="tissot" fill="#e33" fill-opacity="0.35" stroke="#b11" stroke-width="${W / 1200}">${f.circles.map((cc) => `<path d="${p(cc) ?? ''}"/>`).join('')}${f.axes.map((a) => `<path d="${p(a) ?? ''}" fill="none"/>`).join('')}</g>`;
+      }
     }
-    svg.innerHTML = body;
+    if (!geoCache || geoCache.key !== geoKeyNow || geoCache.data !== geoData) {
+      geoCache = { key: geoKeyNow, data: geoData, below, above };
+      gBelow.innerHTML = below;
+      gAbove.innerHTML = above;
+    }
+    const move = shift ? `translate(${st.pan[0]} ${st.pan[1]})` : '';
+    if (move) { gBelow.setAttribute('transform', move); gAbove.setAttribute('transform', move); } else { gBelow.removeAttribute('transform'); gAbove.removeAttribute('transform'); }
+    gScreen.innerHTML = screen;
     const q = ovDist.value as DistortionQuantity | '';
     if (q) {
       const w = Math.ceil(W / DISTORTION_REDUCTION), h = Math.ceil(H / DISTORTION_REDUCTION);

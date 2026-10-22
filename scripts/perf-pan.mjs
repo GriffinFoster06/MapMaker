@@ -154,11 +154,12 @@ try {
   for (const name of configs) {
     const styled = name.startsWith('styled') || name.endsWith('styled+labels');
     const labels = name.includes('labels'), ov = name.includes('+ov'), ring = name.startsWith('ring');
-    const flatCfg = name.startsWith('flat');
+    const flatCfg = name.startsWith('flat') && name !== 'flat-switch' && !name.startsWith('flat-pan');
+    const flatPan = name.startsWith('flat-pan'), flatSwitch = name === 'flat-switch';
     await setTool('');
-    await setOverlays(ov || (flatCfg && name !== 'flat-plain'));
-    await page.evaluate((id) => window.__globe.setLayer(id), styled || name === 'flat-styled' ? 'styled' : elevId);
-    await setLabels(labels || name === 'flat-styled');
+    await setOverlays(ov || (flatCfg && name !== 'flat-plain') || flatPan);
+    await page.evaluate((id) => window.__globe.setLayer(id), styled || name === 'flat-styled' || name === 'flat-pan-styled' ? 'styled' : elevId);
+    await setLabels(labels || name === 'flat-styled' || name === 'flat-pan-styled');
     if (flatCfg) await page.evaluate(() => { const s = document.getElementById('viewMode'); s.value = 'flat'; s.dispatchEvent(new Event('change')); });
     await sleep(1500); // let the first label plan and any colour upload finish
     // trace / profile
@@ -176,10 +177,43 @@ try {
     }
     const mk = await marker();
     await sleep(100);
-    await page.evaluate(() => window.__pm.start());
+    await page.evaluate(() => { window.__pm.start(); if (window.__globe.labelSlices) window.__globe.labelSlices(); });
     let moves = 0;
     let switches = null;
     if (name === 'idle') await sleep(5000);
+    else if (flatSwitch) {
+      // The first switch from the globe to the flat map: the world's textures are prepared and uploaded (the page stalls meanwhile).
+      switches = await page.evaluate(async () => {
+        const t = performance.now(), s = document.getElementById('viewMode');
+        s.value = 'flat'; s.dispatchEvent(new Event('change'));
+        const st = document.getElementById('mapStatus');
+        while (!/GPU$|CPU at/.test(st.textContent)) await new Promise((r) => setTimeout(r, 20));
+        const ms = performance.now() - t;
+        await new Promise((r) => setTimeout(r, 500));
+        s.value = 'globe'; s.dispatchEvent(new Event('change'));
+        return [{ id: 'first-flat', ms }];
+      });
+    }
+    else if (flatPan) {
+      // Zoom in 4x with the wheel, then drag-pan the flat map (stop and go, as the globe script); the overlays are on.
+      await page.evaluate(() => { const s = document.getElementById('viewMode'); s.value = 'flat'; s.dispatchEvent(new Event('change')); });
+      await page.evaluate(() => document.getElementById('mapReset').click());
+      await sleep(1500);
+      const mb = await page.locator('#map').boundingBox();
+      const mx = mb.x + mb.width / 2, my2 = mb.y + mb.height / 2;
+      await page.mouse.move(mx, my2);
+      for (let i = 0; i < 14; i++) { await page.mouse.wheel(0, -120); await sleep(30); }
+      await sleep(1200);
+      await page.evaluate(() => window.__pm.start());
+      const rests2 = [150, 300, 150, 500];
+      for (let seg = 0; seg < rests2.length; seg++) {
+        const dir = seg % 2 ? -1 : 1;
+        await page.mouse.move(mx - dir * 150, my2); await page.mouse.down();
+        for (let i = 0; i <= 90; i++) { await page.mouse.move(mx - dir * 150 + dir * 300 * (i / 90), my2 + 40 * Math.sin((i / 90) * Math.PI * 2)); moves++; await sleep(7); }
+        await page.mouse.up();
+        await sleep(rests2[seg]);
+      }
+    }
     else if (flatCfg) {
       // rotation sweep inside the page, one change per animation frame (the flat map redraws on every change)
       await page.evaluate(async () => {
@@ -202,6 +236,7 @@ try {
     }
     await sleep(700);
     const data = await page.evaluate(() => window.__pm.stop());
+    data.labelSlices = await page.evaluate(() => (window.__globe.labelSlices ? window.__globe.labelSlices() : null));
     if (PROF && cdp) { profile = (await cdp.send('Profiler.stop')).profile; await cdp.detach(); }
     if (TRACE && target !== 'firefox') {
       const tf = resolve(root, `docs/perf-study/raw/trace-${target}-${N}-${name.replace(/\+/g, '_')}.json`);
@@ -215,7 +250,7 @@ try {
       traceFile = tf;
     }
     if (profile) { const pf = resolve(root, `docs/perf-study/raw/prof-${target}-${N}-${name.replace(/\+/g, '_')}.json`); mkdirSync(dirname(pf), { recursive: true }); writeFileSync(pf, JSON.stringify(profile)); data.profileFile = pf; }
-    if (flatCfg) await page.evaluate(() => { const s = document.getElementById('viewMode'); s.value = 'globe'; s.dispatchEvent(new Event('change')); });
+    if (flatCfg || flatPan) await page.evaluate(() => { const s = document.getElementById('viewMode'); s.value = 'globe'; s.dispatchEvent(new Event('change')); });
     data.switches = switches; data.marker = mk; data.moves = moves; data.traceFile = traceFile;
     out.configs[name] = data;
     const f = data.frames, gaps = f.slice(1).map((t, i) => t - f[i]).slice(1).sort((a, b) => a - b), q = (x) => gaps[Math.floor((gaps.length - 1) * x)] ?? 0;

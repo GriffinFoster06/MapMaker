@@ -76,6 +76,7 @@ export function startEditor(host: EditorHost): EditorHandle {
     const on = !!t;
     ui.setEditing(on);
     globe?.setControlsEnabled(!on);
+    if (on) globe?.warmRing(); // the ring's shader is compiled now, not at the first hover
     $('brushSoftRow').hidden = brush.mode !== 'soft' || !!t?.seed;
     $<HTMLSelectElement>('brushMode').disabled = !!t?.seed;
     host.globeCanvas.style.cursor = on ? 'crosshair' : '';

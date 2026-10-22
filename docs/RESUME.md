@@ -2,21 +2,20 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-21, by the local agent (Claude Code), on `perf-study` (user request, outside the authorization limit): the performance study `docs/checkpoints/PERFORMANCE_STUDY.md` (generation per stage and core, hot functions, four acceleration options, rendering, panning lag spikes, order of work). Documentation and measurement only. Stopped; Phase 6 and its reconciliation not started.
+- **Last updated:** 2026-10-22, by the local agent (Claude Code), on `perf-fixes` (user request, outside the authorization limit): items 1 to 4 of the performance study's "pull forward" list, with before and after numbers (`docs/checkpoints/PERFORMANCE_STUDY.md` section 10, decisions PF1 to PF5). Stopped; Phase 6 and its reconciliation not started.
 - **Authorized through: Q4 (Electron).** Set by `scripts/authorize.sh`; only the user changes this line.
 
 ## What the user does next
 
 Do these in order. Each step says why.
 
-1. Open `docs/checkpoints/PERFORMANCE_STUDY.md` (on GitHub: the pull request named `perf-study`, "Files changed", or the file in the project) and read **"Answers in short"** at the top, then section 8 "Recommended order of work". Why: you decide whether the proposals are right; nothing in them is built.
-2. If you agree with the five items "before Phase 6" (label re-plan fix, globe culling and triangle order, flat-map overlay path, layer-switch cost and ring warm-up, the shared-memory kernel API), type `/go` and say "do the perf fixes". Why: it changes the order of work, which only you may do (OPERATING_GUIDE §4); the agent then makes them on a new branch and shows before and after numbers. If you would rather go straight to Phase 6, skip this step.
-3. On GitHub, open the pull request `perf-study`. Wait until every check at the bottom shows a green tick (documents and scripts only, so the checks are short). Click **Merge pull request** (the default green button, not the arrow menu), then **Confirm merge**. Why: the study and its measuring scripts reach `main`.
-4. In the terminal, in the project folder, copy and paste exactly:
-   `scripts/authorize.sh 6`
-   Why: it tells the agent it may do the Phase 6 preparation (the documentation-only comparison of the newer orogen, GPlates and the other tectonic sources) and then Phase 6 itself (planet physics). It prepares a small change on a new branch `authorize-6` and uploads it. Do this after step 2 if you chose the perf fixes first.
-5. On GitHub, open the pull request for `authorize-6` (the yellow **Compare & pull request** banner), click **Create pull request**, then **Merge pull request** as in step 3. Why: the agent only works as far as the merged `main` says.
-6. Type `/go` in Claude Code. Why: it starts the agent, which reads everything it needs from the repository.
+1. Open `docs/checkpoints/PERFORMANCE_STUDY.md`, section 10 "After the first fixes" (on GitHub: the pull request `perf-fixes`, "Files changed"). Read the decisions PF2 (the globe's faster draw path is used only where a check says the picture is identical, so Firefox keeps the old path) and PF3 (canvas drawing not adopted). Why: these are the two places where the result differs from what you asked for in the letter; tell the agent if you disagree.
+2. On GitHub, open the pull request `perf-fixes`. Wait until every check at the bottom shows a green tick, then click **Merge pull request** (the default green button) and **Confirm merge**. Why: the fixes reach `main`.
+3. In the terminal, in the project folder, copy and paste exactly: `scripts/authorize.sh 6`. Why: it lets the agent start Phase 6 (the documentation-only comparison of the newer orogen, GPlates and the other tectonic sources, then planet physics). It prepares a small change on a new branch `authorize-6` and uploads it.
+4. On GitHub, open the pull request for `authorize-6` (the yellow **Compare & pull request** banner), click **Create pull request**, then merge it as in step 2.
+5. Type `/go` in Claude Code.
+
+The fifth item of the study (the shared-memory kernel API) is not started; it is still before Phase 6 in the study's order and needs your word ("do item 5").
 
 Optional, whenever convenient and never blocking: try the desktop app (`scripts/node24.sh npm run desktop:dev`) and pan the zoomed-out globe at 1M cells or more with labels on; if you still see long frames with labels off, the study says the cause is the GPU (7 to 8 ms of an 8.3 ms frame), which a hidden test window cannot show. See `docs/RELEASING.md` for installers, tagging `v0.1.0` and publishing (publishing, signing certificates and any spending are yours).
 
@@ -50,6 +49,8 @@ Nothing blocks the agent. User-only actions are in "What the user does next". Op
 Type `/go` (or any first message). `.claude/commands/go.md` is the whole prompt; the user does not write prompts (decision W10).
 
 ## Work log (newest first; 2 to 4 lines per milestone)
+
+- 2026-10-22: perf-fixes (user request): label re-plan sliced and allocation-free (19 to 34 ms task -> slices, median 1 to 2 ms, longest 5 to 8 ms); globe front-face culling and triangle order only where verified identical (Metal: yes, Firefox and software GL: no; 1M globe GPU -28%, 2.56M -7%); flat-map overlay cache and sliced texture upload (pan p95 41 to 67 ms -> 9 ms in Chromium/Electron; study's 1.8 s stall corrected); layer switch in the worker (longest frame 33 to 108 ms -> 10 ms). Decisions PF1 to PF5.
 
 - 2026-10-21: perf-study (user request): `docs/checkpoints/PERFORMANCE_STUDY.md`. Generation is single-core, 84% in the detail-elevation stage (2.56M: 31.5 s, 1965 MB); five hot spots are 57%; native noise is 1.62x JS with identical bits; panning spike = label re-plan (19 to 30 ms, `lonLatAt` per mask cell), GC at most 5.3 ms, globe GPU 7 to 8 ms of 8.33 ms. Scripts `scripts/perf-*.mjs`, data `docs/perf-study/`, decisions PS1 to PS4. No product code changed.
 

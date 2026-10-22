@@ -109,7 +109,16 @@ export function labelsSvg(plan: LabelPlan, idPrefix = 'lp'): string {
 
 /** The overlay's SVG elements (no <svg> wrapper), in the view's pixel space. */
 export function overlaySvg(view: ProjectionView, data: CartoData, style: Style, o: OverlayOptions): string {
-  const p = pathFor(view), W = view.width, H = view.height, u = W / 1000;
+  return overlayMapSvg(view, data, style, o) + overlayScreenSvg(view, data, style, o);
+}
+
+/**
+ * The part of the overlay that lies on the map: graticule, rivers, coastline and outline, as paths through the view. Moving
+ * the map by a pan shifts every coordinate by that pan (d3 does no clipping to the viewport, except for the unbounded conics),
+ * so the page keeps this part while only the pan changes and moves it with a transform (where `view.panInvariant`).
+ */
+export function overlayMapSvg(view: ProjectionView, data: CartoData, style: Style, o: OverlayOptions): string {
+  const p = pathFor(view), W = view.width, u = W / 1000;
   const line = (d: string | null, attrs: string) => (d ? `<path d="${d}" fill="none" ${attrs}/>\n` : '');
   let out = '';
   if (o.graticule) out += line(p(graticule(view, style.graticule.step)), `class="carto-graticule" stroke="${style.graticule.color}" stroke-opacity="${style.graticule.opacity}" stroke-width="${r2(style.graticule.width * u)}"`);
@@ -126,7 +135,13 @@ export function overlaySvg(view: ProjectionView, data: CartoData, style: Style, 
     out += line(d, `class="carto-coast" stroke="${style.coast.color}" stroke-width="${r2(style.coast.width * u)}" stroke-linejoin="round"`);
   }
   if (o.outline) out += line(p(view.outline()), `class="carto-outline" stroke="${style.outline.color}" stroke-width="${r2(style.outline.width * u)}"`);
+  return out;
+}
 
+/** The part of the overlay fixed to the screen or placed for the view: labels, scale bar and legend. */
+export function overlayScreenSvg(view: ProjectionView, data: CartoData, style: Style, o: OverlayOptions): string {
+  const W = view.width, H = view.height, u = W / 1000;
+  let out = '';
   if (o.labels) out += labelsSvg(o.labels);
 
   const fur = furnitureLayout(W, H, style, o);

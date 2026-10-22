@@ -107,6 +107,12 @@ export class ProjectionView {
     this.centre = this.toRaw.invert([0, 0]) as [number, number];
   }
 
+  /**
+   * Whether changing only `pan` shifts every projected vector coordinate by exactly that pan. False for the unbounded conics,
+   * whose paths are clipped to the image (a little outside), so what is kept depends on the pan.
+   */
+  get panInvariant(): boolean { return this.latBand === null; }
+
   /** Whether a geographic point lies in the projection's domain (clip circle, excluded latitudes). */
   inDomain(lon: number, lat: number): boolean {
     if (!Number.isFinite(lon) || !Number.isFinite(lat) || Math.abs(lat) > 90) return false;

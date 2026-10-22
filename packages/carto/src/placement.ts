@@ -6,7 +6,7 @@ import { dmath } from '@mapmaker/core';
 import { geodesicPoint } from '@mapmaker/projection';
 import type { CartoData, CartoFeature } from './data';
 import { REGION_LAND, REGION_WATER } from './data';
-import { OUTSIDE, buildMask, cellAt, tally } from './label-mask';
+import { type LabelMask, OUTSIDE, buildMask, cellAt, tally } from './label-mask';
 import { ASCENT, DESCENT, INK_RUN_LENGTH, INK_VERTICAL_TRIM, advances, measureText, textWidth } from './font-metrics';
 import { type LabelBounds, type LabelRequest, type Measurement, type PathGeometry, isPathTextUpright, spreadLabels } from './label-spread';
 import type { LabelFont, LabelKind, Style } from './style';
@@ -19,6 +19,8 @@ export interface Projector {
   forward(lon: number, lat: number): [number, number] | null;
   /** Longitude and latitude (degrees) under a pixel, or null where there is no map (beyond the outline, the far side of the globe). */
   invert(x: number, y: number): [number, number] | null;
+  /** Allocation-free `invert` for batches (see `MaskView`). */
+  invertInto?(x: number, y: number, out: Float64Array): boolean;
 }
 
 export interface PlacedText {
@@ -141,7 +143,12 @@ export interface PlanOptions {
   riverMinArea?: number;
   /** A view of a sphere (the globe, an orthographic map): labels are kept off the limb, fade towards it and shrink with the foreshortening. */
   limb?: boolean;
+  /** The view's mask, built beforehand with `buildMaskSliced` at `maskCell(view.width)`; default built here in one go. The plan is the same either way. */
+  mask?: LabelMask;
 }
+
+/** The side of a mask cell in pixels for a view of this width. */
+export function maskCell(width: number): number { return Math.max(3, 4 * (width / 1000)); }
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 
@@ -231,11 +238,11 @@ function offsetPath(pts: [number, number][], d: number): [number, number][] {
 }
 
 export function planLabels(data: CartoData, view: Projector, style: Style, opts: PlanOptions = {}): LabelPlan {
-  const W = view.width, H = view.height, unit = W / 1000, cell = Math.max(3, 4 * unit);
+  const W = view.width, H = view.height, unit = W / 1000, cell = maskCell(W);
   const bounds = opts.bounds ?? { x1: 0, y1: 0, x2: W, y2: H };
   const maxLabels = opts.maxLabels ?? Math.max(10, Math.min(160, Math.round((70 * W * H) / (1000 * 600))));
   const maxRivers = Math.max(3, Math.round(0.35 * maxLabels));
-  const mask = buildMask(view, data.regions, cell);
+  const mask = opts.mask ?? buildMask(view, data.regions, cell);
   const R = Math.min(W, H) / 2, e0 = opts.limb ? 0.035 * R : 0, e1 = opts.limb ? 0.16 * R : 1;
   /** The least distance to the outline a name's ink must keep, pixels. */
   const margin = e0 + 1.5 * cell;
