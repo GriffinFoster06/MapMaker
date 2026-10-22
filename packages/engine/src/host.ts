@@ -7,6 +7,17 @@ import { resolveVariant } from './runner';
 import { runPipeline } from './runner';
 import type { CancelFlag, Stage } from './stage';
 
+const surrendered = new WeakMap<object, ArrayBufferLike[]>();
+
+/**
+ * Marks buffers anywhere inside a world kernel's result as handed over to the page: the host transfers them (no structured
+ * clone, no copy on arrival). The kernel must not use them afterwards, so they are copies, never cached arrays.
+ */
+export function withTransfer<T extends object>(value: T, buffers: ArrayBufferLike[]): T {
+  surrendered.set(value, buffers);
+  return value;
+}
+
 export interface HostOptions {
   stages: Stage[];
   /** Engine fingerprint written to the save's determinism profile. */
@@ -162,7 +173,11 @@ export function attachHost(port: PortLike, opts: HostOptions): void {
         const transfer: Transferable[] = [];
         const take = (v: unknown) => { if (ArrayBuffer.isView(v) && !transfer.includes(v.buffer as ArrayBuffer)) transfer.push(v.buffer as ArrayBuffer); };
         if (ArrayBuffer.isView(value)) take(value);
-        else if (value && typeof value === 'object') for (const v of Object.values(value)) take(v);
+        else if (value && typeof value === 'object') {
+          for (const v of Object.values(value)) take(v);
+          // Buffers the kernel gave up explicitly, however deep in the result (see `withTransfer`).
+          for (const b of surrendered.get(value) ?? []) if (!transfer.includes(b as ArrayBuffer)) transfer.push(b as ArrayBuffer);
+        }
         send({ id: req.id, op: 'result', value }, transfer.length ? transfer : undefined);
         return;
       }

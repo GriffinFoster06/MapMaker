@@ -3,12 +3,13 @@ import { type TypedArray, bytesOf, sha256 } from '@mapmaker/core';
 import { EngineClient, type PortLike, type WorldStats } from '@mapmaker/engine';
 import { Globe } from './globe/globe';
 import { FlatMap, type MapState } from './flat/flat-map';
+import type { GpuLayer } from './flat/gpu-map';
 import type { HeightmapArgs } from '@mapmaker/projection/exact/kernels';
 import { type MapUi, type StyledArgs, startMapUi } from './flat/map-ui';
 import { type DebugMode, ProjectionView, type ViewOptions } from '@mapmaker/projection';
 import { RAW_ELEVATION, makeLayers } from './globe/colors';
 import { type EditorHandle, startEditor } from './editor/editor-ui';
-import { THEMES, THEME_IDS, type CartoData, type Style, buildLut, lutColor } from '@mapmaker/carto';
+import { THEMES, THEME_IDS, type CartoData, type Lut, type Style } from '@mapmaker/carto';
 import { desktop, saveFile } from './desktop';
 import { GlobeLabels } from './globe/globe-labels';
 import { LEVELS, type Level, PRESETS, SETTING_GROUPS, SETTINGS, changedParams, decodeState, encodeState, visibleAt } from './settings';
@@ -194,18 +195,10 @@ export function startApp(): void {
   /** The styled layer: per-cell colours for the globe, the lookup, relief factors and land colours for the flat map. */
   async function paintStyled(): Promise<void> {
     const style = currentStyle();
-    const [data, cs] = await Promise.all([client.layers(['elevation']), client.worldKernel<{ factor: Float32Array; colors: Float32Array | null }>('carto.cellStyle', { style })]);
-    const elev = data['elevation']![0]! as Float32Array, lut = buildLut(style), c = [0, 0, 0];
-    if (globe) {
-      const out = globe.colors;
-      for (let i = 0; i < elev.length; i++) {
-        if (cs.colors && elev[i]! > 0) { c[0] = cs.colors[3 * i]!; c[1] = cs.colors[3 * i + 1]!; c[2] = cs.colors[3 * i + 2]!; } else lutColor(lut, elev[i]!, c);
-        const f = cs.factor[i]!;
-        out[3 * i] = c[0]! * f; out[3 * i + 1] = c[1]! * f; out[3 * i + 2] = c[2]! * f;
-      }
-      globe.colorsChanged();
-    }
-    flat.setLayer({ rule: 'styled', elevation: Float32Array.from(elev), factor: cs.factor, colors: cs.colors, lut });
+    // The worker makes every colour and the flat map's inputs; the page receives transferred buffers and uploads them.
+    const r = await client.worldKernel<{ globe: Float32Array; factor: Float32Array; colors: Float32Array | null; elevation: Float32Array; lut: Lut }>('carto.styledLayer', { style });
+    globe?.setColors(r.globe);
+    flat.setLayer({ rule: 'styled', elevation: r.elevation, factor: r.factor, colors: r.colors, lut: r.lut });
     $('styledOverlays').hidden = false;
     ui.layerChanged();
     globeLabels?.schedule(0);
@@ -215,10 +208,9 @@ export function startApp(): void {
     $('styledOverlays').hidden = id !== 'styled';
     if (id === 'styled') { await paintStyled(); return; }
     globeLabels?.schedule(0);
-    const layer = layers.find((l) => l.id === id)!;
-    const data = await client.layers(layer.need);
-    if (globe) { layer.paint(data, globe.colors); globe.colorsChanged(); }
-    flat.setLayer(layer.flat(data));
+    const r = await client.worldKernel<{ colors: Float32Array; flat: GpuLayer }>('globe.layer', { id, raw: RAW_ELEVATION[variant] ?? RAW_ELEVATION['default'] });
+    globe?.setColors(r.colors);
+    flat.setLayer(r.flat);
     ui.layerChanged();
   }
 

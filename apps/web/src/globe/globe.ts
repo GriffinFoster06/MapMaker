@@ -136,6 +136,17 @@ export class Globe {
     return this.color;
   }
 
+  /** Adopts a colour array (3 floats per cell, made elsewhere and transferred here) as the vertex colours: no copy, one upload. */
+  setColors(c: Float32Array): void {
+    if (!this.mesh) return;
+    if (c.length !== this.color?.length) throw new Error(`colour array of ${c.length / 3} cells for a mesh of ${this.regions}`);
+    this.color = c;
+    const attr = this.mesh.geometry.getAttribute('color') as THREE.BufferAttribute;
+    attr.array = c; // same attribute and GL buffer: one upload of the new array, nothing to free
+    attr.needsUpdate = true;
+    this.render();
+  }
+
   colorsChanged(): void {
     if (!this.mesh) return;
     (this.mesh.geometry.getAttribute('color') as THREE.BufferAttribute).needsUpdate = true;
@@ -200,6 +211,25 @@ export class Globe {
     a.needsUpdate = true;
     this.ring.visible = true;
     this.render();
+  }
+
+  /**
+   * Compiles the brush ring's shader program ahead of its first drawing (the first hover used to stall the frame for 60 to 75 ms).
+   * The ring stays hidden; three.js compiles only visible objects, so it is shown for the call.
+   */
+  warmRing(): void {
+    if (this.ring?.userData['warm']) return;
+    if (!this.ring) {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(9), 3));
+      this.ring = new THREE.LineLoop(g, new THREE.LineBasicMaterial({ color: 0xffffff }));
+      this.ring.frustumCulled = false;
+      this.scene.add(this.ring);
+    }
+    this.ring.visible = true;
+    this.renderer.compile(this.scene, this.camera);
+    this.ring.visible = false;
+    this.ring.userData['warm'] = true;
   }
 
   /** Number of points of the visible brush ring (test hook), 0 when hidden. */

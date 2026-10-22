@@ -2,6 +2,7 @@
 // only read the World. `carto.data` and `carto.cellStyle` feed the interactive views; `carto.png` and `carto.svg` are the
 // exact exports, through an exact view (dmath) like every other export (design note 18 §3.1, ARCHITECTURE §3.7).
 import { type SphereMesh, type World } from '@mapmaker/core';
+import { withTransfer } from '@mapmaker/engine';
 import { MeshSampler, encodePngRgba8 } from '@mapmaker/projection';
 import { exactView } from '@mapmaker/projection/exact';
 import type { ViewOptions } from '@mapmaker/projection';
@@ -11,6 +12,7 @@ import { type OverlayOptions, furnitureLayout, overlaySvg, riverThreshold } from
 import { planLabels } from './placement';
 import { styledRaster } from './raster';
 import { type Style, styleKey } from './style';
+import { buildLut, lutColor } from './colour';
 
 export type ViewSpec = Omit<ViewOptions, 'registry'>;
 
@@ -72,13 +74,30 @@ export function cartoKernels(opts: CellStyleOptions = {}) {
     'carto.data': (world: World, a: { mesh?: string }): CartoData => {
       // Copies of the typed arrays: the worker transfers what a kernel returns, which would detach the cached ones.
       const d = dataFor(world, a.mesh);
-      return { ...d, regions: { ...d.regions, id: d.regions.id.slice() }, landmass: d.landmass.slice(), rivers: d.rivers.map((r) => ({ pts: r.pts.slice(), area: r.area.slice() })) };
+      const out = { ...d, regions: { ...d.regions, id: d.regions.id.slice() }, landmass: d.landmass.slice(), rivers: d.rivers.map((r) => ({ pts: r.pts.slice(), area: r.area.slice() })) };
+      // All of them are copies, so they are transferred instead of cloned on the page.
+      return withTransfer(out, [out.regions.id.buffer, out.landmass.buffer, ...out.rivers.flatMap((r) => [r.pts.buffer, r.area.buffer])]);
     },
     /** The relief factor per cell, and the land colour per cell for the climate and landmass modes. */
     'carto.cellStyle': (world: World, a: { style: Style; mesh?: string }) => {
       const cs = styleFor(world, a.style, a.mesh);
       // Copies: the worker transfers what a kernel returns, which would detach the cached arrays.
       return { factor: cs.factor.slice(), colors: cs.colors ? cs.colors.slice() : null };
+    },
+    /**
+     * Everything a layer switch to the styled map needs on the page, in one message of transferred buffers: the globe's colour per
+     * cell (relief factor times the elevation palette or the climate/landmass colour), and the flat map's inputs.
+     */
+    'carto.styledLayer': (world: World, a: { style: Style; mesh?: string }) => {
+      const meshId = a.mesh ?? 'global', cs = styleFor(world, a.style, meshId), elev = elevationOf(world, meshId), lut = buildLut(a.style);
+      const globe = new Float32Array(3 * elev.length), c = [0, 0, 0];
+      for (let i = 0; i < elev.length; i++) {
+        if (cs.colors && elev[i]! > 0) { c[0] = cs.colors[3 * i]!; c[1] = cs.colors[3 * i + 1]!; c[2] = cs.colors[3 * i + 2]!; } else lutColor(lut, elev[i]!, c);
+        const f = cs.factor[i]!;
+        globe[3 * i] = c[0]! * f; globe[3 * i + 1] = c[1]! * f; globe[3 * i + 2] = c[2]! * f;
+      }
+      const out = { globe, factor: cs.factor.slice(), colors: cs.colors ? cs.colors.slice() : null, elevation: Float32Array.from(elev), lut };
+      return withTransfer(out, [out.globe.buffer, out.factor.buffer, ...(out.colors ? [out.colors.buffer] : []), out.elevation.buffer, out.lut.rgba.buffer]);
     },
     /** The styled raster alone as an 8-bit RGBA PNG through an exact view (vector layers and labels are in the SVG). */
     'carto.png': (world: World, a: PngArgs) => {
