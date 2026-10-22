@@ -2,27 +2,27 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-21, by the local agent (Claude Code), on `labels-quality` (user request, outside the authorization limit): hidden/recorded/watch test modes for the desktop app, and the map-label quality fix (placement, rivers and ranges, globe limb, tests). Stopped; Phase 6 and its reconciliation not started.
+- **Last updated:** 2026-10-21, by the local agent (Claude Code), on `perf-study` (user request, outside the authorization limit): the performance study `docs/checkpoints/PERFORMANCE_STUDY.md` (generation per stage and core, hot functions, four acceleration options, rendering, panning lag spikes, order of work). Documentation and measurement only. Stopped; Phase 6 and its reconciliation not started.
 - **Authorized through: Q4 (Electron).** Set by `scripts/authorize.sh`; only the user changes this line.
 
 ## What the user does next
 
 Do these in order. Each step says why.
 
-1. Open the folder `docs/feedback/labels/` in the project (Finder, or the PR's "Files changed" tab) and look at the pairs: `before-02-flat-robinson-atlas-z1-200k.png` next to `after-02-...`, then `before-11-globe-atlas-rot0-200k.png` next to `after-11-...`, `before-13-...` and `after-13-...` (globe), `before-05-...` and `after-05-...` (zoomed in), `before-15-...` and `after-15-...` (1M cells). `docs/feedback/labels/DEFECTS.md` lists what was wrong. Why: you judge the result; if a label still looks wrong, type `/go` and describe it in a few words (what, where), and the agent will fix it.
-2. On GitHub, open the repository's **Pull requests** tab and the pull request named `labels-quality`. Wait until every check at the bottom shows a green tick (about 10 minutes). Why: merging only green work keeps `main` working.
-3. Click **Merge pull request** (the default green button, not the arrow menu), then **Confirm merge**. Why: the label fix and the no-focus test modes apply from `main` on.
+1. Open `docs/checkpoints/PERFORMANCE_STUDY.md` (on GitHub: the pull request named `perf-study`, "Files changed", or the file in the project) and read **"Answers in short"** at the top, then section 8 "Recommended order of work". Why: you decide whether the proposals are right; nothing in them is built.
+2. If you agree with the five items "before Phase 6" (label re-plan fix, globe culling and triangle order, flat-map overlay path, layer-switch cost and ring warm-up, the shared-memory kernel API), type `/go` and say "do the perf fixes". Why: it changes the order of work, which only you may do (OPERATING_GUIDE §4); the agent then makes them on a new branch and shows before and after numbers. If you would rather go straight to Phase 6, skip this step.
+3. On GitHub, open the pull request `perf-study`. Wait until every check at the bottom shows a green tick (documents and scripts only, so the checks are short). Click **Merge pull request** (the default green button, not the arrow menu), then **Confirm merge**. Why: the study and its measuring scripts reach `main`.
 4. In the terminal, in the project folder, copy and paste exactly:
    `scripts/authorize.sh 6`
-   Why: it tells the agent it may now do the Phase 6 preparation (the documentation-only comparison of the newer orogen, GPlates and the other tectonic sources) and then Phase 6 itself (planet physics). It prepares a small change on a new branch `authorize-6` and uploads it.
+   Why: it tells the agent it may do the Phase 6 preparation (the documentation-only comparison of the newer orogen, GPlates and the other tectonic sources) and then Phase 6 itself (planet physics). It prepares a small change on a new branch `authorize-6` and uploads it. Do this after step 2 if you chose the perf fixes first.
 5. On GitHub, open the pull request for `authorize-6` (the yellow **Compare & pull request** banner), click **Create pull request**, then **Merge pull request** as in step 3. Why: the agent only works as far as the merged `main` says.
 6. Type `/go` in Claude Code. Why: it starts the agent, which reads everything it needs from the repository.
 
-Optional, whenever convenient and never blocking: try the desktop app (`scripts/node24.sh npm run desktop:dev`), and see `docs/RELEASING.md` for building installers, tagging `v0.1.0` and publishing a release (publishing, signing certificates and any spending are yours).
+Optional, whenever convenient and never blocking: try the desktop app (`scripts/node24.sh npm run desktop:dev`) and pan the zoomed-out globe at 1M cells or more with labels on; if you still see long frames with labels off, the study says the cause is the GPU (7 to 8 ms of an 8.3 ms frame), which a hidden test window cannot show. See `docs/RELEASING.md` for installers, tagging `v0.1.0` and publishing (publishing, signing certificates and any spending are yours).
 
 ## Branches
 
-- `main` includes Phases 5, 5b, 5c, Q4, the autonomy setup, the desktop speed fix and the CI/nightly fixes (PRs #8 to #16). `labels-quality` (PR to `main`, ready for review) holds the test-mode change and the label fix. The next phase branch is `phase-6`, created from updated `main` by `/go`.
+- `main` includes Phases 5, 5b, 5c, Q4, the autonomy setup, the desktop speed fix, the CI/nightly fixes and the label fix with the no-focus test modes (PRs #8 to #17). `perf-study` (PR to `main`, ready for review) holds the performance study. The next phase branch is `phase-6`, created from updated `main` by `/go`.
 
 ## Done (one line each)
 
@@ -50,6 +50,8 @@ Nothing blocks the agent. User-only actions are in "What the user does next". Op
 Type `/go` (or any first message). `.claude/commands/go.md` is the whole prompt; the user does not write prompts (decision W10).
 
 ## Work log (newest first; 2 to 4 lines per milestone)
+
+- 2026-10-21: perf-study (user request): `docs/checkpoints/PERFORMANCE_STUDY.md`. Generation is single-core, 84% in the detail-elevation stage (2.56M: 31.5 s, 1965 MB); five hot spots are 57%; native noise is 1.62x JS with identical bits; panning spike = label re-plan (19 to 30 ms, `lonLatAt` per mask cell), GC at most 5.3 ms, globe GPU 7 to 8 ms of 8.33 ms. Scripts `scripts/perf-*.mjs`, data `docs/perf-study/`, decisions PS1 to PS4. No product code changed.
 
 - 2026-10-21: labels-quality (user request): item 0, hidden-by-default desktop test modes (keeps painting hidden, covered or minimised; `capture.spec.ts` proves it), recorded and watch modes replace the visible mode (C4). Labels: looked first (`scripts/label-shots.mjs`, `docs/feedback/labels/DEFECTS.md`), then regions raster + screen mask, area names on their own ground, smoothed least-turning river and range stretches, globe limb, stability by a map-aligned grid; 36 new placement tests (decisions L1 to L7; `docs/checkpoints/CHECKPOINT_LABELS.md`).
 

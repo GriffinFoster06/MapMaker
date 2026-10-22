@@ -1,0 +1,169 @@
+{
+ "totalMs": 3406,
+ "selfTop": [
+  {
+   "fn": "noise3D packages/gen-orogen/src/port/simplex-noise.ts",
+   "ms": 471,
+   "pct": 13.8
+  },
+  {
+   "fn": "(idle) ",
+   "ms": 212,
+   "pct": 6.2
+  },
+  {
+   "fn": "projectCoarsePlates packages/gen-orogen/src/port/coarse-plates.ts",
+   "ms": 198,
+   "pct": 5.8
+  },
+  {
+   "fn": "MultiLevel packages/core/src/multilevel/operators.ts",
+   "ms": 182,
+   "pct": 5.3
+  },
+  {
+   "fn": "erodeComposite packages/gen-orogen/src/port/terrain-post.ts",
+   "ms": 169,
+   "pct": 5
+  },
+  {
+   "fn": "makeSyncRequest node:internal/modules/esm/hooks",
+   "ms": 74,
+   "pct": 2.2
+  },
+  {
+   "fn": "correct packages/core/src/multilevel/operators.ts",
+   "ms": 73,
+   "pct": 2.1
+  },
+  {
+   "fn": "sampleDual packages/gen-orogen/src/port/wind.ts",
+   "ms": 62,
+   "pct": 1.8
+  },
+  {
+   "fn": "propagateStress packages/gen-orogen/src/port/elevation.ts",
+   "ms": 62,
+   "pct": 1.8
+  },
+  {
+   "fn": "applyPlatePhysics packages/gen-orogen/src/port/plate-physics.ts",
+   "ms": 60,
+   "pct": 1.8
+  },
+  {
+   "fn": "kernelCos packages/core/src/fdlibm.ts",
+   "ms": 56,
+   "pct": 1.6
+  },
+  {
+   "fn": "assignDistanceField packages/gen-orogen/src/port/elevation.ts",
+   "ms": 56,
+   "pct": 1.6
+  },
+  {
+   "fn": "sample packages/gen-orogen/src/port/wind.ts",
+   "ms": 55,
+   "pct": 1.6
+  },
+  {
+   "fn": "_legalize delaunator/index.js",
+   "ms": 55,
+   "pct": 1.6
+  },
+  {
+   "fn": "priorityFloodCarve packages/gen-orogen/src/port/terrain-post.ts",
+   "ms": 51,
+   "pct": 1.5
+  },
+  {
+   "fn": "(garbage collector) ",
+   "ms": 49,
+   "pct": 1.4
+  },
+  {
+   "fn": "computeSpatialFields packages/gen-orogen/src/port/elevation.ts",
+   "ms": 48,
+   "pct": 1.4
+  },
+  {
+   "fn": "(program) ",
+   "ms": 43,
+   "pct": 1.3
+  },
+  {
+   "fn": "warpTerrain packages/gen-orogen/src/port/terrain-post.ts",
+   "ms": 43,
+   "pct": 1.3
+  },
+  {
+   "fn": "computeTectonics packages/gen-orogen/src/scratch.ts",
+   "ms": 43,
+   "pct": 1.3
+  },
+  {
+   "fn": "applyVolcanicArcs packages/gen-orogen/src/port/elevation.ts",
+   "ms": 41,
+   "pct": 1.2
+  },
+  {
+   "fn": "assignElevation packages/gen-orogen/src/port/elevation.ts",
+   "ms": 39,
+   "pct": 1.2
+  },
+  {
+   "fn": "applyHotspotsAndLIPs packages/gen-orogen/src/port/elevation.ts",
+   "ms": 39,
+   "pct": 1.2
+  },
+  {
+   "fn": "computeTectonicState packages/gen-orogen/src/port/elevation.ts",
+   "ms": 39,
+   "pct": 1.1
+  },
+  {
+   "fn": "SphereMesh packages/gen-orogen/src/port/sphere-mesh.ts",
+   "ms": 35,
+   "pct": 1
+  }
+ ],
+ "inclusiveMs": {
+  "runReferencePass": 648,
+  "runElevationDetail": 2020,
+  "computeTectonics": 523,
+  "assignElevation": 858,
+  "runPostProcessing": 500,
+  "runClimateDetail": 74,
+  "runDrainageDetail": 18,
+  "erodeComposite": 267,
+  "priorityFloodCarve": 71,
+  "warpTerrain": 102,
+  "projectCoarsePlates": 256,
+  "computeSpatialFields": 125,
+  "assignDistanceField": 77,
+  "propagateStress": 62,
+  "applyCoastalDetail": 119,
+  "applyTectonicBandNoise": 105,
+  "applyDetailNoise": 79,
+  "applyUniformLandNoise": 32,
+  "fbm": 374,
+  "noise3D": 471,
+  "Delaunator": 109,
+  "SphereMesh": 36,
+  "buildTopology": 27,
+  "MultiLevel": 248,
+  "correct": 118,
+  "applyPlatePhysics": 79,
+  "(garbage collector)": 49
+ },
+ "noiseCallers": {
+  "applyCoastalDetail": 98,
+  "applyTectonicBandNoise": 75,
+  "warpTerrain": 59,
+  "projectCoarsePlates": 58,
+  "applyDetailNoise": 53,
+  "applyPhasorRidges": 25,
+  "applyUniformLandNoise": 25,
+  "ridgedFbm": 19
+ }
+}

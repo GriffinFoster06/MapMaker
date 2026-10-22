@@ -1,0 +1,174 @@
+{
+ "target": "chromium",
+ "N": 2560000,
+ "variants": {
+  "base": {
+   "globe": {
+    "nearFull": {
+     "total": {
+      "n": 121,
+      "median": 7.8,
+      "p95": 11.6,
+      "max": 13
+     },
+     "cpu": {
+      "n": 121,
+      "median": 0,
+      "p95": 0.1,
+      "max": 0.1
+     }
+    },
+    "out_frac1": {
+     "total": {
+      "n": 121,
+      "median": 5.7,
+      "p95": 9.9,
+      "max": 21.3
+     },
+     "cpu": {
+      "n": 121,
+      "median": 0,
+      "p95": 0.1,
+      "max": 0.1
+     }
+    },
+    "out_frac0.5": {
+     "total": {
+      "n": 121,
+      "median": 5.7,
+      "p95": 6.1,
+      "max": 13.7
+     },
+     "cpu": {
+      "n": 121,
+      "median": 0,
+      "p95": 0,
+      "max": 0.1
+     }
+    },
+    "out_frac0.25": {
+     "total": {
+      "n": 121,
+      "median": 3.6,
+      "p95": 4,
+      "max": 9.2
+     },
+     "cpu": {
+      "n": 121,
+      "median": 0,
+      "p95": 0,
+      "max": 0.1
+     }
+    },
+    "out_frac0": {
+     "total": {
+      "n": 121,
+      "median": 1.7,
+      "p95": 1.9,
+      "max": 2
+     },
+     "cpu": {
+      "n": 121,
+      "median": 0,
+      "p95": 0.1,
+      "max": 0.1
+     }
+    }
+   },
+   "flat": {
+    "elev": {
+     "gap": {
+      "n": 148,
+      "median": 8.3,
+      "p95": 9.1,
+      "max": 11.1
+     },
+     "gpuDraw": {
+      "n": 150,
+      "median": 6.1,
+      "p95": 6.7,
+      "max": 26.7
+     },
+     "gpuCpu": {
+      "n": 150,
+      "median": 0,
+      "p95": 0,
+      "max": 0.1
+     },
+     "svgWrite": {
+      "n": 150,
+      "median": 0,
+      "p95": 0.1,
+      "max": 0.2
+     },
+     "svgChars": 224,
+     "draws": 150
+    },
+    "elev+ov": {
+     "gap": {
+      "n": 148,
+      "median": 22.8,
+      "p95": 25.9,
+      "max": 28.1
+     },
+     "gpuDraw": {
+      "n": 150,
+      "median": 7.2,
+      "p95": 8.1,
+      "max": 23.6
+     },
+     "gpuCpu": {
+      "n": 150,
+      "median": 0,
+      "p95": 0,
+      "max": 0.1
+     },
+     "svgWrite": {
+      "n": 150,
+      "median": 4,
+      "p95": 6.2,
+      "max": 9.6
+     },
+     "svgChars": 1075105,
+     "draws": 150
+    },
+    "styled+ov": {
+     "gap": {
+      "n": 148,
+      "median": 42.9,
+      "p95": 49.5,
+      "max": 55.8
+     },
+     "gpuDraw": {
+      "n": 150,
+      "median": 8.6,
+      "p95": 11.1,
+      "max": 24.4
+     },
+     "gpuCpu": {
+      "n": 150,
+      "median": 0,
+      "p95": 0,
+      "max": 0.1
+     },
+     "svgWrite": {
+      "n": 150,
+      "median": 9.7,
+      "p95": 12.4,
+      "max": 15.2
+     },
+     "svgChars": 2337916,
+     "draws": 150
+    }
+   }
+  }
+ },
+ "env": {
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Pro, Unspecified Version)",
+  "dpr": 1,
+  "canvas": [
+   1024,
+   560
+  ]
+ }
+}
