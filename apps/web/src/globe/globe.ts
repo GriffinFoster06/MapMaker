@@ -252,6 +252,46 @@ export class Globe {
   }
 
   /**
+   * `projectLonLat` for batches (the label planner projects every point of every river and range): the camera matrices and the
+   * canvas size are read once, and no Vector3 or other object is made per call. The arithmetic is three.js's own
+   * (`Vector3.applyMatrix4` twice), operation for operation, so the pixel positions are bit-identical (tested).
+   * Writes the pixel position to `out[0..1]` and returns whether the point is visible.
+   */
+  projectSampler(): (lon: number, lat: number, out: Float64Array) => boolean {
+    const w = this.canvas.clientWidth || 640, h = this.canvas.clientHeight || 480;
+    this.camera.updateMatrixWorld();
+    const m = this.camera.matrixWorldInverse.elements, q = this.camera.projectionMatrix.elements, c = this.camera.position;
+    const cx = c.x, cy = c.y, cz = c.z;
+    return (lon, lat, out) => {
+      const a = (lon * Math.PI) / 180, b = (lat * Math.PI) / 180;
+      const vx = Math.cos(b) * Math.cos(a), vy = Math.sin(b), vz = -Math.cos(b) * Math.sin(a);
+      if (vx * cx + vy * cy + vz * cz <= 1.0005) return false; // beyond the horizon of the unit sphere
+      const w1 = 1 / (m[3]! * vx + m[7]! * vy + m[11]! * vz + m[15]!);
+      const x1 = (m[0]! * vx + m[4]! * vy + m[8]! * vz + m[12]!) * w1, y1 = (m[1]! * vx + m[5]! * vy + m[9]! * vz + m[13]!) * w1, z1 = (m[2]! * vx + m[6]! * vy + m[10]! * vz + m[14]!) * w1;
+      const w2 = 1 / (q[3]! * x1 + q[7]! * y1 + q[11]! * z1 + q[15]!);
+      const px = (q[0]! * x1 + q[4]! * y1 + q[8]! * z1 + q[12]!) * w2, py = (q[1]! * x1 + q[5]! * y1 + q[9]! * z1 + q[13]!) * w2;
+      const x = ((px + 1) / 2) * w, y = ((1 - py) / 2) * h;
+      if (x < 0 || x > w || y < 0 || y > h) return false;
+      out[0] = x;
+      out[1] = y;
+      return true;
+    };
+  }
+
+  /** Test hook: on a grid of points, how many give a different result (any bit) from `projectSampler` and from `projectLonLat`. */
+  projectionDiffs(): { points: number; differing: number; visible: number } {
+    const f = this.projectSampler(), out = new Float64Array(2);
+    let points = 0, differing = 0, visible = 0;
+    for (let lat = -90; lat <= 90; lat += 3.7) for (let lon = -180; lon <= 180; lon += 4.3) {
+      const a = this.projectLonLat(lon, lat), ok = f(lon, lat, out);
+      points++;
+      if (a) visible++;
+      if (!!a !== ok || (a && ok && (!Object.is(a[0], out[0]) || !Object.is(a[1], out[1])))) differing++;
+    }
+    return { points, differing, visible };
+  }
+
+  /**
    * Longitude and latitude (degrees) of the globe under a canvas pixel (CSS pixels from its top-left), or null where the ray
    * misses it. The inverse of `projectLonLat`; analytic (no allocation), as the label planner calls it for every cell of a grid.
    */

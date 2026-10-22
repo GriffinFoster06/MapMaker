@@ -40,6 +40,8 @@ export interface GlobeHook {
   drawPath(): 'fast' | 'former';
   /** Measurement hook: main-thread milliseconds of each stretch of the globe label re-plans since the last call. */
   labelSlices(): number[];
+  /** Test hook: grid points where the batch projector differs in any bit from `projectLonLat`. */
+  projectionDiffs(): { points: number; differing: number; visible: number };
   layers: string[];
 }
 
@@ -419,6 +421,7 @@ export function startApp(): void {
     setFormerDraw: (former) => { globe?.setFormerDraw(former); },
     drawPath: () => globe?.drawPath ?? 'former',
     labelSlices: () => globeLabels?.takeSlices() ?? [],
+    projectionDiffs: () => globe?.projectionDiffs() ?? { points: 0, differing: 0, visible: 0 },
     layers: layers.map((l) => l.id),
   };
 }

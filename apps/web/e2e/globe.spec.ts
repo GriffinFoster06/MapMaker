@@ -162,3 +162,23 @@ test('globe: the faster draw path, where it is used, paints the same pixels as t
   expect(seen.size, 'the views differ from each other').toBeGreaterThan(3);
   expect(errors).toEqual([]);
 });
+
+// The batch projector of the label planner (Globe.projectSampler) computes with three.js's own formulas, operation for operation:
+// on a grid of 3000 points from several camera positions it gives the same pixel position, to the last bit, as projectLonLat.
+test('globe: the batch projector equals projectLonLat bit for bit', async ({ page }) => {
+  await page.goto('./');
+  await page.waitForFunction(() => !!window.__globe);
+  await page.evaluate(() => window.__globe!.generate({ N: 20000, seed: 12345 }));
+  await page.locator('#globe').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  const box = (await page.locator('#globe').boundingBox())!;
+  const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+  for (const [dx, dy, wheel] of [[0, 0, 0], [130, 55, 0], [-160, -30, 500], [60, 90, -700]] as const) {
+    if (dx || dy) { await page.mouse.move(cx, cy); await page.mouse.down(); await page.mouse.move(cx + dx, cy + dy, { steps: 6 }); await page.mouse.up(); }
+    if (wheel) { await page.mouse.move(cx, cy); await page.mouse.wheel(0, wheel); await page.waitForTimeout(200); }
+    await page.evaluate(() => window.__globe!.pixelSum()); // a draw, so the camera matrices are those of the picture
+    const r = await page.evaluate(() => window.__globe!.projectionDiffs());
+    expect(r.points).toBeGreaterThan(2500);
+    expect(r.visible, 'some points are visible').toBeGreaterThan(200);
+    expect(r.differing).toBe(0);
+  }
+});

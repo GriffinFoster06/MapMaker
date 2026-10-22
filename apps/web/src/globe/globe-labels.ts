@@ -48,10 +48,10 @@ export class GlobeLabels {
     if (my !== this.gen) return;
     const canvas = this.globe.canvas, W = canvas.clientWidth, H = canvas.clientHeight;
     if (!W || !H) return;
-    const sample = this.globe.lonLatSampler(), tmp = new Float64Array(2);
+    const sample = this.globe.lonLatSampler(), project = this.globe.projectSampler(), tmp = new Float64Array(2), xy = new Float64Array(2);
     const proj = {
       width: W, height: H,
-      forward: (lon: number, lat: number) => this.globe.projectLonLat(lon, lat),
+      forward: (lon: number, lat: number): [number, number] | null => (project(lon, lat, xy) ? [xy[0]!, xy[1]!] : null),
       invert: (x: number, y: number): [number, number] | null => (sample(x, y, tmp) ? [tmp[0]!, tmp[1]!] : null),
       invertInto: sample,
     };
@@ -65,6 +65,8 @@ export class GlobeLabels {
     if (my !== this.gen) return;
     const fur = furnitureLayout(W, H, style, { scaleBar: false, legend: false });
     const plan = planLabels(data, proj, style, { obstacles: [fur.scale, fur.legend].filter((b): b is NonNullable<typeof b> => !!b), riverMinArea: riverThreshold(style, this.globe.pixelsPerRadian()), limb: true, mask });
+    await pause(); // and the SVG below another
+    if (my !== this.gen) return;
     this.count = plan.labels.length;
     this.svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     this.svg.setAttribute('width', String(W));
