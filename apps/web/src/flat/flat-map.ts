@@ -5,6 +5,10 @@ import type { EngineClient, MeshData } from '@mapmaker/engine';
 import { type LocatedRaster, ProjectionView, type ViewOptions, isGpuProjection } from '@mapmaker/projection';
 import { colorize } from './colorize';
 import { GpuMap, type GpuLayer } from './gpu-map';
+import { yieldTurn } from '../yield-turn';
+
+/** Longest stretch of the mesh upload that runs without giving the page back (milliseconds). */
+const UPLOAD_SLICE_MS = 4;
 
 /** `parallels`: the standard parallels of a conic projection, degrees (ignored by the others). */
 export interface MapState { projection: string; rotate: [number, number, number]; zoom: number; pan: [number, number]; parallels?: [number, number] }
@@ -21,6 +25,8 @@ export class FlatMap {
   private mesh: MeshData | undefined;
   private lookup: Promise<Lookup> | undefined;
   private uploaded = false;
+  private uploading: Promise<boolean> | undefined;
+  private worldGen = 0;
   private layer: GpuLayer | undefined;
   private layerUploaded = false;
   private gen = 0;
@@ -35,6 +41,7 @@ export class FlatMap {
 
   setWorld(m: MeshData): void {
     this.mesh = m;
+    this.worldGen++;
     this.lookup = undefined;
     this.uploaded = false;
     this.layerUploaded = false;
@@ -70,14 +77,25 @@ export class FlatMap {
   async ensureGpu(): Promise<GpuMap> {
     if (!this.gpu || !this.mesh || !this.layer) throw new Error('flat map not ready');
     if (!this.uploaded) {
-      this.lookup ??= this.client.worldKernel<Lookup>('projection.gpuLookup', {});
-      const lk = await this.lookup, m = this.mesh;
-      this.gpu.setMesh({ numRegions: m.numRegions, points: m.points, triangles: m.triangles, halfedges: m.halfedges, adjOffset: lk.adjOffset, adjList: lk.adjList, cubeR: lk.R, cube: lk.cube });
-      this.uploaded = true;
-      this.layerUploaded = false;
+      // One upload at a time, in slices that give the page back between them; a new world abandons it.
+      this.uploading ??= this.uploadMesh().finally(() => { this.uploading = undefined; });
+      if (!(await this.uploading)) return this.ensureGpu();
     }
     if (!this.layerUploaded) { this.gpu.setLayer(this.layer); this.layerUploaded = true; }
     return this.gpu;
+  }
+
+  private async uploadMesh(): Promise<boolean> {
+    const gpu = this.gpu!, m = this.mesh!, world = this.worldGen;
+    this.lookup ??= this.client.worldKernel<Lookup>('projection.gpuLookup', {});
+    const lk = await this.lookup;
+    if (world !== this.worldGen) return false;
+    const ok = await gpu.setMeshSliced({ numRegions: m.numRegions, points: m.points, triangles: m.triangles, halfedges: m.halfedges, adjOffset: lk.adjOffset, adjList: lk.adjList, cubeR: lk.R, cube: lk.cube },
+      { sliceMs: UPLOAD_SLICE_MS, yieldNow: yieldTurn, cancelled: () => world !== this.worldGen });
+    if (!ok || world !== this.worldGen) return false;
+    this.uploaded = true;
+    this.layerUploaded = false;
+    return true;
   }
 
   /** Draws the state; resolves when drawn (or superseded by a newer render). */
