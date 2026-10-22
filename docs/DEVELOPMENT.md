@@ -127,11 +127,14 @@ The GitHub Pages deploy (`pages.yml`), the Cloudflare Pages deploy and its deplo
 | --- | --- | --- |
 | lint, typecheck, provenance check | `static` (Windows also runs lint and typecheck in `unit`) | every run |
 | build | `static` | heavy runs |
-| unit tests, incl. mesh/RNG golden hashes | `unit`: Ubuntu, macOS, Windows, 2 shards each | heavy runs |
+| unit tests, incl. mesh/RNG golden hashes | `unit`: Ubuntu, macOS, Windows, 3 shards each | heavy runs |
 | Node determinism probe vs `golden.json` | `probe`: Ubuntu, macOS, Windows | heavy runs |
-| browser probes, flat-map, globe, GPU specs | `e2e`: Ubuntu and macOS, Chromium and Firefox, 2 shards each | heavy runs |
+| browser probes, flat-map, globe, GPU specs | `e2e`: Ubuntu and macOS; Chromium in 2 groups, Firefox in 3 (`scripts/e2e-files.sh`: gpu, cartomap, core; `core` is every spec not named elsewhere) | heavy runs |
+| the same specs against the deployed site | `cloudflare.yml` `smoke`: the same groups, Chromium and Firefox on Ubuntu (no WebKit) | pull requests and `main` with the Cloudflare secrets |
 | Q7 A/B gate (1M final) | `ab-gate` | heavy runs |
 | upstream parity tests, vendored-file byte comparison, Köppen ground truth | `nightly.yml` `upstream-parity` | nightly |
 | Q7 A/B gate, 2.56M final | `nightly.yml` `ab-gate-full` | nightly |
 | realism gate, 2.56M | `nightly.yml` `realism-gate` | nightly |
 | Electron smoke test, installers | `desktop.yml` | tag or manual |
+
+Every job has a `timeout-minutes`, and on Ubuntu the e2e and smoke jobs run in Playwright's own container image (`mcr.microsoft.com/playwright:v<version>-noble`, kept equal to the `@playwright/test` version; bump both together) so nothing is installed through apt, and on macOS the browser download fails after 5 minutes and is tried once more: an apt mirror serving kilobytes per second held jobs for 5 to 45 minutes. A job that hangs now fails in minutes with its log.
