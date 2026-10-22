@@ -35,9 +35,9 @@ export class GlobeLabels {
     if (my !== this.gen) return;
     const canvas = this.globe.canvas, W = canvas.clientWidth, H = canvas.clientHeight;
     if (!W || !H) return;
-    const proj = { width: W, height: H, forward: (lon: number, lat: number) => this.globe.projectLonLat(lon, lat) };
+    const proj = { width: W, height: H, forward: (lon: number, lat: number) => this.globe.projectLonLat(lon, lat), invert: (x: number, y: number) => this.globe.lonLatAt(x, y) };
     const fur = furnitureLayout(W, H, style, { scaleBar: false, legend: false });
-    const plan = planLabels(data, proj, style, { obstacles: [fur.scale, fur.legend].filter((b): b is NonNullable<typeof b> => !!b), riverMinArea: riverThreshold(style, this.globe.pixelsPerRadian()) });
+    const plan = planLabels(data, proj, style, { obstacles: [fur.scale, fur.legend].filter((b): b is NonNullable<typeof b> => !!b), riverMinArea: riverThreshold(style, this.globe.pixelsPerRadian()), limb: true });
     this.count = plan.labels.length;
     this.svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     this.svg.setAttribute('width', String(W));

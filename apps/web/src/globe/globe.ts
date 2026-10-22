@@ -143,6 +143,26 @@ export class Globe {
     return x < 0 || x > w || y < 0 || y > h ? null : [x, y];
   }
 
+  /**
+   * Longitude and latitude (degrees) of the globe under a canvas pixel (CSS pixels from its top-left), or null where the ray
+   * misses it. The inverse of `projectLonLat`; analytic (no allocation), as the label planner calls it for every cell of a grid.
+   */
+  lonLatAt(px: number, py: number): [number, number] | null {
+    const w = this.canvas.clientWidth || 640, h = this.canvas.clientHeight || 480, t = Math.tan((this.camera.fov * Math.PI) / 360);
+    this.camera.updateMatrixWorld();
+    const e = this.camera.matrixWorld.elements, c = this.camera.position;
+    const dx = ((px / w) * 2 - 1) * t * (w / h), dy = (1 - (py / h) * 2) * t, dz = -1;
+    let X = e[0]! * dx + e[4]! * dy + e[8]! * dz, Y = e[1]! * dx + e[5]! * dy + e[9]! * dz, Z = e[2]! * dx + e[6]! * dy + e[10]! * dz;
+    const n = Math.hypot(X, Y, Z);
+    X /= n; Y /= n; Z /= n;
+    const b = c.x * X + c.y * Y + c.z * Z, disc = b * b - (c.x * c.x + c.y * c.y + c.z * c.z - 1);
+    if (disc < 0) return null;
+    const s = -b - Math.sqrt(disc);
+    if (s < 0) return null;
+    const hx = c.x + s * X, hy = c.y + s * Y, hz = c.z + s * Z; // three.js frame; canonical (x, y, z) is (X, −Z, Y)
+    return [(Math.atan2(-hz, hx) * 180) / Math.PI, (Math.asin(Math.max(-1, Math.min(1, hy))) * 180) / Math.PI];
+  }
+
   /** Pixels per radian of arc at the centre of the disc facing the camera (for scale-dependent detail such as rivers). */
   pixelsPerRadian(): number {
     const h = this.canvas.clientHeight || 480, d = this.camera.position.length();

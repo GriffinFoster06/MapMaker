@@ -55,18 +55,19 @@ Install the older release, launch it, confirm the "MapMaker <new> is available" 
 - macOS: Apple Developer Program (about US$99 a year), a Developer ID Application certificate, notarization. Then set `mac.identity` and `mac.notarize` in `apps/desktop/electron-builder.yml`, add the certificate and Apple credentials as GitHub secrets, drop `CSC_IDENTITY_AUTO_DISCOVERY=false`, and macOS auto-install works (change `updates.ts` to download and install on macOS as on Windows).
 - Windows: a code-signing certificate or Azure Trusted Signing; set `win.*` signing options and secrets. Removes the SmartScreen warning once reputation builds.
 
-## Tests must not take focus (hidden and visible modes)
+## Tests must not take focus (hidden by default; recorded; watch)
 
-Tests and scripts never steal the user's focus. The desktop app has two test modes, both off by default (the normal launch is unchanged):
+The agent never opens a window in front of the user's work. Tests and scripts run hidden, and the agent shows the user what it did through saved recordings and screenshots. The desktop app has these test modes, all off by default (the normal launch is unchanged):
 
-- `MAPMAKER_TEST=1`: hidden window (`show: false`, never `show()` or `focus()`), `backgroundThrottling: false` so hidden rendering and WebGL keep working, and on macOS the accessory activation policy plus `app.dock.hide()`, so nothing appears in the Dock or takes focus. The smoke test (`desktop:smoke`) sets it.
-- `MAPMAKER_TEST_VISIBLE=1`: the window is shown with `showInactive()` (visible, no keyboard focus), the macOS policy stays `accessory`, throttling is off. For the checks that depend on the real on-screen path: frame rate while panning, graphics status, layout. `desktop:perf` sets it. Use it rarely (once per checkpoint at most); everything else runs hidden.
+- **Hidden (the default for every test and script), `MAPMAKER_TEST=1`**: the window is never shown (`show: false`, no `show()` or `focus()`), and on macOS the accessory activation policy plus `app.dock.hide()` keep it out of the Dock. The window keeps painting while hidden, covered or minimised: `backgroundThrottling: false`, the Chromium switches `disable-renderer-backgrounding`, `disable-backgrounding-occluded-windows`, `disable-background-timer-throttling`, and `disable-features=CalculateNativeWinOcclusion` (Windows). Screenshots use `webContents.capturePage()` (`capture()` in `apps/desktop/e2e/session.ts`) or Playwright, which do not depend on the window being visible. `apps/desktop/e2e/capture.spec.ts` proves it: the globe capture is not blank and is bit-identical hidden, shown (transparent) and minimised, and animation frames keep running while hidden. Limit of that proof: it never puts an opaque window in front of the user's work, so real occlusion by another window is not exercised.
+- **Recorded**, hidden plus a harness-side recording: `launchSession({ record: '<name>' })` (`apps/desktop/e2e/session.ts`) saves a Playwright video and a numbered screenshot sequence (`shot('name')` writes `NN-name.png`) to `docs/feedback/<name>/`. The user watches them afterwards. Commit only small excerpts (the checkpoint note lists them).
+- **Watch, only on the user's request**, `MAPMAKER_TEST_WATCH=1` (`launchSession({ watch: true })`): a small 560x360 window in the bottom-right corner at 40% opacity, `setIgnoreMouseEvents(true)` so clicks pass through, shown with `showInactive()` (no keyboard focus), not focusable, not in the taskbar. Never used by default or by CI.
 
-Playwright's Chromium and Firefox projects run headless (Firefox runs headed only when `FIREFOX_HEADED=1`, which CI sets on Linux under a virtual display). To check a visible-mode run takes no focus, type into another application while it runs; no keystroke may be lost.
+Playwright's Chromium and Firefox projects run headless (Firefox runs headed only when `FIREFOX_HEADED=1`, which CI sets on Linux under a virtual display).
 
 ## Check the graphics and frame rate
 
-If the desktop app feels slow, run `scripts/node24.sh npm run desktop:perf` (after `desktop:build`; `DESKTOP_EXE=/path/to/MapMaker.app/Contents/MacOS/MapMaker` tests an installed build, `N=1000000` a bigger world). It launches the app (in visible mode, without taking focus), generates a world, drags the globe, and prints:
+If the desktop app feels slow, run `scripts/node24.sh npm run desktop:perf` (after `desktop:build`; `DESKTOP_EXE=/path/to/MapMaker.app/Contents/MacOS/MapMaker` tests an installed build, `N=1000000` a bigger world). It launches the app (hidden, `PERF_WATCH=1` for the watch window), generates a world, drags the globe, and prints:
 
 - **WebGL renderer**: must say `hardware` (on a Mac: `ANGLE (Apple, ANGLE Metal Renderer: ...)`). `SwiftShader`, `llvmpipe` or `Software` means the app has no GPU and everything will be slow.
 - **GPU status**: `webgl`, `gpu_compositing` and `rasterization` should be `enabled`. The app sets no GPU switch and never calls `app.disableHardwareAcceleration()`; do not add one.

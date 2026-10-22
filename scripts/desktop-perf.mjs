@@ -12,7 +12,7 @@ import { _electron as electron } from '@playwright/test';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const N = Number(process.env['N'] ?? 200_000), MOVES = 180;
 const exe = process.env['DESKTOP_EXE'];
-const app = await electron.launch({ ...(exe ? { executablePath: exe } : { args: [resolve(root, 'apps/desktop')] }), env: { ...process.env, MAPMAKER_NO_UPDATE_CHECK: '1', MAPMAKER_TEST_VISIBLE: '1' } });
+const app = await electron.launch({ ...(exe ? { executablePath: exe } : { args: [resolve(root, 'apps/desktop')] }), env: { ...process.env, MAPMAKER_NO_UPDATE_CHECK: '1', ...(process.env['PERF_WATCH'] === '1' ? { MAPMAKER_TEST_WATCH: '1' } : { MAPMAKER_TEST: '1' }) } });
 try {
   const page = await app.firstWindow();
   await page.waitForFunction(() => !!window.__globe && !!window.__flat);
