@@ -7,6 +7,7 @@ export * from './multilevel';
 export * from './hydro';
 export * from './rng';
 export * from './typed';
+export * from './parallel';
 export * from './layers';
 export * from './entities';
 export * from './timeline';

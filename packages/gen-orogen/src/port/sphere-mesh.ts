@@ -1,9 +1,10 @@
 // Provenance: ported from upstream/orogen/js/sphere-mesh.js @ cc2662b (GPL-3.0), itself adapted from Red Blob Games
 // sphere-mesh.js. See PROVENANCE.md. orogen's own SphereMesh class and helpers, as the other ported modules expect
 // them (the canonical mesh is packages/core SphereMesh). Delaunator is imported instead of injected; Math.asin/cos/sin
-// go through dmath. Arithmetic and order unchanged.
+// go through dmath. Arithmetic and order unchanged. The adjacency arrays come from core's allocArray (shared memory when a
+// worker pool runs the cell kernels, decision PK1).
 import Delaunator from 'delaunator';
-import { dmath } from '@mapmaker/core';
+import { allocArray, dmath } from '@mapmaker/core';
 
 // Fibonacci sphere with jitter — evenly-distributed points using the
 // Fibonacci spiral. Jitter randomises positions for more organic Voronoi cells.
@@ -125,13 +126,13 @@ export class SphereMesh {
       } while (s !== s0);
     }
 
-    this._adjOffset = new Int32Array(numRegions + 1);
+    this._adjOffset = allocArray(Int32Array, numRegions + 1);
     for (let r = 0; r < numRegions; r++) {
       this._adjOffset[r + 1] = this._adjOffset[r]! + adjCount[r]!;
     }
 
     const totalAdj = this._adjOffset[numRegions]!;
-    this._adjList = new Int32Array(totalAdj);
+    this._adjList = allocArray(Int32Array, totalAdj);
     this._adjTriList = new Int32Array(totalAdj);
 
     for (let r = 0; r < numRegions; r++) {

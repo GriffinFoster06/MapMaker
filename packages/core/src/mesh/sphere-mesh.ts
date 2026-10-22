@@ -4,6 +4,7 @@
 import Delaunator from 'delaunator';
 import { dmath } from '../dmath';
 import { orogenToCanonical } from '../frame';
+import { allocArray } from '../typed';
 
 export type Precision = 'f32' | 'f64';
 
@@ -193,7 +194,7 @@ export class SphereMesh implements Topology {
 
   /** Cell centres in orogen's physics frame at the mesh precision (inverse of the F1 permutation). */
   orogenPoints(): Float32Array | Float64Array {
-    const out = this.precision === 'f32' ? new Float32Array(this.points.length) : new Float64Array(this.points.length);
+    const out = this.precision === 'f32' ? allocArray(Float32Array, this.points.length) : allocArray(Float64Array, this.points.length);
     const p = this.points;
     for (let i = 0; i < p.length; i += 3) {
       out[i] = p[i + 1]!; // x_o = Y

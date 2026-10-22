@@ -270,7 +270,8 @@ export function startApp(): void {
       const totalMs = performance.now() - t0;
       status.textContent = `${label}${opts.N.toLocaleString()} cells in ${(totalMs / 1000).toFixed(1)} s`;
       $('timing').textContent = Object.entries(stages).map(([k, v]) => `${k.padEnd(18)} ${(v / 1000).toFixed(2)} s`).join('\n') +
-        `\nworking set        ${((stats.layerBytes + stats.meshBytes) / 1e6).toFixed(0)} MB (${stats.layerArrays} layer arrays)`;
+        `\nworking set        ${((stats.layerBytes + stats.meshBytes) / 1e6).toFixed(0)} MB (${stats.layerArrays} layer arrays)` +
+        `\nkernel workers     ${stats.kernelWorkers || 'none (not cross-origin isolated)'}`;
       return { stages, totalMs, stats };
     } finally { busy = false; }
   }

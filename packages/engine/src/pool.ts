@@ -47,6 +47,16 @@ export class WorkerPool {
     return Promise.all(argsList.map((a) => this.run<T>(name, a)));
   }
 
+  /** Resolves once every worker has started and answers (the host's built-in `engine.ping` kernel). */
+  async ready(): Promise<void> {
+    await Promise.all(this.workers.map((w) => w.client.kernel('engine.ping', null)));
+  }
+
+  /** Posts one message to every worker, outside the request/response protocol (the `cells` op of cells.ts). */
+  post(message: unknown): void {
+    for (const w of this.workers) w.port.postMessage(message);
+  }
+
   async terminate(): Promise<void> {
     await Promise.all(this.workers.map((w) => w.port.terminate?.()));
   }

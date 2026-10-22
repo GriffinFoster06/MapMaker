@@ -9,13 +9,47 @@ export const DTYPES: readonly Dtype[] = ['f32', 'f64', 'i32', 'u32', 'u16', 'u8'
 
 export function makeArray(dtype: Dtype, n: number): TypedArray {
   switch (dtype) {
-    case 'f32': return new Float32Array(n);
-    case 'f64': return new Float64Array(n);
-    case 'i32': return new Int32Array(n);
-    case 'u32': return new Uint32Array(n);
-    case 'u16': return new Uint16Array(n);
-    case 'u8': return new Uint8Array(n);
+    case 'f32': return allocArray(Float32Array, n);
+    case 'f64': return allocArray(Float64Array, n);
+    case 'i32': return allocArray(Int32Array, n);
+    case 'u32': return allocArray(Uint32Array, n);
+    case 'u16': return allocArray(Uint16Array, n);
+    case 'u8': return allocArray(Uint8Array, n);
   }
+}
+
+// Shared memory (PERFORMANCE_STUDY §8 item 5, decision PK1). Where a worker pool runs per-cell kernels, layers and the
+// large mesh arrays are allocated in SharedArrayBuffers so the workers read and write them without a copy. The values
+// are the same either way; only where the bytes live changes.
+
+/** True where a SharedArrayBuffer can be made and shared with workers: Node, and cross-origin isolated pages and workers. */
+export function sharedMemoryAvailable(): boolean {
+  return typeof SharedArrayBuffer === 'function' && (globalThis as { crossOriginIsolated?: boolean }).crossOriginIsolated !== false;
+}
+
+let sharedAlloc = false;
+
+/** Turns shared allocation on (where available) or off for this realm; returns whether it is on. */
+export function setSharedAllocation(on: boolean): boolean {
+  sharedAlloc = on && sharedMemoryAvailable();
+  return sharedAlloc;
+}
+
+export function sharedAllocation(): boolean { return sharedAlloc; }
+
+export interface TypedArrayCtor<T extends TypedArray> {
+  new (n: number): T;
+  new (buffer: SharedArrayBuffer, byteOffset?: number, length?: number): T;
+  readonly BYTES_PER_ELEMENT: number;
+}
+
+/** A zeroed array of n elements: SharedArrayBuffer-backed while shared allocation is on, an ordinary array otherwise. */
+export function allocArray<T extends TypedArray>(ctor: TypedArrayCtor<T>, n: number): T {
+  return sharedAlloc ? new ctor(new SharedArrayBuffer(n * ctor.BYTES_PER_ELEMENT)) : new ctor(n);
+}
+
+export function isSharedArray(a: ArrayBufferView): boolean {
+  return typeof SharedArrayBuffer === 'function' && a.buffer instanceof SharedArrayBuffer;
 }
 
 export function dtypeOf(a: TypedArray): Dtype {

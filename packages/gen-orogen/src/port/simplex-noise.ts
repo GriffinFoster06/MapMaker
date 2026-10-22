@@ -56,3 +56,24 @@ export class SimplexNoise {
     return sum / maxVal;
   }
 }
+
+// Per-cell kernels (decision PK1, not in orogen): a pool worker gets a noise's permutation table instead of the object.
+const fromPerm = new WeakMap<Uint8Array, SimplexNoise>();
+
+/** The noise whose table is `perm`: the same values, bit for bit, as the SimplexNoise the table came from. */
+export function noiseFromPerm(perm: Uint8Array): SimplexNoise {
+  let n = fromPerm.get(perm);
+  if (!n) {
+    n = new SimplexNoise(0);
+    n.perm.set(perm);
+    for (let i = 0; i < 512; i++) n.pm12[i] = n.perm[i]! % 12;
+    fromPerm.set(perm, n);
+  }
+  return n;
+}
+
+/** A noise as a kernel argument: the port's table (shareable), or any other object as is (the kernel then runs in this thread). */
+export function noiseArg<T extends object>(n: T): T | Uint8Array { return n instanceof SimplexNoise ? n.perm : n; }
+
+/** The kernel side of noiseArg. */
+export function argNoise<T extends object>(a: T | Uint8Array): T | SimplexNoise { return a instanceof Uint8Array ? noiseFromPerm(a) : a; }

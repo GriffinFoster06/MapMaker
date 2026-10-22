@@ -206,7 +206,7 @@ The wrapper is the same engine: generation, frame cost and the spikes are the sa
 2. Globe `FrontSide` culling and triangle ordering, with a pixel-identity test (same `pixelSum`).
 3. Flat-map overlay path: cache projected geometry across pans, draw on a canvas or in a worker, upload textures in slices.
 4. Layer-switch cost (colours in the worker, transferred buffers) and the ring's shader warm-up.
-5. The shared-memory kernel API: `SharedArrayBuffer`-backed layers, the existing `WorkerPool` used by the pipeline, and the first kernel (the H1 noise loops) behind a parallel equals serial test. This is the one item that changes where code lives, so doing it before Phase 6 adds per-cell physics avoids rewriting that code twice. Its bit-identity is checked by the existing hashes.
+5. (Done, section 11.) The shared-memory kernel API: `SharedArrayBuffer`-backed layers, the existing `WorkerPool` used by the pipeline, and the first kernel (the H1 noise loops) behind a parallel equals serial test. This is the one item that changes where code lives, so doing it before Phase 6 adds per-cell physics avoids rewriting that code twice. Its bit-identity is checked by the existing hashes.
 
 **Phase 14** (needs the full scope and the CesiumJS reconciliation that Phase 14 already lists as its prerequisite):
 - Globe level of detail with horizon culling, measured for pixel indistinguishability.
@@ -338,3 +338,45 @@ Before: the whole re-plan is one task (the 140 ms timer: plan and SVG write); n,
 - *Open:* Firefox at 2.56M shows single gaps of 222, 231 and 333 ms in this run (one each in three configurations; the section 6 "unexplained, Firefox only" item, likely garbage or cycle collection); the layer switch's 231 ms is above the 100 ms before and I could not tell a regression from the same unexplained spikes with one run. The flat label plan (per frame in the flat view) is not sliced; it is not among the four items.
 
 Reproduce the before and after tables: `scripts/perf-fixes-all.sh before` on the previous commit and `after` on this one (preview on 127.0.0.1:4173, `apps/desktop/dist` built), then `node scripts/perf-fixes-summary.mjs`.
+
+## 11. After the parallel kernels
+
+Item 5 of section 8, on branch `parallel-kernels` (decisions PK1 to PK5): the shared-memory kernel API and the first parallel kernels, the five H1 noise loops. Measured with `scripts/perf-pipeline.mjs` on the same machine as section 2 (Apple M5 Pro, 18 cores, Node 24), structured pipeline, seed 12345, one run per size, one heavy job at a time. "Before" is the unchanged code (`07b7cb3`), run in this session; "after" is `--parallel` (17 kernel workers, hardware threads − 1).
+
+**What was built.** `runCells(name, n, args, outputs)` (core) runs a registered per-cell kernel either in the calling thread over all cells (the serial fallback) or through `ParallelCells` (engine): every worker of the existing `WorkerPool` gets one message, the threads claim chunks of 2048 cells from a shared counter, the calling thread takes chunks too and then waits in `Atomics.wait`. Layers, the mesh positions and the adjacency live in `SharedArrayBuffer`s while a pool is up; other arguments go through a reused shared arena. The engine worker starts the pool at the first run, only where `SharedArrayBuffer` exists (the desktop app always; the plain dev server is not isolated and runs serially, with the same result). The five loops: `warpTerrain` (the walk; its blend stays serial), `applyDetailNoise` (both calls), `applyTectonicBandNoise`, `applyCoastalDetail`, and the noise of `applyUniformLandNoise` (its slope term reads neighbours the loop has already changed, so that part stays sequential, PK3). Twelve kernel calls per world (six on the reference mesh, six at N), none declined.
+
+#### Time per stage in seconds, before -> after (cores used, after)
+
+| stage | 200k | 1M | 2.56M |
+|---|---|---|---|
+| mesh | 0.15 -> 0.16 (1.3) | 0.87 -> 0.84 (1.1) | 2.68 -> 2.57 (1.0) |
+| ref.pass (20k reference world) | 0.65 -> 0.65 (2.1) | 0.66 -> 0.63 (2.1) | 0.65 -> 0.64 (2.1) |
+| detail: elevation | 1.93 -> **1.61** (1.9) | 8.68 -> **6.82** (1.6) | 23.62 -> **18.78** (1.5) |
+| detail: climate | 0.07 -> 0.07 | 0.29 -> 0.31 | 0.78 -> 0.76 |
+| detail: drainage | 0.02 -> 0.02 | 0.12 -> 0.11 | 0.33 -> 0.34 |
+| **total** | **2.83 -> 2.51 (-11%)** | **10.64 -> 8.73 (-18%)** | **28.13 -> 23.18 (-18%)** |
+| pool start-up (before the run) | 0.10 | 0.09 | 0.09 |
+
+The elevation stage lost 4.8 s at 2.56M, close to the 5.4 s the H1 loops took in the section 3 profile (the rest of their time, about 0.3 to 0.6 s, is now spread over 18 threads). Everything else in that stage is still one core, which is why it averages 1.5 cores: the remaining 18.8 s are H2 to H4 and the rest of section 3, held for the P5 reconciliation or Phase 14. Section 2's figures (31.5 s at 2.56M) came from an earlier run; this session's "before" is 28.1 s on the same machine, and both before and after here are from this session.
+
+#### Memory: peak RSS of the whole process in MB, before -> after
+
+| | 200k | 1M | 2.56M |
+|---|---|---|---|
+| peak RSS | 373 -> 760 (+387) | 932 -> 1378 (+446) | 1952 -> 2360 (+408) |
+| of which the idle pool (17 workers, measured before the run) | +299 | +302 | +299 |
+| shared argument arena (freed after the run) | 6 | 28 | 71 |
+| arguments copied into the arena per run | 16 | 76 | 192 |
+
+**Cost of the workers:** about 18 MB per idle worker (its own V8 heap, the bundled kernels and their JIT code), so 300 MB for 17, plus 90 to 150 MB while they work (their heaps and the arena). With 8 workers (`--parallel=8`) the 2.56M run took 23.3 s with a 2172 MB peak: 0.1 s slower and 188 MB smaller. The pool size stays at the plan's hardware threads − 1 (PK4); later kernels (H3, the five distance fields) gain more from the extra workers than the noise loops do. The layers themselves cost nothing extra in shared memory (same bytes, another kind of buffer).
+
+#### Proof that nothing changed
+
+- **Parallel equals serial:** `packages/engine/src/cells.test.ts` (a test kernel that reads a neighbour and accumulates in place, for 1, 2, 5 and 8 workers, chunk sizes 1, 7, 333 and 4097, at 1, 4095 and 20001 cells; shared inputs are not copied; declined calls; a worker's error reaches the caller and the pool keeps working) and `packages/gen-orogen/src/structured/parallel.test.ts` (the structured pipeline at 30011 cells: every layer hash and the World hash equal the serial run for 1, 2, 5 and 8 workers with chunks 333, 1021, 4093 and 7; all 12 kernel calls ran in parallel, none declined).
+- **Goldens:** no golden, hash, probe key or baseline was changed or re-recorded. Full unit suite 529 passed (1 skipped, as before), including the port-parity tests (the serial path in dmath `native` mode) and every World-hash test; `npm run probe`: 481 hashes, 0 mismatches, both serially and with the pool (`npm run probe -- --parallel`, 24 parallel calls).
+- **Nine worlds** (200k, 1M, 2.56M by seeds 1, 777, 12345; `scripts/nine-worlds.mjs`, run once): the hashes recorded on the unchanged code before any edit against this branch with 17 kernel workers: 9 World hashes and 675 layer-array hashes, **0 differences** (108 parallel calls, none declined).
+- **Desktop app:** the Electron smoke test generates in the app, asserts that the pool ran (`stats.kernelWorkers > 0`, `kernelCalls > 0`) and that the World hash equals Node's serial one: passed.
+- **Browsers:** the new `apps/web/e2e/kernels.spec.ts`, Chromium and Firefox: made cross-origin isolated by the `?coi` shim the engine worker runs all 12 kernel calls in its pool; without the shim the pool is used exactly where the host isolates the page (not the local preview, which runs them in the engine worker, `kernelWorkers` 0; yes on the Cloudflare preview, which sends the headers); every World hash equals Node's. The full e2e suite (38 tests, Chromium and Firefox) passed.
+- **Not touched** (held for the P5 reconciliation, section 8): `erodeComposite`, `projectCoarsePlates`, the distance fields, `propagateStress`, `applyPlatePhysics`.
+
+Reproduce: `NODE_OPTIONS=--max-old-space-size=13000 scripts/node24.sh npx tsx scripts/perf-pipeline.mjs <N> out.json [--parallel[=<workers>]]`; `scripts/node24.sh npx tsx scripts/nine-worlds.mjs a.json` on the old commit, `... b.json --parallel` on this one, then `node scripts/nine-worlds.mjs --compare a.json b.json`.

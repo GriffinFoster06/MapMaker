@@ -1,8 +1,10 @@
 // Provenance: ported from upstream/orogen/js/terrain-post.js @ cc2662b (GPL-3.0). See PROVENANCE.md.
 // Mechanical changes: Math.asin/pow -> dmath; types and `!` on indexed reads added; never-reassigned `let`s made const;
 // unused DETAIL_NOISE_DAMPEN_STRENGTH import dropped. Arithmetic, evaluation order and typed-array types unchanged.
-import { dmath } from '@mapmaker/core';
-import { SimplexNoise } from './simplex-noise';
+// Per-cell kernels (decision PK1): the per-cell loops of warpTerrain and applyDetailNoise are cell kernels (runCells), so
+// a worker pool may run them in chunks; the loop bodies are unchanged and every cell still computes the same bits.
+import { allocArray, defineCellKernel, dmath, runCells } from '@mapmaker/core';
+import { SimplexNoise, noiseFromPerm } from './simplex-noise';
 import type { PortMesh } from './types';
 import {
   FLOOD_NOISE_AMP, FLOOD_CARVE_RADIUS_FRAC,
@@ -242,38 +244,14 @@ function priorityFloodCarve(mesh: PortMesh, r_elevation: Float32Array, r_isOcean
   }
 }
 
-/**
- * Domain warping — displaces each region's elevation lookup by FBM simplex
- * noise in the tangent plane, producing organic, squiggly coastlines and
- * mountain ridges. Scale-invariant: noise is evaluated in 3D coordinate
- * space and amplitude is in radians (physical distance on the sphere).
- *
- * For each region:
- *  1. Compute a tangent-plane frame (east/north) at its position on the unit sphere
- *  2. Use FBM simplex noise (4 octaves, frequency 6) to generate two
- *     displacement values in the tangent plane
- *  3. Displace the region's 3D position along the tangent frame by the noise
- *     offsets, then re-project onto the unit sphere
- *  4. Walk the mesh graph (greedy nearest-neighbor) from the original region
- *     toward the displaced point to find the closest region
- *  5. Copy that source region's elevation to the output
- */
-export function warpTerrain(
-  mesh: PortMesh, r_elevation: Float32Array, r_xyz: ArrayLike<number>, seed: number, strength: number,
-  r_hotspot?: ArrayLike<number> | null,
-): void {
-  if (strength <= 0) return;
+interface WarpArgs { [k: string]: unknown; r_xyz: ArrayLike<number>; adjOffset: Int32Array; adjList: Int32Array; r_elevation: Float32Array; out: Float32Array; perm: Uint8Array; maxAmp: number }
 
-  const N = mesh.numRegions;
-  const { adjOffset, adjList } = mesh;
-  const noise = new SimplexNoise(seed + 9999);
+// warpTerrain's per-cell loop: reads positions, adjacency and r_elevation, writes only out[r].
+defineCellKernel<WarpArgs>('orogen.warpTerrain', ({ r_xyz, adjOffset, adjList, r_elevation, out, perm, maxAmp }, from, to) => {
+  const noise = noiseFromPerm(perm);
   const freq = WARP_FREQ;
   const octaves = WARP_OCTAVES;
-  const maxAmp = WARP_MAX_AMP_MULT * strength; // radians (~760 km at Earth scale when strength=1)
-
-  const out = new Float32Array(r_elevation);
-
-  for (let r = 0; r < N; r++) {
+  for (let r = from; r < to; r++) {
     const px = r_xyz[3 * r]!, py = r_xyz[3 * r + 1]!, pz = r_xyz[3 * r + 2]!;
 
     // Tangent frame: east = normalize(cross(up, pos)), north = cross(pos, east)
@@ -319,6 +297,39 @@ export function warpTerrain(
 
     out[r] = r_elevation[cur]!;
   }
+});
+
+/**
+ * Domain warping — displaces each region's elevation lookup by FBM simplex
+ * noise in the tangent plane, producing organic, squiggly coastlines and
+ * mountain ridges. Scale-invariant: noise is evaluated in 3D coordinate
+ * space and amplitude is in radians (physical distance on the sphere).
+ *
+ * For each region:
+ *  1. Compute a tangent-plane frame (east/north) at its position on the unit sphere
+ *  2. Use FBM simplex noise (4 octaves, frequency 6) to generate two
+ *     displacement values in the tangent plane
+ *  3. Displace the region's 3D position along the tangent frame by the noise
+ *     offsets, then re-project onto the unit sphere
+ *  4. Walk the mesh graph (greedy nearest-neighbor) from the original region
+ *     toward the displaced point to find the closest region
+ *  5. Copy that source region's elevation to the output
+ */
+export function warpTerrain(
+  mesh: PortMesh, r_elevation: Float32Array, r_xyz: ArrayLike<number>, seed: number, strength: number,
+  r_hotspot?: ArrayLike<number> | null,
+): void {
+  if (strength <= 0) return;
+
+  const N = mesh.numRegions;
+  const { adjOffset, adjList } = mesh;
+  const noise = new SimplexNoise(seed + 9999);
+  const maxAmp = WARP_MAX_AMP_MULT * strength; // radians (~760 km at Earth scale when strength=1)
+
+  const out = allocArray(Float32Array, r_elevation.length);
+  out.set(r_elevation);
+
+  runCells('orogen.warpTerrain', N, { r_xyz, adjOffset, adjList, r_elevation, out, perm: noise.perm, maxAmp }, ['out']);
 
   // Weighted max: pick whichever is larger, biased by strength
   // At strength≈0 → 75% original, at strength=1 → 75% warped
@@ -876,11 +887,28 @@ export function applyDetailNoise(
   const noise = new SimplexNoise(seed + seedOffset);
   const wf = DETAIL_NOISE_WARP_FREQ * frequencyMult;
   const wa = DETAIL_NOISE_WARP_AMP * warpAmpMult;
-  const wo = DETAIL_NOISE_WARP_OCTAVES;
   const df = DETAIL_NOISE_FREQ * frequencyMult;
+
+  runCells('orogen.applyDetailNoise', N, {
+    r_xyz, r_elevation, r_isOcean, perm: noise.perm, wf, wa, df, bipolar, biasExponent, amplitudeKm,
+    dampenField, dampenStrength, useDampen, amplitudeField,
+  }, ['r_elevation']);
+}
+
+interface DetailNoiseArgs {
+  [k: string]: unknown; r_xyz: ArrayLike<number>; r_elevation: Float32Array; r_isOcean: Flags; perm: Uint8Array;
+  wf: number; wa: number; df: number; bipolar: boolean; biasExponent: number; amplitudeKm: number;
+  dampenField: ArrayLike<number> | null; dampenStrength: number; useDampen: boolean; amplitudeField: ArrayLike<number> | null;
+}
+
+// applyDetailNoise's per-cell loop: reads and writes only cell r.
+defineCellKernel<DetailNoiseArgs>('orogen.applyDetailNoise', (a, from, to) => {
+  const { r_xyz, r_elevation, r_isOcean, wf, wa, df, bipolar, biasExponent, amplitudeKm, dampenField, dampenStrength, useDampen, amplitudeField } = a;
+  const noise = noiseFromPerm(a.perm);
+  const wo = DETAIL_NOISE_WARP_OCTAVES;
   const doct = DETAIL_NOISE_OCTAVES;
 
-  for (let r = 0; r < N; r++) {
+  for (let r = from; r < to; r++) {
     if (r_isOcean[r]) continue;
     const elev = r_elevation[r]!;
     // Skip cells outside the quartic's well-defined domain. Above
@@ -912,7 +940,7 @@ export function applyDetailNoise(
     }
 
     let deltaKm = mapped * amplitudeKm;
-    if (useDampen) deltaKm *= 1 - dampenStrength * dampenField[r]!;
+    if (useDampen) deltaKm *= 1 - dampenStrength * dampenField![r]!;
     if (amplitudeField) deltaKm *= amplitudeField[r]!;
     if (deltaKm > -1e-9 && deltaKm < 1e-9) continue;
 
@@ -939,7 +967,7 @@ export function applyDetailNoise(
     }
     r_elevation[r] = t;
   }
-}
+});
 
 /**
  * Soil creep — simple Laplacian diffusion on land cells.

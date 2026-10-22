@@ -1,5 +1,7 @@
 // Provenance: ported from upstream/orogen/js/elevation.js @ cc2662b (GPL-3.0). See PROVENANCE.md.
 // Mechanical changes only: Math transcendentals → dmath, `x ** 2` → x * x, console.log diagnostics (and the counters and unused noise samples that only fed them or nothing) dropped, types added. Arithmetic and order unchanged.
+// Per-cell kernels (decision PK1): the per-cell loops of applyTectonicBandNoise and applyCoastalDetail, and the noise of
+// applyUniformLandNoise, are cell kernels (runCells), so a worker pool may run them in chunks with the same bits.
 //
 // Elevation pipeline — 12 explicit stages.
 //
@@ -16,9 +18,9 @@
 // Stage 11: Final shaping              (applyFinalShaping)
 // Stage 12: Topology fixup             (fixupTopology)
 
-import { dmath } from '@mapmaker/core';
+import { allocArray, defineCellKernel, dmath, runCells } from '@mapmaker/core';
 import { makeRandInt, makeRng } from './rng';
-import { SimplexNoise } from './simplex-noise';
+import { SimplexNoise, argNoise, noiseArg, noiseFromPerm } from './simplex-noise';
 import type { PortMesh } from './types';
 import {
     COLLISION_THRESHOLD, COLLISION_DT_BASE, COLLISION_DT_REF_REGIONS,
@@ -1317,10 +1319,23 @@ function applyTectonicBandNoise(mesh: PortMesh, r_xyz: Xyz, r_elevation: Float32
     const { r_isOcean } = sf;
     const { r_t_foldBelt, r_noiseAmp } = tt;
     const dl_noise = debugLayers.noise;
-    const warpScale = WARP_SCALE;
     const warpOctaves = numRegions > 200000 ? 2 : 3;
 
-    for (let r = 0; r < numRegions; r++) {
+    runCells('orogen.tectonicBandNoise', numRegions, { r_xyz, r_elevation, r_isOcean, r_t_foldBelt, r_noiseAmp, dl_noise, noise: noiseArg(noise), noiseMag, warpOctaves }, ['r_elevation', 'dl_noise']);
+}
+
+interface BandNoiseArgs {
+    [k: string]: unknown; r_xyz: Xyz; r_elevation: Float32Array; r_isOcean: ArrayLike<number>; r_t_foldBelt: ArrayLike<number>; r_noiseAmp: ArrayLike<number>;
+    dl_noise: Float32Array; noise: Noise | Uint8Array; noiseMag: number; warpOctaves: number;
+}
+
+// applyTectonicBandNoise's per-cell loop: reads and writes only cell r.
+defineCellKernel<BandNoiseArgs>('orogen.tectonicBandNoise', (a, from, to) => {
+    const { r_xyz, r_elevation, r_isOcean, r_t_foldBelt, r_noiseAmp, dl_noise, noiseMag, warpOctaves } = a;
+    const noise = argNoise(a.noise);
+    const warpScale = WARP_SCALE;
+
+    for (let r = from; r < to; r++) {
         const x = r_xyz[3*r]!, y = r_xyz[3*r+1]!, z = r_xyz[3*r+2]!;
         const wx = x + warpScale * noise.fbm(x + 5.3, y + 1.7, z + 3.1, warpOctaves);
         const wy = y + warpScale * noise.fbm(x + 8.1, y + 2.9, z + 7.3, warpOctaves);
@@ -1370,7 +1385,7 @@ function applyTectonicBandNoise(mesh: PortMesh, r_xyz: Xyz, r_elevation: Float32
         r_elevation[r]! += total;
         dl_noise[r] = total;
     }
-}
+});
 
 // ─────────────────────────────────────────────────────────────────────────
 //  Stage 6: Elevation-gated detail
@@ -1745,7 +1760,26 @@ function applyCoastalDetail(mesh: PortMesh, r_xyz: Xyz, r_elevation: Float32Arra
     const cNoise3 = new SimplexNoise(seed + 211);
     const islandMaxDist = Math.max(4, Math.round(ISLAND_DIST_BASE * scaleFactor));
 
-    for (let r = 0; r < numRegions; r++) {
+    runCells('orogen.coastalDetail', numRegions, {
+        r_xyz, r_elevation, r_stress, r_isOcean, dBdry, coastStressMax, coastSubductMax, coastConvergent, dl_coastal,
+        noise: noiseArg(noise), cPerm: cNoise.perm, cPerm2: cNoise2.perm, cPerm3: cNoise3.perm, maxStress, noiseMag, coastRoughenDist, islandMaxDist,
+    }, ['r_elevation', 'dl_coastal']);
+}
+
+interface CoastalArgs {
+    [k: string]: unknown; r_xyz: Xyz; r_elevation: Float32Array; r_stress: ArrayLike<number>; r_isOcean: ArrayLike<number>; dBdry: ArrayLike<number>;
+    coastStressMax: ArrayLike<number>; coastSubductMax: ArrayLike<number>; coastConvergent: ArrayLike<number>; dl_coastal: Float32Array;
+    noise: Noise | Uint8Array; cPerm: Uint8Array; cPerm2: Uint8Array; cPerm3: Uint8Array;
+    maxStress: number; noiseMag: number; coastRoughenDist: number; islandMaxDist: number;
+}
+
+// applyCoastalDetail's per-cell loop: reads and writes only cell r.
+defineCellKernel<CoastalArgs>('orogen.coastalDetail', (a, from, to) => {
+    const { r_xyz, r_elevation, r_stress, r_isOcean, dBdry, coastStressMax, coastSubductMax, coastConvergent, dl_coastal, maxStress, noiseMag, coastRoughenDist, islandMaxDist } = a;
+    const noise = argNoise(a.noise);
+    const cNoise = noiseFromPerm(a.cPerm), cNoise2 = noiseFromPerm(a.cPerm2), cNoise3 = noiseFromPerm(a.cPerm3);
+
+    for (let r = from; r < to; r++) {
         if (dBdry[r]! > coastRoughenDist) continue;
         const x = r_xyz[3*r]!, y = r_xyz[3*r+1]!, z = r_xyz[3*r+2]!;
         const t = dBdry[r]! / coastRoughenDist;
@@ -1809,7 +1843,7 @@ function applyCoastalDetail(mesh: PortMesh, r_xyz: Xyz, r_elevation: Float32Arra
 
         dl_coastal[r]! += r_elevation[r]! - elevBeforeCoast;
     }
-}
+});
 
 // ─────────────────────────────────────────────────────────────────────────
 //  Stage 8: Discrete edifices
@@ -2446,6 +2480,12 @@ function applyUniformLandNoise(mesh: PortMesh, r_xyz: Xyz, r_elevation: Float32A
     const halfFreq = freq * 0.5;
     const halfAmp = amp * 0.5;
 
+    // Decision PK1: the slope term below reads neighbours this loop has already updated, so the loop stays sequential.
+    // Its noise depends on the cell's position only (and on the gate, which reads the cell's own, not yet updated,
+    // elevation), so it is computed first as a cell kernel: addVal − subVal per cell, as the same double.
+    const r_noiseDiff = allocArray(Float64Array, numRegions);
+    runCells('orogen.uniformLandNoise', numRegions, { r_xyz, r_elevation, r_isOcean, r_noiseDiff, addPerm: addNoise.perm, subPerm: subNoise.perm, freq, halfFreq, amp, halfAmp, oct }, ['r_noiseDiff']);
+
     for (let r = 0; r < numRegions; r++) {
         if (r_isOcean[r]! && r_elevation[r]! <= 0) continue;
 
@@ -2466,15 +2506,30 @@ function applyUniformLandNoise(mesh: PortMesh, r_xyz: Xyz, r_elevation: Float32A
         const mtnT = dm === Infinity ? 0.0 : (dm < mtnRampDist ? 1.0 - dm / mtnRampDist : 0.0);
         const modulation = Math.max(0.10, gradDamp * elevBoost * basinDamp * (1.0 + 0.5 * mtnT * mtnT));
 
-        const i3 = 3 * r;
-        const x = r_xyz[i3]!, y = r_xyz[i3 + 1]!, z = r_xyz[i3 + 2]!;
-        const addVal = addNoise.fbm(x * halfFreq + 55.3, y * halfFreq + 18.7, z * halfFreq + 42.1, oct) * amp;
-        const subVal = subNoise.fbm(x * freq + 88.9, y * freq + 33.4, z * freq + 61.6, oct) * halfAmp;
-        const uniformContrib = (addVal - subVal) * modulation;
+        const uniformContrib = r_noiseDiff[r]! * modulation;
         r_elevation[r]! += uniformContrib;
         dl_uniformNoise[r] = uniformContrib;
     }
 }
+
+interface UniformNoiseArgs {
+    [k: string]: unknown; r_xyz: Xyz; r_elevation: Float32Array; r_isOcean: ArrayLike<number>; r_noiseDiff: Float64Array;
+    addPerm: Uint8Array; subPerm: Uint8Array; freq: number; halfFreq: number; amp: number; halfAmp: number; oct: number;
+}
+
+// The noise of applyUniformLandNoise: reads cell r, writes only r_noiseDiff[r].
+defineCellKernel<UniformNoiseArgs>('orogen.uniformLandNoise', (a, from, to) => {
+    const { r_xyz, r_elevation, r_isOcean, r_noiseDiff, freq, halfFreq, amp, halfAmp, oct } = a;
+    const addNoise = noiseFromPerm(a.addPerm), subNoise = noiseFromPerm(a.subPerm);
+    for (let r = from; r < to; r++) {
+        if (r_isOcean[r]! && r_elevation[r]! <= 0) continue;
+        const i3 = 3 * r;
+        const x = r_xyz[i3]!, y = r_xyz[i3 + 1]!, z = r_xyz[i3 + 2]!;
+        const addVal = addNoise.fbm(x * halfFreq + 55.3, y * halfFreq + 18.7, z * halfFreq + 42.1, oct) * amp;
+        const subVal = subNoise.fbm(x * freq + 88.9, y * freq + 33.4, z * freq + 61.6, oct) * halfAmp;
+        r_noiseDiff[r] = addVal - subVal;
+    }
+});
 
 // ─────────────────────────────────────────────────────────────────────────
 //  Stage 10: Dynamic topography
