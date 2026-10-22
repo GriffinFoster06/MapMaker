@@ -22,11 +22,14 @@ export interface OrogenParams {
   debugLayers: boolean;
 }
 
-/** orogen's slider defaults at cc2662b (index.html), as used by spike 1a. */
+/**
+ * orogen's slider defaults at cc2662b (index.html), as used by spike 1a, except where a default was verifiably wrong
+ * against Earth (decision P6): `landCoverage` 0.36 (orogen 0.3), which gives Earth's land fraction (docs/earth-tests/DEFAULTS_SWEEP.md).
+ */
 export const OROGEN_DEFAULTS: OrogenParams = {
   seed: 12345, N: 20000, P: 80, jitter: 0.75, nMag: 0.4, numContinents: 4, smoothing: 0.1, hydraulicErosion: 0.5,
   thermalErosion: 0.1, ridgeSharpening: 0.5, glacialErosion: 0.5, terrainWarp: 0.75, continentSizeVariety: 0.35,
-  temperatureOffset: 0, precipitationOffset: 0, landCoverage: 0.3, debugLayers: false,
+  temperatureOffset: 0, precipitationOffset: 0, landCoverage: 0.36, debugLayers: false,
 };
 
 /** World param key holding a partial OrogenParams. Every orogen stage hashes it. */

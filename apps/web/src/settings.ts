@@ -1,5 +1,6 @@
 // World settings panel: orogen's generation sliders (upstream/orogen/index.html at cc2662b — labels, ranges, steps,
-// defaults and help text), shown above the globe and kept in the page URL so a world can be shared exactly.
+// defaults and help text; the land coverage default is 0.36 instead, decision P6), shown above the globe and kept in
+// the page URL so a world can be shared exactly.
 // Original shell code. Defaults must equal OROGEN_DEFAULTS (settings.test.ts); they are duplicated here so the page
 // does not bundle the generator, which runs in the engine worker.
 
@@ -41,7 +42,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
         tip: 'Terrain roughness: higher values add more fractal detail to mountains and coastlines.' },
       { key: 'continentSizeVariety', level: 'advanced', domain: 'tectonics', label: 'Continent size variety', min: 0, max: 1, step: 0.05, def: 0.35, lo: 'Equal', hi: 'Varied',
         tip: 'How much continent sizes vary: at 0 all continents are similar in size, at 1 large and small landmasses mix.' },
-      { key: 'landCoverage', level: 'simple', domain: 'tectonics', label: 'Land coverage', min: 0, max: 1, step: 0.01, def: 0.3, lo: 'Ocean world', hi: 'Desert world',
+      { key: 'landCoverage', level: 'simple', domain: 'tectonics', label: 'Land coverage', min: 0, max: 1, step: 0.01, def: 0.36, lo: 'Ocean world', hi: 'Desert world',
         tip: 'Share of the planet covered by land. Low values make ocean worlds; high values make desert worlds with less rain.' },
     ],
   },
