@@ -38,6 +38,8 @@ export interface GlobeHook {
   setFormerDraw(former: boolean): void;
   /** Which path draws the globe: `fast` (front faces, ordered triangles, verified identical on this GPU) or `former`. */
   drawPath(): 'fast' | 'former';
+  /** Measurement hook: main-thread milliseconds of each stretch of the globe label re-plans since the last call. */
+  labelSlices(): number[];
   layers: string[];
 }
 
@@ -416,6 +418,7 @@ export function startApp(): void {
     pixelSum: () => globe?.pixelSum() ?? 0,
     setFormerDraw: (former) => { globe?.setFormerDraw(former); },
     drawPath: () => globe?.drawPath ?? 'former',
+    labelSlices: () => globeLabels?.takeSlices() ?? [],
     layers: layers.map((l) => l.id),
   };
 }

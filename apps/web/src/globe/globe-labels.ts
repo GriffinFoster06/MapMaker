@@ -20,6 +20,14 @@ export class GlobeLabels {
   private gen = 0;
   /** The number of labels in the last plan (test hook). */
   count = 0;
+  private slices: number[] = [];
+
+  /** Test and measurement hook: main-thread milliseconds of each uninterrupted stretch of the re-plans since the last call (at most 5000). */
+  takeSlices(): number[] {
+    const s = this.slices;
+    this.slices = [];
+    return s;
+  }
 
   constructor(private readonly globe: Globe, private readonly svg: SVGSVGElement, private readonly src: GlobeLabelSource) {
     globe.onViewChange(() => this.schedule());
@@ -48,9 +56,12 @@ export class GlobeLabels {
       invertInto: sample,
     };
     // The mask is the long part of the plan (a ground lookup for every cell of a coarse screen grid): made in slices, and dropped if the camera moves meanwhile.
-    const mask = await buildMaskSliced(proj, data.regions, maskCell(W), { sliceMs: SLICE_MS, yieldNow: yieldTurn, cancelled: () => my !== this.gen, now: () => performance.now() });
+    let mark = performance.now();
+    const lap = (): void => { const t = performance.now(); if (this.slices.length < 5000) this.slices.push(t - mark); mark = t; };
+    const pause = async (): Promise<void> => { lap(); await yieldTurn(); mark = performance.now(); };
+    const mask = await buildMaskSliced(proj, data.regions, maskCell(W), { sliceMs: SLICE_MS, yieldNow: pause, cancelled: () => my !== this.gen, now: () => performance.now() });
     if (!mask || my !== this.gen) return;
-    await yieldTurn(); // the placement below is a slice of its own
+    await pause(); // the placement below is a slice of its own
     if (my !== this.gen) return;
     const fur = furnitureLayout(W, H, style, { scaleBar: false, legend: false });
     const plan = planLabels(data, proj, style, { obstacles: [fur.scale, fur.legend].filter((b): b is NonNullable<typeof b> => !!b), riverMinArea: riverThreshold(style, this.globe.pixelsPerRadian()), limb: true, mask });
@@ -60,5 +71,6 @@ export class GlobeLabels {
     this.svg.setAttribute('height', String(H));
     this.svg.innerHTML = labelsSvg(plan, 'gl');
     this.svg.style.visibility = 'visible';
+    lap();
   }
 }

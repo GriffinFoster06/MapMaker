@@ -177,7 +177,7 @@ try {
     }
     const mk = await marker();
     await sleep(100);
-    await page.evaluate(() => window.__pm.start());
+    await page.evaluate(() => { window.__pm.start(); if (window.__globe.labelSlices) window.__globe.labelSlices(); });
     let moves = 0;
     let switches = null;
     if (name === 'idle') await sleep(5000);
@@ -236,6 +236,7 @@ try {
     }
     await sleep(700);
     const data = await page.evaluate(() => window.__pm.stop());
+    data.labelSlices = await page.evaluate(() => (window.__globe.labelSlices ? window.__globe.labelSlices() : null));
     if (PROF && cdp) { profile = (await cdp.send('Profiler.stop')).profile; await cdp.detach(); }
     if (TRACE && target !== 'firefox') {
       const tf = resolve(root, `docs/perf-study/raw/trace-${target}-${N}-${name.replace(/\+/g, '_')}.json`);
