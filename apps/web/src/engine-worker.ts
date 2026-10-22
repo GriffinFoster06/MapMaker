@@ -1,6 +1,6 @@
 // Engine worker (ARCHITECTURE §6.1): owns the World during generation and runs the orogen stages. The main thread never
 // runs a stage.
-import type { PortLike } from '@mapmaker/engine';
+import type { PoolPort, PortLike } from '@mapmaker/engine';
 import type { World } from '@mapmaker/core';
 import { globeKernels } from './globe/kernels';
 import { startOrogenHost } from '@mapmaker/gen-orogen';
@@ -14,4 +14,8 @@ const carto = cartoKernels({ biome: { color: biomeColor as never, rawElevation: 
 // What the page needs to know about a world it did not generate itself (a loaded file): the pipeline variant and the cell count.
 const info = { 'app.info': (w: World) => ({ variant: w.pipeline.variant, cells: w.meshes.get('global')!.mesh.numRegions }) };
 
-startOrogenHost(self as unknown as PortLike, navigator.userAgent, { worldKernels: { ...projectionKernels, ...carto, ...info, ...globeKernels } });
+// Per-cell kernels run in a pool of kernel workers where the page is cross-origin isolated (always in the desktop app);
+// elsewhere (the plain dev server) they run here, with the same result (decision PK1).
+const pool = { create: () => new Worker(new URL('./kernel-worker.ts', import.meta.url), { type: 'module' }) as unknown as PoolPort };
+
+startOrogenHost(self as unknown as PortLike, navigator.userAgent, { worldKernels: { ...projectionKernels, ...carto, ...info, ...globeKernels }, pool });

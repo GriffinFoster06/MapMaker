@@ -1,6 +1,8 @@
 // Engine worker host: owns the World during generation and runs the stage runner (ARCHITECTURE §6.1).
 // Works with any PortLike: a browser DedicatedWorkerGlobalScope, a Node worker_threads port, or a MessagePort.
-import { type TypedArray, type World, arrayIds, dmath, hashWorld, loadWorld, saveWorld } from '@mapmaker/core';
+import { type TypedArray, type World, arrayIds, cellExecutor, dmath, hashWorld, isSharedArray, loadWorld, saveWorld, setCellExecutor, setSharedAllocation } from '@mapmaker/core';
+import { ParallelCells, canBlock, serveCells } from './cells';
+import { type PoolPort, WorkerPool, defaultPoolSize } from './pool';
 import type { EditState, MeshData, PortLike, Request, Response, RunSummary, SystemInfo, WorldStats } from './protocol';
 import { staleStages } from './stale';
 import { resolveVariant } from './runner';
@@ -31,6 +33,11 @@ export interface HostOptions {
   worldKernels?: Record<string, (world: World, args: never) => unknown>;
   /** Builds a fresh world from request params (the `create` op). */
   create?: (params: unknown) => World;
+  /**
+   * Per-cell kernels in a worker pool (cells.ts, decision PK1). Used only where shared memory is available and this
+   * thread may block (a cross-origin isolated page's worker, Node); elsewhere every kernel runs in this thread.
+   */
+  pool?: { create: () => PoolPort; size?: number; chunk?: number };
 }
 
 export function attachHost(port: PortLike, opts: HostOptions): void {
@@ -39,9 +46,20 @@ export function attachHost(port: PortLike, opts: HostOptions): void {
   const stageVersions = Object.fromEntries(opts.stages.map((s) => [s.id, s.version]));
   const send = (m: Response, transfer?: Transferable[]) => port.postMessage(m, transfer);
 
+  // The pool starts with the first run and lives as long as this host. Shared allocation is switched on before any
+  // world is built, so its layers can be handed to the pool without a copy.
+  const poolOn = !!opts.pool && canBlock() && setSharedAllocation(true);
+  let pool: Promise<void> | undefined;
+  const startPool = (): Promise<void> => pool ??= (async () => {
+    const p = new WorkerPool(opts.pool!.create, opts.pool!.size ?? defaultPoolSize());
+    await p.ready();
+    setCellExecutor(new ParallelCells(p, { ...(opts.pool!.chunk ? { chunk: opts.pool!.chunk } : {}) }));
+  })();
+
   port.onmessage = (e) => {
     const req = e.data as Request;
     if (req.op === 'cancel') { cancel.aborted = true; return; }
+    if (req.op === 'cells') { serveCells(req); return; }
     void handle(req).catch((err: unknown) => send({ id: req.id, op: 'error', message: err instanceof Error ? err.message : String(err) }));
   };
 
@@ -55,6 +73,7 @@ export function attachHost(port: PortLike, opts: HostOptions): void {
       }
       case 'run': {
         if (!world) throw new Error('no world loaded');
+        if (poolOn) await startPool();
         cancel = { aborted: false };
         let n = 0;
         const w = world;
@@ -73,6 +92,8 @@ export function attachHost(port: PortLike, opts: HostOptions): void {
           },
         });
         await Promise.all(pending); // checkpoints must arrive before the result closes the request
+        const ex = cellExecutor();
+        if (ex instanceof ParallelCells) ex.release();
         send({ id: req.id, op: 'result', value: res satisfies RunSummary });
         return;
       }
@@ -154,12 +175,13 @@ export function attachHost(port: PortLike, opts: HostOptions): void {
         for (const m of world.meshes.values()) meshBytes += m.mesh.points.byteLength + m.mesh.triangles.byteLength + m.mesh.halfedges.byteLength + m.mesh.adjList.byteLength + m.mesh.adjOffset.byteLength + m.mesh.adjTriList.byteLength;
         const keys = world.layers.keys();
         for (const k of keys) { const i = k.indexOf('/'); layerBytes += world.layers.get(k.slice(0, i), k.slice(i + 1)).byteLength; }
-        const value: WorldStats = { meshBytes, layerBytes, layerArrays: keys.length, dmath: dmath.mode };
+        const ex = cellExecutor();
+        const value: WorldStats = { meshBytes, layerBytes, layerArrays: keys.length, dmath: dmath.mode, kernelWorkers: ex instanceof ParallelCells ? ex.workers : 0, kernelCalls: ex instanceof ParallelCells ? ex.calls : 0 };
         send({ id: req.id, op: 'result', value });
         return;
       }
       case 'kernel': {
-        const k = opts.kernels?.[req.name];
+        const k = req.name === 'engine.ping' ? () => true : opts.kernels?.[req.name];
         if (!k) throw new Error(`unknown kernel: ${req.name}`);
         send({ id: req.id, op: 'result', value: await k(req.args as never) });
         return;
@@ -171,12 +193,13 @@ export function attachHost(port: PortLike, opts: HostOptions): void {
         const value = await k(world, req.args as never);
         // Typed arrays in the result (top level, or one level down in a plain object) are transferred.
         const transfer: Transferable[] = [];
-        const take = (v: unknown) => { if (ArrayBuffer.isView(v) && !transfer.includes(v.buffer as ArrayBuffer)) transfer.push(v.buffer as ArrayBuffer); };
+        // A SharedArrayBuffer cannot be transferred (it is shared by the clone instead).
+        const take = (v: unknown) => { if (ArrayBuffer.isView(v) && !isSharedArray(v) && !transfer.includes(v.buffer as ArrayBuffer)) transfer.push(v.buffer as ArrayBuffer); };
         if (ArrayBuffer.isView(value)) take(value);
         else if (value && typeof value === 'object') {
           for (const v of Object.values(value)) take(v);
           // Buffers the kernel gave up explicitly, however deep in the result (see `withTransfer`).
-          for (const b of surrendered.get(value) ?? []) if (!transfer.includes(b as ArrayBuffer)) transfer.push(b as ArrayBuffer);
+          for (const b of surrendered.get(value) ?? []) if (b instanceof ArrayBuffer && !transfer.includes(b)) transfer.push(b);
         }
         send({ id: req.id, op: 'result', value }, transfer.length ? transfer : undefined);
         return;

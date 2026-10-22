@@ -7,7 +7,7 @@ import { orogenStages } from './stages';
 import { structuredStages } from './structured/stages';
 
 /** Call first thing in a worker: asserts dmath is in its default fdlibm mode, then serves the engine protocol. */
-export function startOrogenHost(port: PortLike, engine: string, extra: Pick<HostOptions, 'worldKernels'> = {}): void {
+export function startOrogenHost(port: PortLike, engine: string, extra: Pick<HostOptions, 'worldKernels' | 'pool'> = {}): void {
   initRealm();
   attachHost(port, {
     stages: [...orogenStages, ...structuredStages],

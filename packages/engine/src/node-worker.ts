@@ -4,6 +4,7 @@ import { dmath, initRealm } from '@mapmaker/core';
 import { attachHost } from './host';
 import { nodeParentPort } from './node-adapter';
 import { dummyHistoryStage } from './stages/dummy-history';
+import './test-kernels';
 
 initRealm();
 if (!parentPort) throw new Error('node-worker must run in a worker thread');

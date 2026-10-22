@@ -1,6 +1,7 @@
 // Typed worker protocol (ARCHITECTURE §6.1): run, progress, checkpoint, cancel, result. Original shell code.
 import type { EditDraft, SystemMode } from '@mapmaker/core';
 import type { StaleStage } from './edits';
+import type { CellsJob } from './cells';
 
 export interface PortLike {
   postMessage(message: unknown, transfer?: Transferable[]): void;
@@ -28,7 +29,9 @@ export type Request =
   | { id: number; op: 'kernel'; name: string; args: unknown }
   /** A host-registered function of the loaded World (read-only views and exports, §3.7). A typed-array result is transferred. */
   | { id: number; op: 'worldKernel'; name: string; args: unknown }
-  | { op: 'cancel' };
+  | { op: 'cancel' }
+  /** One per-cell kernel call (cells.ts): no reply, completion is signalled through shared memory. */
+  | CellsJob;
 
 export type Response =
   | { id: number; op: 'result'; value: unknown }
@@ -38,7 +41,11 @@ export type Response =
 
 export interface MeshData { numRegions: number; precision: 'f32' | 'f64'; points: Float64Array; triangles: Int32Array; halfedges: Int32Array }
 /** Logical working set of the world: bytes held by mesh arrays and layer arrays. */
-export interface WorldStats { meshBytes: number; layerBytes: number; layerArrays: number; dmath: string }
+export interface WorldStats {
+  meshBytes: number; layerBytes: number; layerArrays: number; dmath: string;
+  /** Workers running the per-cell kernels (0: they run in the engine worker), and the kernel calls they took (PK1). */
+  kernelWorkers: number; kernelCalls: number;
+}
 
 /** The edit log as the UI sees it: a short line per edit, not the geometry. */
 export interface EditState {

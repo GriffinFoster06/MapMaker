@@ -33,8 +33,11 @@ test('desktop app: isolated, worker engine, World hash equals Node, native save 
     expect(await page.evaluate(() => typeof (window as unknown as { require?: unknown }).require)).toBe('undefined');
     expect(await page.evaluate(() => Object.keys(window.mapmakerDesktop ?? {}).sort())).toEqual(['info', 'openWorld', 'saveFile']);
 
-    await page.evaluate(([n, seed]) => window.__globe!.generate({ N: n!, seed: seed! }), [N, SEED]);
+    const { stats } = await page.evaluate(([n, seed]) => window.__globe!.generate({ N: n!, seed: seed! }), [N, SEED]);
     const hash = await page.evaluate(() => window.__flat!.worldHash());
+    // Isolated, so the per-cell kernels ran in the engine worker's pool (decision PK1), and the hash below still equals Node's serial one.
+    expect(stats.kernelWorkers).toBeGreaterThan(0);
+    expect(stats.kernelCalls).toBeGreaterThan(0);
 
     const w = createOrogenWorld({ N, seed: SEED });
     await runPipeline(w, [...orogenStages, ...structuredStages], { strict: false, variant: STRUCTURED });

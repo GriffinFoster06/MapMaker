@@ -1,4 +1,5 @@
-// Node entry: `npm run probe` compares with golden.json; `npm run probe -- --write` regenerates it.
+// Node entry: `npm run probe` compares with golden.json; `npm run probe -- --write` regenerates it. `-- --parallel` runs
+// the per-cell kernels in a worker pool (decision PK1): the hashes must not change.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,7 +8,9 @@ import { runProbe } from './probe';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const goldenPath = join(here, 'golden.json');
+const pool = process.argv.includes('--parallel') ? await (await import('@mapmaker/gen-orogen/node-pool')).startNodeKernelPool() : undefined;
 const r = await runProbe();
+if (pool) { console.log(`kernel pool: ${pool.pool.size} workers, ${pool.executor.calls} parallel calls, ${pool.executor.declined} declined`); await pool.terminate(); }
 if (process.argv.includes('--write')) {
   writeFileSync(goldenPath, JSON.stringify({ version: r.version, hashes: r.hashes }, null, 1) + '\n');
   console.log(`wrote ${Object.keys(r.hashes).length} hashes to golden.json (node ${process.version}, ${process.platform}/${process.arch})`);
