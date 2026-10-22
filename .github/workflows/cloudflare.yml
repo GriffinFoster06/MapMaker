@@ -23,6 +23,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       enabled: ${{ steps.secrets.outputs.enabled }}
       url: ${{ steps.deploy.outputs.deployment-url }}
@@ -65,11 +66,26 @@ jobs:
           wranglerVersion: ${{ env.WRANGLER_VERSION }}
           command: pages deploy apps/web/dist --project-name=mapmaker --branch=${{ github.head_ref || github.ref_name }} --commit-dirty=true
 
-  # Smoke test the deployed site in all three engines. With native headers the page must be isolated without ?coi.
+  # Smoke test the deployed site in both supported engines (Chromium, Firefox; decision W7: no WebKit, so none is installed). With
+  # native headers the page must be isolated without ?coi. The specs run in groups side by side (scripts/e2e-files.sh), each group
+  # in its own job, so the slowest spec (GPU shaders in software-GL Firefox) no longer waits behind the others.
   smoke:
+    name: smoke (${{ matrix.spec.browser }}, ${{ matrix.spec.group }})
     needs: deploy
     if: needs.deploy.outputs.enabled == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Playwright's own image: browsers, system libraries and xvfb are in it (no apt download; keep the tag equal to @playwright/test).
+    container: mcr.microsoft.com/playwright:v1.55.1-noble
+    strategy:
+      fail-fast: false
+      matrix:
+        spec:
+          - { browser: chromium, group: heavy }
+          - { browser: chromium, group: core }
+          - { browser: firefox, group: gpu }
+          - { browser: firefox, group: cartomap }
+          - { browser: firefox, group: core }
     steps:
       # A new project's or deployment's TLS certificate can take a few minutes to issue (the first deploy failed every
       # test with a TLS handshake error). Wait until the URL serves 200 over TLS with the COEP header.
@@ -89,16 +105,18 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm ci --prefer-offline --no-audit --no-fund
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       # Headless Firefox on Linux has no WebGL, so Firefox runs headed on a virtual display (playwright.config.ts).
-      - run: xvfb-run -a npx playwright test
+      - run: xvfb-run -a npx playwright test --project=${{ matrix.spec.browser }} $(scripts/e2e-files.sh ${{ matrix.spec.group }})
         env:
           FIREFOX_HEADED: '1'
+          HOME: /root # Firefox refuses to start in the container when $HOME is not owned by the user
           E2E_BASE_URL: ${{ needs.deploy.outputs.url }}
           E2E_EXPECT_ISOLATED: '1'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: cloudflare-smoke
+          name: cloudflare-smoke-${{ matrix.spec.browser }}-${{ matrix.spec.group }}
           path: test-results/
