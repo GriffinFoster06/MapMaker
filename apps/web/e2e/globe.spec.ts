@@ -96,3 +96,69 @@ test('globe: a drag draws frames while it moves (no starvation)', async ({ page 
   expect(draws, `${draws} draws for ${MOVES} pointer moves`).toBeGreaterThan(MOVES / 2);
   expect(errors).toEqual([]);
 });
+
+// The globe draws front faces only, with the triangles ordered by lowest vertex, but only where that draws the same picture
+// (performance study, "After the first fixes"): `Globe.verifyFastPath` compares the two ways on random colours from several
+// viewpoints when a mesh is set and keeps the former way unless every pixel agrees. Here the faster way, when it is in use, is
+// compared with the former way on the real layers from other viewpoints: not one pixel inside the disc may differ, and on the limb
+// at most 3e-5 of the disc's area (the former way draws far-side triangles at the depth of the front ones there). Which way a browser ends up with
+// is recorded (software GL and Firefox are expected to keep the former way).
+test('globe: the faster draw path, where it is used, paints the same pixels as the former one', async ({ page, browserName }, info) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('./');
+  await page.waitForFunction(() => !!window.__globe);
+  await page.evaluate(() => window.__globe!.generate({ N: 50000, seed: 12345 }));
+  const path = await page.evaluate(() => window.__globe!.drawPath());
+  info.annotations.push({ type: 'globe-draw-path', description: `${browserName}: ${path}` });
+  await page.locator('#globe').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  const box = (await page.locator('#globe').boundingBox())!;
+  const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+  const seen = new Set<number>();
+  for (const [dx, dy, wheel] of [[0, 0, 0], [140, 40, 0], [-90, -120, 400], [200, 10, -300]] as const) {
+    if (dx || dy) { await page.mouse.move(cx, cy); await page.mouse.down(); await page.mouse.move(cx + dx / 2, cy + dy / 2, { steps: 4 }); await page.mouse.move(cx + dx, cy + dy, { steps: 4 }); await page.mouse.up(); }
+    if (wheel) { await page.mouse.move(cx, cy); await page.mouse.wheel(0, wheel); await page.waitForTimeout(200); }
+    for (const layer of ['elevation', 'koppen']) {
+      await page.evaluate((l) => window.__globe!.setLayer(l), layer);
+      const r = await page.evaluate(async () => {
+        const g = window.__globe!, c = document.getElementById('globe') as HTMLCanvasElement;
+        const grab = async () => {
+          const sum = g.pixelSum(); // draws, then the canvas holds that picture
+          const bm = await createImageBitmap(c), o = new OffscreenCanvas(bm.width, bm.height), x = o.getContext('2d')!;
+          x.drawImage(bm, 0, 0);
+          const img = x.getImageData(0, 0, bm.width, bm.height);
+          return { sum, img, data: img.data };
+        };
+        const now = await grab();
+        g.setFormerDraw(true);
+        const old = await grab();
+        g.setFormerDraw(false);
+        // The disc: the farthest pixel that is not the clear colour (5, 6, 13) from the canvas centre. Inside 97% of it every pixel must
+        // agree; on the limb the former path may differ in a few samples (far-side triangles at the depth of the front ones).
+        const { width: W, height: H } = now.img;
+        let R = 0;
+        for (let i = 0; i < now.data.length; i += 4) {
+          if (now.data[i] === 5 && now.data[i + 1] === 6 && now.data[i + 2] === 13) continue;
+          const p = i >> 2, d = Math.hypot((p % W) - W / 2, Math.floor(p / W) - H / 2);
+          if (d > R) R = d;
+        }
+        let inside = 0, rim = 0, max = 0;
+        for (let i = 0; i < now.data.length; i += 4) {
+          const d = Math.max(Math.abs(now.data[i]! - old.data[i]!), Math.abs(now.data[i + 1]! - old.data[i + 1]!), Math.abs(now.data[i + 2]! - old.data[i + 2]!));
+          if (!d) continue;
+          const p = i >> 2;
+          if (Math.hypot((p % W) - W / 2, Math.floor(p / W) - H / 2) < 0.97 * R) inside++; else rim++;
+          if (d > max) max = d;
+        }
+        return { sumNow: now.sum, sumOld: old.sum, inside, rim, max, area: Math.PI * R * R };
+      });
+      const msg = `${browserName} (${path}) ${layer}: ${r.inside} inside and ${r.rim} limb pixels differ (max ${r.max}/255), pixelSum ${r.sumNow} against ${r.sumOld}`;
+      expect(r.inside, msg).toBe(0);
+      expect(r.rim, msg).toBeLessThanOrEqual(Math.ceil(3e-5 * r.area));
+      if (path === 'former') expect(r.sumNow, msg).toBe(r.sumOld);
+      seen.add(r.sumNow);
+    }
+  }
+  expect(seen.size, 'the views differ from each other').toBeGreaterThan(3);
+  expect(errors).toEqual([]);
+});

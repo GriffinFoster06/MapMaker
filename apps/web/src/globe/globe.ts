@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { MeshData } from '@mapmaker/engine';
+import { orderTriangles, pictureAgrees } from './triangle-order';
 
 export class Globe {
   readonly renderer: THREE.WebGLRenderer;
@@ -42,14 +43,89 @@ export class Globe {
       pos[3 * i + 1] = m.points[3 * i + 2]!;
       pos[3 * i + 2] = -m.points[3 * i + 1]!;
     }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    this.pos = pos;
     this.color = new Float32Array(3 * n).fill(0.2);
-    g.setAttribute('color', new THREE.BufferAttribute(this.color, 3));
-    g.setIndex(new THREE.BufferAttribute(new Uint32Array(m.triangles.buffer, m.triangles.byteOffset, m.triangles.length), 1));
-    this.mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
-    this.scene.add(this.mesh);
+    this.rawIndex = new Uint32Array(m.triangles.buffer, m.triangles.byteOffset, m.triangles.length);
+    this.fastIndex = undefined;
+    this.show('former');
+    if (!this.forceFormer) this.verifyFastPath(m);
     this.render();
+  }
+
+  /** Which index buffer and faces draw the globe: `fast` (front faces, triangles by lowest vertex) or the `former` way (both faces, the mesh's order). */
+  drawPath: 'fast' | 'former' = 'former';
+  private pos: Float32Array | undefined;
+  private fastIndex: Uint32Array | undefined;
+  private rawIndex: Uint32Array | undefined;
+  private forceFormer = false;
+
+  /** Replaces the drawn mesh by one with the chosen path's index buffer and faces (its GPU buffers are freed with the old one). */
+  private show(path: 'fast' | 'former'): void {
+    const idx = path === 'fast' ? this.fastIndex : this.rawIndex;
+    if (!idx || !this.pos || !this.color) return;
+    if (this.mesh) { this.scene.remove(this.mesh); this.mesh.geometry.dispose(); (this.mesh.material as THREE.Material).dispose(); }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3));
+    g.setAttribute('color', new THREE.BufferAttribute(this.color, 3));
+    g.setIndex(new THREE.BufferAttribute(idx, 1));
+    this.mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: path === 'fast' ? THREE.FrontSide : THREE.DoubleSide }));
+    this.scene.add(this.mesh);
+    this.drawPath = path;
+  }
+
+  /**
+   * Test hook: draws the world the former way (both faces, the mesh's own triangle order) or the faster way where this GPU and
+   * browser draw it identically (`drawPath` says which is in use). The colours are kept.
+   */
+  setFormerDraw(former: boolean): void {
+    this.forceFormer = former;
+    if (former) this.show('former');
+    else if (this.fastIndex) this.show('fast');
+    this.render();
+  }
+
+  /**
+   * The faster way to draw (performance study, "After the first fixes"): `FrontSide` culling and the triangles ordered by lowest
+   * vertex, which measured 13% and 16% less GPU time. Whether the picture stays the same depends on the rasterizer: the Metal
+   * GPU of Chromium and Electron draws it pixel for pixel as before; software GL (SwiftShader) differs along the limb, where
+   * far-side triangles lie at the depth of the front ones, and Firefox differs where triangles share an edge. So the faster way is
+   * used only after it has drawn the mesh in random colours from several viewpoints and every pixel agreed with the former way
+   * on this machine; otherwise the former way stays.
+   */
+  private verifyFastPath(m: MeshData): void {
+    const ordered = orderTriangles(this.pos!, m.triangles);
+    if (ordered.flipped > 0) return; // culling needs every triangle wound the same way
+    const gl = this.renderer.getContext(), color = this.color!, saved = color.slice();
+    // Random colours per cell (a fixed integer hash, not Math.random): any pixel won by the wrong triangle then shows.
+    for (let i = 0; i < color.length; i++) { const x = Math.imul(i + 1, 0x9e3779b1) ^ (Math.imul(i >>> 3, 0x85ebca6b) >>> 7); color[i] = ((x >>> 8) & 0xff) / 255; }
+    this.show('former');
+    const cam = new THREE.PerspectiveCamera(this.camera.fov, this.camera.aspect, this.camera.near, this.camera.far);
+    const poses: [number, number, number][] = [[0, 0.6, 3.2], [2.1, -0.9, 7.5], [-0.5, 1.4, 1.5], [1.1, 0.2, -2.3], [0.2, -0.3, 8]];
+    const w = gl.drawingBufferWidth, h = gl.drawingBufferHeight;
+    const grab = (): Uint8Array[] => poses.map((p) => {
+      cam.position.set(...p);
+      cam.lookAt(0, 0, 0);
+      cam.updateMatrixWorld();
+      this.renderer.render(this.scene, cam);
+      const px = new Uint8Array(w * h * 4);
+      gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      return px;
+    });
+    let same = true;
+    try {
+      const before = grab();
+      this.fastIndex = ordered.indices;
+      this.show('fast');
+      const after = grab();
+      for (let k = 0; k < poses.length && same; k++) {
+        const dist = Math.hypot(...poses[k]!), disc = (h / 2) / Math.sqrt(dist * dist - 1) / Math.tan((this.camera.fov * Math.PI) / 360);
+        same = pictureAgrees(before[k]!, after[k]!, w, h, disc);
+      }
+    } finally {
+      if (!same) { this.fastIndex = undefined; this.show('former'); }
+      color.set(saved);
+      (this.mesh!.geometry.getAttribute('color') as THREE.BufferAttribute).needsUpdate = true;
+    }
   }
 
   get regions(): number { return this.color ? this.color.length / 3 : 0; }
@@ -88,6 +164,8 @@ export class Globe {
   }
 
   private disposeMesh(): void {
+    this.pos = this.fastIndex = this.rawIndex = undefined;
+    this.drawPath = 'former';
     if (!this.mesh) return;
     this.scene.remove(this.mesh);
     this.mesh.geometry.dispose();

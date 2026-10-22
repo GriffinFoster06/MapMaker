@@ -33,6 +33,10 @@ export interface GlobeHook {
   layerHash(id: string): Promise<string>;
   litFraction(): number;
   pixelSum(): number;
+  /** Test hook: the former draw path (both faces, mesh triangle order) when true; the picture must be identical. */
+  setFormerDraw(former: boolean): void;
+  /** Which path draws the globe: `fast` (front faces, ordered triangles, verified identical on this GPU) or `former`. */
+  drawPath(): 'fast' | 'former';
   layers: string[];
 }
 
@@ -418,6 +422,8 @@ export function startApp(): void {
     },
     litFraction: () => globe?.litFraction() ?? 0,
     pixelSum: () => globe?.pixelSum() ?? 0,
+    setFormerDraw: (former) => { globe?.setFormerDraw(former); },
+    drawPath: () => globe?.drawPath ?? 'former',
     layers: layers.map((l) => l.id),
   };
 }
