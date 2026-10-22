@@ -1,0 +1,176 @@
+{
+ "target": "firefox",
+ "N": 2560000,
+ "variants": {
+  "base": {
+   "globe": {
+    "nearFull": {
+     "total": {
+      "n": 121,
+      "median": 10,
+      "p95": 11,
+      "max": 26
+     },
+     "cpu": {
+      "n": 121,
+      "median": 0,
+      "p95": 0,
+      "max": 0
+     }
+    },
+    "out_frac1": {
+     "total": {
+      "n": 121,
+      "median": 6,
+      "p95": 8,
+      "max": 13
+     },
+     "cpu": {
+      "n": 121,
+      "median": 0,
+      "p95": 0,
+      "max": 1
+     }
+    },
+    "out_frac0.5": {
+     "total": {
+      "n": 121,
+      "median": 6,
+      "p95": 9,
+      "max": 10
+     },
+     "cpu": {
+      "n": 121,
+      "median": 0,
+      "p95": 0,
+      "max": 1
+     }
+    },
+    "out_frac0.25": {
+     "total": {
+      "n": 121,
+      "median": 5,
+      "p95": 7,
+      "max": 7
+     },
+     "cpu": {
+      "n": 121,
+      "median": 0,
+      "p95": 0,
+      "max": 1
+     }
+    },
+    "out_frac0": {
+     "total": {
+      "n": 121,
+      "median": 2,
+      "p95": 3,
+      "max": 4
+     },
+     "cpu": {
+      "n": 121,
+      "median": 0,
+      "p95": 0,
+      "max": 0
+     }
+    },
+    "pixelSum": 682901239,
+    "lit": 0.05163966587611607
+   },
+   "flat": {
+    "elev": {
+     "gap": {
+      "n": 148,
+      "median": 8,
+      "p95": 10,
+      "max": 10
+     },
+     "gpuDraw": {
+      "n": 150,
+      "median": 6,
+      "p95": 7,
+      "max": 30
+     },
+     "gpuCpu": {
+      "n": 150,
+      "median": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "svgWrite": {
+      "n": 150,
+      "median": 0,
+      "p95": 0,
+      "max": 1
+     },
+     "svgChars": 231,
+     "draws": 150
+    },
+    "elev+ov": {
+     "gap": {
+      "n": 148,
+      "median": 28,
+      "p95": 35,
+      "max": 39
+     },
+     "gpuDraw": {
+      "n": 150,
+      "median": 7,
+      "p95": 11,
+      "max": 32
+     },
+     "gpuCpu": {
+      "n": 150,
+      "median": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "svgWrite": {
+      "n": 150,
+      "median": 4,
+      "p95": 5,
+      "max": 7
+     },
+     "svgChars": 1118724,
+     "draws": 150
+    },
+    "styled+ov": {
+     "gap": {
+      "n": 148,
+      "median": 68,
+      "p95": 73,
+      "max": 76
+     },
+     "gpuDraw": {
+      "n": 150,
+      "median": 11,
+      "p95": 12,
+      "max": 28
+     },
+     "gpuCpu": {
+      "n": 150,
+      "median": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "svgWrite": {
+      "n": 150,
+      "median": 10,
+      "p95": 11,
+      "max": 15
+     },
+     "svgChars": 2712235,
+     "draws": 150
+    }
+   }
+  }
+ },
+ "env": {
+  "renderer": "Apple M1, or similar",
+  "dpr": 2,
+  "canvas": [
+   2048,
+   1120
+  ]
+ }
+}

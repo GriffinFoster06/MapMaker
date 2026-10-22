@@ -1,0 +1,37 @@
+== flat chromium 1000000
+[chromium 1000000] ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Pro, Unspecified Version) dpr 2 canvas 2048,1120
+generated 1000000 in 10.3 s
+  flat-switch          frames 250 gap p50 8.3 p95 9.0 p99 9.3 max 24.9  >25ms 0  longtasks 0 loaf 0
+  flat-pan             frames 2740 gap p50 0.0 p95 9.2 p99 16.7 max 25.1  >25ms 1  longtasks 0 loaf 0
+  flat-pan-styled      frames 2696 gap p50 0.0 p95 33.4 p99 41.7 max 58.7  >25ms 355  longtasks 5 loaf 81
+== flat electron 1000000
+[electron 1000000] ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Pro, Unspecified Version) dpr 2 canvas 2048,1216
+generated 1000000 in 9.8 s
+  flat-switch          frames 235 gap p50 8.3 p95 8.8 p99 9.3 max 33.3  >25ms 1  longtasks 0 loaf 0
+  flat-pan             frames 2676 gap p50 0.0 p95 8.7 p99 14.5 max 34.7  >25ms 5  longtasks 0 loaf 0
+  flat-pan-styled      frames 2736 gap p50 0.0 p95 33.3 p99 41.7 max 66.7  >25ms 364  longtasks 11 loaf 85
+== flat firefox 1000000
+[firefox 1000000] Apple M1, or similar dpr 2 canvas 2048,1120
+generated 1000000 in 13.7 s
+  flat-switch          frames 354 gap p50 8.3 p95 8.8 p99 9.3 max 41.7  >25ms 1  longtasks 0 loaf 0
+  flat-pan             frames 1192 gap p50 0.0 p95 16.7 p99 25.0 max 33.3  >25ms 13  longtasks 0 loaf 0
+  flat-pan-styled      frames 1192 gap p50 0.0 p95 50.0 p99 50.6 max 66.8  >25ms 190  longtasks 0 loaf 0
+== flat chromium 2560000
+[chromium 2560000] ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Pro, Unspecified Version) dpr 2 canvas 2048,1120
+generated 2560000 in 28.5 s
+  flat-switch          frames 502 gap p50 8.3 p95 8.9 p99 9.2 max 83.3  >25ms 1  longtasks 1 loaf 1
+  flat-pan             frames 2648 gap p50 0.0 p95 16.7 p99 25.0 max 49.8  >25ms 21  longtasks 1 loaf 1
+  flat-pan-styled      frames 2728 gap p50 0.0 p95 58.4 p99 66.6 max 83.3  >25ms 364  longtasks 364 loaf 364
+== flat electron 2560000
+[electron 2560000] ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Pro, Unspecified Version) dpr 2 canvas 2048,1216
+generated 2560000 in 26.4 s
+  flat-switch          frames 451 gap p50 8.3 p95 8.8 p99 9.2 max 75.0  >25ms 1  longtasks 1 loaf 1
+  flat-pan             frames 2700 gap p50 0.0 p95 16.7 p99 25.0 max 41.7  >25ms 23  longtasks 0 loaf 1
+  flat-pan-styled      frames 2766 gap p50 0.0 p95 58.3 p99 66.7 max 83.6  >25ms 364  longtasks 364 loaf 364
+== flat firefox 2560000
+[firefox 2560000] Apple M1, or similar dpr 2 canvas 2048,1120
+generated 2560000 in 36.7 s
+  flat-switch          frames 863 gap p50 8.3 p95 9.7 p99 10.2 max 66.7  >25ms 2  longtasks 0 loaf 0
+  flat-pan             frames 1218 gap p50 0.0 p95 25.9 p99 33.4 max 50.0  >25ms 101  longtasks 0 loaf 0
+  flat-pan-styled      frames 1220 gap p50 0.0 p95 75.3 p99 83.4 max 99.7  >25ms 190  longtasks 0 loaf 0
+DONE

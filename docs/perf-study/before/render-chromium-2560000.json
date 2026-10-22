@@ -1,0 +1,176 @@
+{
+ "target": "chromium",
+ "N": 2560000,
+ "variants": {
+  "base": {
+   "globe": {
+    "nearFull": {
+     "total": {
+      "n": 121,
+      "median": 9,
+      "p95": 11.3,
+      "max": 22.4
+     },
+     "cpu": {
+      "n": 121,
+      "median": 0,
+      "p95": 0.1,
+      "max": 0.1
+     }
+    },
+    "out_frac1": {
+     "total": {
+      "n": 121,
+      "median": 6,
+      "p95": 11.1,
+      "max": 11.9
+     },
+     "cpu": {
+      "n": 121,
+      "median": 0,
+      "p95": 0.1,
+      "max": 0.1
+     }
+    },
+    "out_frac0.5": {
+     "total": {
+      "n": 121,
+      "median": 7,
+      "p95": 7.7,
+      "max": 16
+     },
+     "cpu": {
+      "n": 121,
+      "median": 0,
+      "p95": 0.1,
+      "max": 0.1
+     }
+    },
+    "out_frac0.25": {
+     "total": {
+      "n": 121,
+      "median": 4.2,
+      "p95": 5.1,
+      "max": 10
+     },
+     "cpu": {
+      "n": 121,
+      "median": 0,
+      "p95": 0,
+      "max": 0.1
+     }
+    },
+    "out_frac0": {
+     "total": {
+      "n": 121,
+      "median": 2.1,
+      "p95": 2.4,
+      "max": 2.7
+     },
+     "cpu": {
+      "n": 121,
+      "median": 0,
+      "p95": 0,
+      "max": 0.1
+     }
+    },
+    "pixelSum": 682905042,
+    "lit": 0.05164053780691964
+   },
+   "flat": {
+    "elev": {
+     "gap": {
+      "n": 148,
+      "median": 13.4,
+      "p95": 13.8,
+      "max": 14.7
+     },
+     "gpuDraw": {
+      "n": 150,
+      "median": 12.5,
+      "p95": 12.8,
+      "max": 37.4
+     },
+     "gpuCpu": {
+      "n": 150,
+      "median": 0,
+      "p95": 0,
+      "max": 0.1
+     },
+     "svgWrite": {
+      "n": 150,
+      "median": 0,
+      "p95": 0.1,
+      "max": 0.3
+     },
+     "svgChars": 231,
+     "draws": 150
+    },
+    "elev+ov": {
+     "gap": {
+      "n": 148,
+      "median": 30.4,
+      "p95": 33.1,
+      "max": 36.2
+     },
+     "gpuDraw": {
+      "n": 150,
+      "median": 13.5,
+      "p95": 14,
+      "max": 38.9
+     },
+     "gpuCpu": {
+      "n": 150,
+      "median": 0,
+      "p95": 0,
+      "max": 0.1
+     },
+     "svgWrite": {
+      "n": 150,
+      "median": 4.5,
+      "p95": 7.4,
+      "max": 9
+     },
+     "svgChars": 1118724,
+     "draws": 150
+    },
+    "styled+ov": {
+     "gap": {
+      "n": 148,
+      "median": 59.3,
+      "p95": 65.7,
+      "max": 72.1
+     },
+     "gpuDraw": {
+      "n": 150,
+      "median": 14,
+      "p95": 17.4,
+      "max": 40.4
+     },
+     "gpuCpu": {
+      "n": 150,
+      "median": 0,
+      "p95": 0,
+      "max": 0
+     },
+     "svgWrite": {
+      "n": 150,
+      "median": 11.3,
+      "p95": 15.7,
+      "max": 18.2
+     },
+     "svgChars": 2712235,
+     "draws": 150
+    }
+   }
+  }
+ },
+ "env": {
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Pro, Unspecified Version)",
+  "dpr": 2,
+  "canvas": [
+   2048,
+   1120
+  ]
+ }
+}
