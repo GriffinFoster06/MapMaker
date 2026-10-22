@@ -61,7 +61,7 @@ test('world settings panel: link state, Generate with settings equals Node', asy
     .toBe(await sha256(['koppen', 'detail.elevRaw'].map((id) => bytesOf(w.layers.get('global', id)))));
 
   await page.locator('#resetSettings').click();
-  await expect(page.locator('#set-landCoverage')).toHaveValue('0.3');
+  await expect(page.locator('#set-landCoverage')).toHaveValue('0.36');
   expect(new URL(page.url()).searchParams.get('landCoverage')).toBeNull();
   expect(errors).toEqual([]);
 });

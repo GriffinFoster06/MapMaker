@@ -79,14 +79,15 @@ export const SETTINGS: Setting[] = SETTING_GROUPS.flatMap((g) => g.settings);
 /** Settings visible at `level`: a level shows its own parameters and every lower level's. */
 export const visibleAt = (level: Level): Setting[] => SETTINGS.filter((s) => LEVELS.indexOf(s.level) <= LEVELS.indexOf(level));
 
-/** A named set of slider values. Presets never change the defaults (world hashes depend on them); they only fill the sliders. */
+/** A named set of slider values: the sliders it changes from the defaults (unlisted ones are set to their default). Presets never change the defaults (world hashes depend on them); they only fill the sliders. */
 export interface Preset { id: string; label: string; tip: string; values: Record<string, number> }
 
 export const PRESETS: Preset[] = [
   {
     id: 'earthlike', label: 'Earth-like',
-    tip: 'Found by a sweep of the 14 sliders against Earth statistics (docs/earth-tests/DEFAULTS_SWEEP.md, configuration L612). Compared with the defaults it gives Earth-like land fraction, hypsometry, continent sizes, climate-zone shares and river density. Preview-tier evidence only.',
-    values: { jitter: 0.75, P: 81, numContinents: 4, nMag: 0.23, continentSizeVariety: 0.1, landCoverage: 0.36, terrainWarp: 0, smoothing: 0.15, glacialErosion: 0.75, hydraulicErosion: 0.4, thermalErosion: 0.25, ridgeSharpening: 0.95, temperatureOffset: -2, precipitationOffset: -0.5 },
+    tip: 'Found by a sweep of the 14 sliders against Earth statistics (docs/earth-tests/DEFAULTS_SWEEP.md, configuration L612). The defaults already have its irregularity, continents and land coverage (decision P6); on top of them it gives more Earth-like hypsometry, continent sizes and climate-zone shares. Preview-tier evidence only.',
+    // Only the sliders that differ from the defaults; `apply` sets every unlisted slider to its default, so this is L612.
+    values: { P: 81, nMag: 0.23, continentSizeVariety: 0.1, terrainWarp: 0, smoothing: 0.15, glacialErosion: 0.75, hydraulicErosion: 0.4, thermalErosion: 0.25, ridgeSharpening: 0.95, temperatureOffset: -2, precipitationOffset: -0.5 },
   },
 ];
 

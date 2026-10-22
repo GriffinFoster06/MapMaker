@@ -22,11 +22,15 @@ describe('world settings', () => {
 
   describe('presets', () => {
     const earth = PRESETS.find((p) => p.id === 'earthlike')!;
-    it('Earth-like has the swept values (configuration L612), every key a known slider, on its step and inside its range', () => {
-      expect(earth.values).toEqual({ jitter: 0.75, P: 81, numContinents: 4, nMag: 0.23, continentSizeVariety: 0.1, landCoverage: 0.36, terrainWarp: 0, smoothing: 0.15, glacialErosion: 0.75, hydraulicErosion: 0.4, thermalErosion: 0.25, ridgeSharpening: 0.95, temperatureOffset: -2, precipitationOffset: -0.5 });
-      expect(Object.keys(earth.values).sort()).toEqual(SETTINGS.map((s) => s.key).sort());
+    const L612 = { jitter: 0.75, P: 81, numContinents: 4, nMag: 0.23, continentSizeVariety: 0.1, landCoverage: 0.36, terrainWarp: 0, smoothing: 0.15, glacialErosion: 0.75, hydraulicErosion: 0.4, thermalErosion: 0.25, ridgeSharpening: 0.95, temperatureOffset: -2, precipitationOffset: -0.5 };
+    it('Earth-like lists only the sliders where the swept values (configuration L612) differ from the defaults, on their steps and inside their ranges', () => {
+      expect(earth.values).toEqual({ P: 81, nMag: 0.23, continentSizeVariety: 0.1, terrainWarp: 0, smoothing: 0.15, glacialErosion: 0.75, hydraulicErosion: 0.4, thermalErosion: 0.25, ridgeSharpening: 0.95, temperatureOffset: -2, precipitationOffset: -0.5 });
+      for (const [k, v] of Object.entries(earth.values)) expect(v, k).not.toBe(SETTINGS.find((s) => s.key === k)!.def);
+      // Filled up with the defaults (what the panel's apply does), it is L612 again.
+      expect(Object.fromEntries(SETTINGS.map((s) => [s.key, earth.values[s.key] ?? s.def]))).toEqual(L612);
       for (const s of SETTINGS) {
-        const v = earth.values[s.key]!;
+        const v = earth.values[s.key];
+        if (v === undefined) continue;
         expect(v >= s.min && v <= s.max).toBe(true);
         expect(Math.abs((v - s.min) / s.step - Math.round((v - s.min) / s.step))).toBeLessThan(1e-9);
       }
@@ -34,7 +38,7 @@ describe('world settings', () => {
     it('leave the defaults untouched and round-trip through the URL', () => {
       expect(Object.fromEntries(SETTINGS.map((s) => [s.key, s.def]))).toEqual(Object.fromEntries(Object.entries(OROGEN_DEFAULTS).filter(([k]) => SETTINGS.some((s) => s.key === k))));
       const changed = changedParams(earth.values);
-      expect(Object.keys(changed).length).toBeGreaterThan(0);
+      expect(changed).toEqual(earth.values);
       const q = encodeState({ seed: 5, params: earth.values });
       expect(decodeState('?' + q).params).toEqual(changed);
       expect(changedParams({ ...changed, ...Object.fromEntries(Object.keys(changed).map((k) => [k, SETTINGS.find((s) => s.key === k)!.def])) })).toEqual({});
