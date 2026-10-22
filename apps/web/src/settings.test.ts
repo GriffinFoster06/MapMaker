@@ -24,7 +24,7 @@ describe('world settings', () => {
     const earth = PRESETS.find((p) => p.id === 'earthlike')!;
     const L612 = { jitter: 0.75, P: 81, numContinents: 4, nMag: 0.23, continentSizeVariety: 0.1, landCoverage: 0.36, terrainWarp: 0, smoothing: 0.15, glacialErosion: 0.75, hydraulicErosion: 0.4, thermalErosion: 0.25, ridgeSharpening: 0.95, temperatureOffset: -2, precipitationOffset: -0.5 };
     it('Earth-like lists only the sliders where the swept values (configuration L612) differ from the defaults, on their steps and inside their ranges', () => {
-      expect(earth.values).toEqual({ P: 81, nMag: 0.23, continentSizeVariety: 0.1, terrainWarp: 0, smoothing: 0.15, glacialErosion: 0.75, hydraulicErosion: 0.4, thermalErosion: 0.25, ridgeSharpening: 0.95, temperatureOffset: -2, precipitationOffset: -0.5 });
+      expect(earth.values).toEqual({ P: 81, nMag: 0.23, continentSizeVariety: 0.1, landCoverage: 0.36, terrainWarp: 0, smoothing: 0.15, glacialErosion: 0.75, hydraulicErosion: 0.4, thermalErosion: 0.25, ridgeSharpening: 0.95, temperatureOffset: -2, precipitationOffset: -0.5 });
       for (const [k, v] of Object.entries(earth.values)) expect(v, k).not.toBe(SETTINGS.find((s) => s.key === k)!.def);
       // Filled up with the defaults (what the panel's apply does), it is L612 again.
       expect(Object.fromEntries(SETTINGS.map((s) => [s.key, earth.values[s.key] ?? s.def]))).toEqual(L612);

@@ -98,10 +98,15 @@ function refineCandidates(all) {
   return { best, candidates: [...out.values()] };
 }
 
-/** Finalists: the best 3 on the broad seeds (broad and refine), plus the defaults. */
+/**
+ * Finalists: the best 3 on the broad seeds (broad and refine), the defaults, and the defaults with each single slider
+ * of the best finalist that differs from them (so that each default is decided on its own evidence).
+ */
 export function finalists(all) {
   const seen = byConfig(all.filter((r) => r.N === 50000 && (r.stage === 'broad' || r.stage === 'refine'))).filter((c) => c.n === SEEDS.broad.length).sort((a, b) => a.objective - b.objective);
-  return [...seen.slice(0, 3).map((c) => c.params), DEFAULTS];
+  const top = seen.slice(0, 3).map((c) => c.params), out = new Map([...top, DEFAULTS].map((p) => [cfgId(p), p]));
+  for (const k of Object.keys(SEARCH)) if (top[0][k] !== DEFAULTS[k]) { const p = { ...DEFAULTS, [k]: top[0][k] }; out.set(cfgId(p), p); }
+  return [...out.values()];
 }
 
 /** Writes the candidate list of refine round r once, so that every shard runs the same list. */

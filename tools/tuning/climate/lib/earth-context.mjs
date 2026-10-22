@@ -29,7 +29,9 @@ export function loadEarthGrayscale(pngPath = EARTH_PNG) {
  */
 export async function buildEarthContext({ N = 40000, seed = 1234, jitter = 0.75 } = {}) {
     const t0 = performance.now();
-    const world = createOrogenWorld({ N, seed, jitter });
+    // Stock import parameters (planet-worker.js handleImportHeightmap): offsets 0, land coverage 0.3, whatever the
+    // shell's defaults are (decision P6 changed two of them).
+    const world = createOrogenWorld({ N, seed, jitter, temperatureOffset: 0, precipitationOffset: 0, landCoverage: 0.3 });
     await runPipeline(world, orogenStages, { only: [STAGE.mesh], strict: false });
     const s = getScratch(world);
     const { r_elevation } = importHeightmap(world, loadEarthGrayscale());
