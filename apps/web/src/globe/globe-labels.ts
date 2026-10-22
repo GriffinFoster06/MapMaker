@@ -2,14 +2,18 @@
 // drawn as an SVG over the canvas. The features on the far side are dropped by the projector; the plan is recomputed when the
 // camera stops moving (and the labels are hidden while it moves), and is a pure function of the data, the camera and the
 // style. Original shell code. Nothing here writes the World.
-import { type CartoData, type Style, furnitureLayout, labelsSvg, planLabels, riverThreshold } from '@mapmaker/carto';
+import { type CartoData, type Style, buildMaskSliced, furnitureLayout, labelsSvg, maskCell, planLabels, riverThreshold } from '@mapmaker/carto';
 import type { Globe } from './globe';
+import { yieldTurn } from '../yield-turn';
 
 export interface GlobeLabelSource {
   /** The style to draw with, or null when labels are off. */
   style(): Style | null;
   data(): Promise<CartoData>;
 }
+
+/** Longest stretch of the re-plan that runs without giving the main thread back (milliseconds). */
+const SLICE_MS = 2;
 
 export class GlobeLabels {
   private timer = 0;
@@ -23,6 +27,7 @@ export class GlobeLabels {
 
   /** Redraws after the camera has rested for a moment; hides the labels until then. */
   schedule(delay = 140): void {
+    this.gen++; // a plan still being made for the view that just moved is abandoned
     this.svg.style.visibility = 'hidden';
     clearTimeout(this.timer);
     this.timer = window.setTimeout(() => { void this.refresh().catch((e: unknown) => { console.error(e); }); }, delay);
@@ -35,9 +40,20 @@ export class GlobeLabels {
     if (my !== this.gen) return;
     const canvas = this.globe.canvas, W = canvas.clientWidth, H = canvas.clientHeight;
     if (!W || !H) return;
-    const proj = { width: W, height: H, forward: (lon: number, lat: number) => this.globe.projectLonLat(lon, lat), invert: (x: number, y: number) => this.globe.lonLatAt(x, y) };
+    const sample = this.globe.lonLatSampler(), tmp = new Float64Array(2);
+    const proj = {
+      width: W, height: H,
+      forward: (lon: number, lat: number) => this.globe.projectLonLat(lon, lat),
+      invert: (x: number, y: number): [number, number] | null => (sample(x, y, tmp) ? [tmp[0]!, tmp[1]!] : null),
+      invertInto: sample,
+    };
+    // The mask is the long part of the plan (a ground lookup for every cell of a coarse screen grid): made in slices, and dropped if the camera moves meanwhile.
+    const mask = await buildMaskSliced(proj, data.regions, maskCell(W), { sliceMs: SLICE_MS, yieldNow: yieldTurn, cancelled: () => my !== this.gen, now: () => performance.now() });
+    if (!mask || my !== this.gen) return;
+    await yieldTurn(); // the placement below is a slice of its own
+    if (my !== this.gen) return;
     const fur = furnitureLayout(W, H, style, { scaleBar: false, legend: false });
-    const plan = planLabels(data, proj, style, { obstacles: [fur.scale, fur.legend].filter((b): b is NonNullable<typeof b> => !!b), riverMinArea: riverThreshold(style, this.globe.pixelsPerRadian()), limb: true });
+    const plan = planLabels(data, proj, style, { obstacles: [fur.scale, fur.legend].filter((b): b is NonNullable<typeof b> => !!b), riverMinArea: riverThreshold(style, this.globe.pixelsPerRadian()), limb: true, mask });
     this.count = plan.labels.length;
     this.svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     this.svg.setAttribute('width', String(W));

@@ -9,3 +9,4 @@ export * from './cellstyle';
 export * from './raster';
 export * from './placement';
 export * from './overlay';
+export { type LabelMask, type MaskView, type MaskSlicing, buildMask, buildMaskSliced } from './label-mask';

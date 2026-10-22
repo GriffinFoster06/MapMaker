@@ -148,19 +148,36 @@ export class Globe {
    * misses it. The inverse of `projectLonLat`; analytic (no allocation), as the label planner calls it for every cell of a grid.
    */
   lonLatAt(px: number, py: number): [number, number] | null {
-    const w = this.canvas.clientWidth || 640, h = this.canvas.clientHeight || 480, t = Math.tan((this.camera.fov * Math.PI) / 360);
+    const out = new Float64Array(2);
+    return this.lonLatSampler()(px, py, out) ? [out[0]!, out[1]!] : null;
+  }
+
+  /**
+   * `lonLatAt` for batches: the camera matrix, position and canvas size are read once, here, and the returned function writes
+   * longitude and latitude (degrees) to `out[0..1]` and returns whether the pixel is on the globe, with no allocation and no
+   * matrix update per call. The arithmetic is that of the former per-call version, operation for operation (bit-identical).
+   * It describes the camera as it is now: a plan built with it is a function of that snapshot.
+   */
+  lonLatSampler(): (px: number, py: number, out: Float64Array) => boolean {
+    const w = this.canvas.clientWidth || 640, h = this.canvas.clientHeight || 480, t = Math.tan((this.camera.fov * Math.PI) / 360), aspect = w / h;
     this.camera.updateMatrixWorld();
     const e = this.camera.matrixWorld.elements, c = this.camera.position;
-    const dx = ((px / w) * 2 - 1) * t * (w / h), dy = (1 - (py / h) * 2) * t, dz = -1;
-    let X = e[0]! * dx + e[4]! * dy + e[8]! * dz, Y = e[1]! * dx + e[5]! * dy + e[9]! * dz, Z = e[2]! * dx + e[6]! * dy + e[10]! * dz;
-    const n = Math.hypot(X, Y, Z);
-    X /= n; Y /= n; Z /= n;
-    const b = c.x * X + c.y * Y + c.z * Z, disc = b * b - (c.x * c.x + c.y * c.y + c.z * c.z - 1);
-    if (disc < 0) return null;
-    const s = -b - Math.sqrt(disc);
-    if (s < 0) return null;
-    const hx = c.x + s * X, hy = c.y + s * Y, hz = c.z + s * Z; // three.js frame; canonical (x, y, z) is (X, −Z, Y)
-    return [(Math.atan2(-hz, hx) * 180) / Math.PI, (Math.asin(Math.max(-1, Math.min(1, hy))) * 180) / Math.PI];
+    const e0 = e[0]!, e1 = e[1]!, e2 = e[2]!, e4 = e[4]!, e5 = e[5]!, e6 = e[6]!, e8 = e[8]!, e9 = e[9]!, e10 = e[10]!;
+    const cx = c.x, cy = c.y, cz = c.z, cc = cx * cx + cy * cy + cz * cz - 1;
+    return (px, py, out) => {
+      const dx = ((px / w) * 2 - 1) * t * aspect, dy = (1 - (py / h) * 2) * t, dz = -1;
+      let X = e0 * dx + e4 * dy + e8 * dz, Y = e1 * dx + e5 * dy + e9 * dz, Z = e2 * dx + e6 * dy + e10 * dz;
+      const n = Math.hypot(X, Y, Z);
+      X /= n; Y /= n; Z /= n;
+      const b = cx * X + cy * Y + cz * Z, disc = b * b - cc;
+      if (disc < 0) return false;
+      const s = -b - Math.sqrt(disc);
+      if (s < 0) return false;
+      const hx = cx + s * X, hy = cy + s * Y, hz = cz + s * Z; // three.js frame; canonical (x, y, z) is (X, −Z, Y)
+      out[0] = (Math.atan2(-hz, hx) * 180) / Math.PI;
+      out[1] = (Math.asin(Math.max(-1, Math.min(1, hy))) * 180) / Math.PI;
+      return true;
+    };
   }
 
   /** Pixels per radian of arc at the centre of the disc facing the camera (for scale-dependent detail such as rivers). */
