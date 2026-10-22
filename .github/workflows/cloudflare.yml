@@ -112,6 +112,7 @@ jobs:
       - run: xvfb-run -a npx playwright test --project=${{ matrix.spec.browser }} $(scripts/e2e-files.sh ${{ matrix.spec.group }})
         env:
           FIREFOX_HEADED: '1'
+          HOME: /root # Firefox refuses to start in the container when $HOME is not owned by the user
           E2E_BASE_URL: ${{ needs.deploy.outputs.url }}
           E2E_EXPECT_ISOLATED: '1'
       - uses: actions/upload-artifact@v4

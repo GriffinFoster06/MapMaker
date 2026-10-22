@@ -59,6 +59,7 @@ jobs:
       - run: xvfb-run -a npx playwright test
         env:
           FIREFOX_HEADED: '1'
+          HOME: /root # Firefox refuses to start in the container when $HOME is not owned by the user
           E2E_BASE_URL: ${{ needs.deploy.outputs.page_url || 'https://griffinfoster06.github.io/MapMaker/' }}
       - uses: actions/upload-artifact@v4
         if: always()

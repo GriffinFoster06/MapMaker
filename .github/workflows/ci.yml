@@ -185,6 +185,9 @@ jobs:
       - name: Playwright (${{ matrix.spec.browser }}, ${{ matrix.spec.group }})
         shell: bash
         # Headless Firefox on Linux has no WebGL, so on Linux Firefox runs headed on a virtual display (playwright.config.ts).
+        # HOME=/root: Firefox refuses to start in the container when $HOME is not owned by the user (Linux only; macOS keeps its own).
+        env:
+          HOME: ${{ runner.os == 'Linux' && '/root' || '/Users/runner' }}
         run: |
           files=$(scripts/e2e-files.sh ${{ matrix.spec.group }})
           if [ "${{ runner.os }}" = "Linux" ] && [ "${{ matrix.spec.browser }}" = "firefox" ]; then FIREFOX_HEADED=1 xvfb-run -a npx playwright test --project=firefox $files; else npx playwright test --project=${{ matrix.spec.browser }} $files; fi
