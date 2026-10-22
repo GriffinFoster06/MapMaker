@@ -24,6 +24,7 @@ jobs:
   changes:
     name: what changed
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       heavy: ${{ steps.diff.outputs.heavy }}
     steps:
@@ -48,6 +49,7 @@ jobs:
     name: lint, types, provenance, tests (ubuntu)
     runs-on: ubuntu-latest
     needs: changes
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -68,9 +70,9 @@ jobs:
         run: npm run build
 
   # Q3: bit-exactness is a CI-tested goal (scope: decision W7). All unit tests, including the mesh and RNG golden hashes,
-  # run on Ubuntu, macOS and Windows/x64, in two shards each so the wall-clock time is half.
+  # run on Ubuntu, macOS and Windows/x64, in three shards each so the wall-clock time is a third.
   unit:
-    name: unit tests (${{ matrix.os }}, shard ${{ matrix.shard }}/2)
+    name: unit tests (${{ matrix.os }}, shard ${{ matrix.shard }}/3)
     needs: changes
     if: needs.changes.outputs.heavy == 'true'
     runs-on: ${{ matrix.os }}
@@ -78,7 +80,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        shard: [1, 2]
+        shard: [1, 2, 3]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -91,7 +94,7 @@ jobs:
         run: |
           npm run lint
           npm run typecheck
-      - run: npx vitest run --shard=${{ matrix.shard }}/2
+      - run: npx vitest run --shard=${{ matrix.shard }}/3
 
   # The determinism probe runs in Node on Ubuntu, macOS and Windows/x64 and is compared with tools/determinism/golden.json.
   # Strict keys must match everywhere: RNG, topology, history, and every `fd.` key (the whole probe re-run with
@@ -105,6 +108,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -130,19 +134,26 @@ jobs:
           path: probe-node-${{ matrix.os }}.txt
           retention-days: 30
 
-  # Playwright in Chromium and Firefox on Ubuntu and macOS, two shards each: the browser probes (compared with golden.json),
-  # the flat-map and globe specs and the GPU spec (apps/web/e2e). The Windows runner has no GPU, so no Playwright there.
+  # Playwright in Chromium and Firefox on Ubuntu and macOS: the browser probes (compared with golden.json), the flat-map and globe
+  # specs and the GPU spec (apps/web/e2e). The Windows runner has no GPU, so no Playwright there. The specs are split into groups
+  # (scripts/e2e-files.sh) so the slowest ones run side by side instead of one after the other: on macOS Firefox (no GPU, software
+  # GL) the GPU spec alone takes about 4 minutes and the styled-map and flat-map specs about 3.5. Chromium is fast enough for two groups.
   e2e:
-    name: e2e (${{ matrix.os }}, ${{ matrix.browser }}, shard ${{ matrix.shard }}/2)
+    name: e2e (${{ matrix.os }}, ${{ matrix.spec.browser }}, ${{ matrix.spec.group }})
     needs: changes
     if: needs.changes.outputs.heavy == 'true'
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        browser: [chromium, firefox]
-        shard: [1, 2]
+        spec:
+          - { browser: chromium, group: heavy }
+          - { browser: chromium, group: core }
+          - { browser: firefox, group: gpu }
+          - { browser: firefox, group: cartomap }
+          - { browser: firefox, group: core }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -154,20 +165,31 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ runner.os == 'Linux' && '~/.cache/ms-playwright' || '~/Library/Caches/ms-playwright' }}
-          key: playwright-${{ runner.os }}-${{ matrix.browser }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ matrix.spec.browser }}-${{ hashFiles('package-lock.json') }}
+      # A browser download that stalls fails after 5 minutes and is tried once more (a hung download once held a job for 45 minutes).
       - name: Install browser
+        id: install
+        continue-on-error: true
+        timeout-minutes: 5
         shell: bash
         run: |
-          if [ "${{ runner.os }}" = "Linux" ]; then npx playwright install --with-deps ${{ matrix.browser }}; else npx playwright install ${{ matrix.browser }}; fi
-      - name: Playwright (${{ matrix.browser }})
+          if [ "${{ runner.os }}" = "Linux" ]; then npx playwright install --with-deps ${{ matrix.spec.browser }}; else npx playwright install ${{ matrix.spec.browser }}; fi
+      - name: Install browser (second try)
+        if: steps.install.outcome == 'failure'
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then npx playwright install --with-deps ${{ matrix.spec.browser }}; else npx playwright install ${{ matrix.spec.browser }}; fi
+      - name: Playwright (${{ matrix.spec.browser }}, ${{ matrix.spec.group }})
         shell: bash
         # Headless Firefox on Linux has no WebGL, so on Linux Firefox runs headed on a virtual display (playwright.config.ts).
         run: |
-          if [ "${{ runner.os }}" = "Linux" ] && [ "${{ matrix.browser }}" = "firefox" ]; then FIREFOX_HEADED=1 xvfb-run -a npx playwright test --project=firefox --shard=${{ matrix.shard }}/2; else npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/2; fi
+          files=$(scripts/e2e-files.sh ${{ matrix.spec.group }})
+          if [ "${{ runner.os }}" = "Linux" ] && [ "${{ matrix.spec.browser }}" = "firefox" ]; then FIREFOX_HEADED=1 xvfb-run -a npx playwright test --project=firefox $files; else npx playwright test --project=${{ matrix.spec.browser }} $files; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: e2e-${{ matrix.os }}-${{ matrix.browser }}-${{ matrix.shard }}
+          name: e2e-${{ matrix.os }}-${{ matrix.spec.browser }}-${{ matrix.spec.group }}
           path: |
             test-results/
             playwright-report/
@@ -180,6 +202,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.heavy == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
