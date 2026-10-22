@@ -1,6 +1,6 @@
 # Earth-likeness sweep of the generation sliders (decision P2, queue item Q3)
 
-Run 2026-10-19. Tools: `tools/tuning/earthlike/` (`metrics.mjs`, `shape.mjs`, `earth.mjs`, `sweep.mjs`, test `earthlike.test.ts`). Raw aggregated results: `defaults-sweep-report.json` here; per-world rows (43 MB) stay in the git-ignored `tools/tuning/results/earthlike/`. Nothing under `packages/`, `OROGEN_DEFAULTS`, goldens or baselines was touched.
+Run 2026-10-19 against `earth.png` targets; the defaults were changed later against independent data (section "Defaults changed against independent Earth data"). Tools: `tools/tuning/earthlike/` (`metrics.mjs`, `shape.mjs`, `earth.mjs`, `sweep.mjs`, test `earthlike.test.ts`). Raw aggregated results: `defaults-sweep-report.json` here; per-world rows (43 MB) stay in the git-ignored `tools/tuning/results/earthlike/`. Nothing under `packages/`, `OROGEN_DEFAULTS`, goldens or baselines was touched.
 
 ## Result
 
@@ -26,25 +26,41 @@ Earth distance (objective, lower is better; 1 means every term is one tolerance 
 
 The improvement holds on held-out seeds and at four times the resolution, but **it is modest** (0.89 to 0.74), and part of it is simply land fraction: the defaults give 27.5% land (Earth 31.4%), the preset 31.7%.
 
-## Defaults checked against Earth (decision P6, 2026-10-22)
+## Defaults changed against independent Earth data (decision P6, 2026-10-22)
 
-Rule (user, P6): a default changes only if it is a quantity measurable on Earth with data in the repo **and** the sweep shows the objective is sensitive to it. Tool: `tools/tuning/earthlike/defaults-check.mjs` (`held`, `earth`, `regress`). Held-out seeds 9001 to 9020, N = 50k, every slider not named at its default; "paired" = mean over seeds of (variant − base), ± standard error.
+**Supersedes the defaults part of this report.** The sweep above scored against `earth.png` targets. P6 rebuilt the targets from independent data on the same mesh as the worlds (`docs/earth-tests/EARTH_TARGETS.md`: ETOPO 2022, Natural Earth, Kottek, 14 to 15 °C) and searched again. Result: **land coverage 0.30 → 0.31** and **temperature offset 0 → −3**; continents, smoothing and every generator-specific slider keep orogen's defaults. A first pass on this branch had set land coverage to 0.36 from the `earth.png` land fraction (31.4%); on the mesh Earth has 28.6% land, which 0.36 overshoots (32%), so that change was replaced.
 
-### Temperature offset: stays 0
+Rule (user, P6): a default changes only where the finalist beats the current default by more than twice the standard error **and** wins under every reweighting; the temperature and precipitation offsets only where they can be compared in real units. The model's temperature is in °C (0 to 1 over −45 to +45 °C), so the global mean is compared with Earth's 14 to 15 °C; its precipitation is normalised (the mm/yr mapping is Phase 8), so the **precipitation offset stays 0 and was not searched**.
 
-The repo has no observed temperature field (the Kottek data is Köppen classes only; note 15's temperature climatology is not downloaded), so Earth's own mean temperature cannot be measured from repo data. The nearest reference in the repo is the same climate model run on Earth's real geography (`defaults-check.mjs earth`: `earth.png` through the import, structured climate, offset 0), which is the configuration the Kottek calibration scores. Mean annual temperature, area-weighted:
+**Objective** (`tools/tuning/earthlike/objective-real.mjs`): the earlier terms with independent targets (land fraction, land hypsometry, slope percentiles, continents, Köppen shares, shape) plus mean temperature (target 14.5 °C, tolerance 1 °C, weight 1). River statistics come from our own drainage on ETOPO, with no observed river data in the repo, so they are reported and not scored. Noise and slider effect of every term (broad stage; noise = standard error of a configuration's mean over its 8 seeds, in tolerance units; effect = largest |t| of the linear or squared coefficient of a least-squares fit on the four searched sliders and the seeds):
 
-| | global | land | ocean |
+| term | noise (SE) | spread of configuration means | moved most by (largest \|t\|) | note |
+|---|---|---|---|---|
+| land fraction | 0.075 | 1.12 | land coverage (357) | |
+| hypsometry | 0.038 | 0.065 | continents (32) | barely moved: spread 1.7× noise; generated land stays too low (needs model changes) |
+| slope | 0.046 | 0.14 | smoothing (39), continents (24) | moved, but no slider closes the gap: the best is 1.44 tolerance units, the default 1.54 (generated slopes p90/p99 are about 2× Earth's) |
+| continents | 0.054 | 0.45 | continents (111) | |
+| Köppen | 0.085 | 0.57 | temperature (222), land coverage (45) | |
+| shape | 0.079 | 0.11 | continents (28) | barely moved: spread 1.4× noise |
+| mean temperature | 0.037 | 1.31 | temperature (166) | |
+| rivers (not scored) | 0.022 | 0.095 | continents (51), smoothing, land coverage (32) | |
+
+**Search** (`tools/tuning/earthlike/search.mjs`, resumable JSONL shards in the git-ignored `tools/tuning/results/earthlike-real/`). Sliders with an Earth-measurable target: land coverage 0.15 to 0.50, continents 1 to 10, smoothing 0 to 1, temperature offset −10 to +5 °C (panel steps); the rest at orogen's defaults. Stage 1: Latin hypercube of 2,500 configurations plus the defaults × 8 common seeds (201 to 208), N = 50k, 20,008 worlds in 42 min on 14 processes. Stage 2: coordinate search (one panel step in each direction) from the best 10 until no new neighbours, 5 rounds, 1,040 worlds. Stage 3: the best 3, the defaults and the defaults with each single slider of the best finalist, on held-out seeds never used before: 40 at N = 50k (9101 to 9140), 20 at N = 200k (9201 to 9220). Budget: about 1 h of the 3 h allowed was needed; the sample was sized to the four searched dimensions (2,500 points), not scaled down.
+
+**Results.** Best on the broad seeds: land coverage 0.31, continents 4, smoothing 0.1, temperature −3 (0.878 ± 0.015; defaults 1.130, rank 81). The optimum is flat in smoothing (0.05 to 0.3 within 0.004) and in land coverage 0.31 to 0.32. Confirmation, paired difference from orogen's defaults (negative = better), mean ± standard error:
+
+| configuration | N = 50k (40 seeds) | N = 200k (20 seeds) | worst of the 31 reweightings (50k) |
 |---|---|---|---|
-| default world (land coverage 0.36, offset 0) | 17.06 °C | 15.20 °C | 17.95 °C |
-| same, offset −1 | 16.06 °C | 14.20 °C | 16.95 °C |
-| model on Earth's geography (offset 0) | 16.54 °C | 11.84 °C | 18.70 °C |
+| defaults + temperature −3 | −0.240 ± 0.006 | −0.235 ± 0.009 | −0.005 ± 0.005 (mean temperature and shape removed) |
+| defaults + land coverage 0.31 | −0.030 ± 0.010 | −0.031 ± 0.010 | −0.015 ± 0.005 (all tolerances ×2) |
+| both (the new defaults) | −0.262 ± 0.010 | −0.253 ± 0.011 | −0.039 ± 0.012 |
+| both + smoothing 0.15 | −0.270 ± 0.010 | −0.258 ± 0.010 | −0.049 |
 
-The global gap is +0.5 °C, half of the slider's 1 °C step: −1 overshoots by the same amount the other way, so no offset closes it. The land gap (+3.4 °C) comes from where the land is (generated land is low, median land elevation 64 m against Earth's 457 m, and less of it lies poleward of 60°: 14% of the land against 20%, with 48% against 45% within 30° of the equator), not from a global bias; a global offset would also cool the generated ocean, which is already 0.75 °C cooler than the model's Earth ocean. Paired, offset −1 changes the objective by −0.0038 ± 0.0024 and the Köppen term by −0.021 ± 0.013, neither significant (desert share B moves further from Earth, 0.225 → 0.215 against 0.27). Criterion (1) fails strictly and the measurement gives no gap the offset could close: **unchanged**.
+Reweightings: each scored term's weight and tolerance ×0.5 and ×2, all tolerances ×0.5 and ×2, and the less certain terms (mean temperature, a literature value; shape, our definition) removed. In real units: mean temperature 17.30 → 14.30 °C (50k) and 17.28 → 14.28 °C (200k), inside 14 to 15 °C (−2 would give 15.3); land fraction 0.273 → 0.280 (Earth on the mesh 0.286; 0.32 is as good within noise). The temperature change rests on the temperature term: without it the change is −0.005 ± 0.005, not significant, but it still wins, which is what the rule asks. **Smoothing stays 0.1**: 0.15 is better on the 50k held-out seeds (−0.0085 ± 0.0023) but not at 200k (−0.0046 ± 0.0031, 1.5 SE) and worse on the broad seeds (+0.003 ± 0.004). **Continents stay 4** (every finalist has 4).
 
-### Smoothing: stays 0.1
+**The Earth-like preset** (L612) now lists only the sliders that differ from the new defaults (12; jitter and continents equal them). Against the independent targets it scores **worse than the new defaults** (+0.12 ± 0.02 on seeds 9001 to 9020 at 50k, mostly slope; +0.10 ± 0.03 with the new land coverage and temperature), so its tip says so; whether to keep, re-sweep or remove it is the user's call (a re-sweep of the generator sliders against these targets is the natural follow-up, P2's Phase 6b and 8 repeats).
 
-Measured through slope percentiles and land hypsometry, the two terms smoothing acts on. Generated slopes are already gentler than Earth's (p50 / p90 / p99: 1.05 / 12.8 / 37.9 m/km against 1.21 / 16.6 / 41.1), and smoothing makes them gentler. Re-scoring the 29,664 stored search rows (`defaults-check.mjs regress smoothing`, least squares on all 14 sliders and the seeds), per +0.05 of smoothing: objective +0.0074 ± 0.0003 (worse), slope term +0.052 ± 0.0006, hypsometry term +0.006 ± 0.0003, slope p90 −0.18 m/km, p99 −0.47 m/km. Paired on the held-out seeds against 0.1: 0.15 (the preset's value) is worse by +0.020 ± 0.003 (slope term +0.21, hypsometry −0.002 ± 0.005, no change); 0.05 is better by only 0.003 ± 0.001. Even smoothing 0 would raise slope p90 by about 0.4 m/km of the 3.8 m/km gap, so smoothing cannot close the slope gap, and the stored metrics confirm no improvement in the preset's direction. The slope gap needs model changes (the same as the hypsometry gap below). **Unchanged.**
+Reproduce: `tools/tuning/earthlike/fetch-earth.sh`; `tsx tools/tuning/earthlike/earth-real.mjs`; `tsx tools/tuning/earthlike/search.mjs run --stage broad --n 2500 --shard k --of 14` (14 shards), then for r = 1, 2, … `search.mjs plan --round r` and the shards of `run --stage refine --round r`, then `run --stage confirm --N 50000` and `--N 200000` in shards, then `search.mjs report`. The first-pass checks of temperature and smoothing against the `earth.png` targets (`defaults-check.mjs`) are kept in git history (commit `c714432`); their conclusions are superseded by this section.
 
 ## What the preset does not fix (means over the 20 held-out seeds, N = 50k)
 
