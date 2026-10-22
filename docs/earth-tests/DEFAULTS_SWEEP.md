@@ -26,6 +26,26 @@ Earth distance (objective, lower is better; 1 means every term is one tolerance 
 
 The improvement holds on held-out seeds and at four times the resolution, but **it is modest** (0.89 to 0.74), and part of it is simply land fraction: the defaults give 27.5% land (Earth 31.4%), the preset 31.7%.
 
+## Defaults checked against Earth (decision P6, 2026-10-22)
+
+Rule (user, P6): a default changes only if it is a quantity measurable on Earth with data in the repo **and** the sweep shows the objective is sensitive to it. Tool: `tools/tuning/earthlike/defaults-check.mjs` (`held`, `earth`, `regress`). Held-out seeds 9001 to 9020, N = 50k, every slider not named at its default; "paired" = mean over seeds of (variant − base), ± standard error.
+
+### Temperature offset: stays 0
+
+The repo has no observed temperature field (the Kottek data is Köppen classes only; note 15's temperature climatology is not downloaded), so Earth's own mean temperature cannot be measured from repo data. The nearest reference in the repo is the same climate model run on Earth's real geography (`defaults-check.mjs earth`: `earth.png` through the import, structured climate, offset 0), which is the configuration the Kottek calibration scores. Mean annual temperature, area-weighted:
+
+| | global | land | ocean |
+|---|---|---|---|
+| default world (land coverage 0.36, offset 0) | 17.06 °C | 15.20 °C | 17.95 °C |
+| same, offset −1 | 16.06 °C | 14.20 °C | 16.95 °C |
+| model on Earth's geography (offset 0) | 16.54 °C | 11.84 °C | 18.70 °C |
+
+The global gap is +0.5 °C, half of the slider's 1 °C step: −1 overshoots by the same amount the other way, so no offset closes it. The land gap (+3.4 °C) comes from where the land is (generated land is low, median land elevation 64 m against Earth's 457 m, and less of it lies poleward of 60°: 14% of the land against 20%, with 48% against 45% within 30° of the equator), not from a global bias; a global offset would also cool the generated ocean, which is already 0.75 °C cooler than the model's Earth ocean. Paired, offset −1 changes the objective by −0.0038 ± 0.0024 and the Köppen term by −0.021 ± 0.013, neither significant (desert share B moves further from Earth, 0.225 → 0.215 against 0.27). Criterion (1) fails strictly and the measurement gives no gap the offset could close: **unchanged**.
+
+### Smoothing: stays 0.1
+
+Measured through slope percentiles and land hypsometry, the two terms smoothing acts on. Generated slopes are already gentler than Earth's (p50 / p90 / p99: 1.05 / 12.8 / 37.9 m/km against 1.21 / 16.6 / 41.1), and smoothing makes them gentler. Re-scoring the 29,664 stored search rows (`defaults-check.mjs regress smoothing`, least squares on all 14 sliders and the seeds), per +0.05 of smoothing: objective +0.0074 ± 0.0003 (worse), slope term +0.052 ± 0.0006, hypsometry term +0.006 ± 0.0003, slope p90 −0.18 m/km, p99 −0.47 m/km. Paired on the held-out seeds against 0.1: 0.15 (the preset's value) is worse by +0.020 ± 0.003 (slope term +0.21, hypsometry −0.002 ± 0.005, no change); 0.05 is better by only 0.003 ± 0.001. Even smoothing 0 would raise slope p90 by about 0.4 m/km of the 3.8 m/km gap, so smoothing cannot close the slope gap, and the stored metrics confirm no improvement in the preset's direction. The slope gap needs model changes (the same as the hypsometry gap below). **Unchanged.**
+
 ## What the preset does not fix (means over the 20 held-out seeds, N = 50k)
 
 | | defaults | Earth-like | Earth |
