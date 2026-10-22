@@ -94,7 +94,9 @@ jobs:
         run: |
           npm run lint
           npm run typecheck
-      - run: npx vitest run --shard=${{ matrix.shard }}/3
+      # Two workers on Windows: its runner is the slowest (the 200k-cell parity test blocks a worker for about 50 s there), and with four
+      # workers on four cores a blocked worker misses vitest's 60 s reply limit ("Timeout calling onTaskUpdate", every test passing).
+      - run: npx vitest run --shard=${{ matrix.shard }}/3 ${{ runner.os == 'Windows' && '--maxWorkers=2' || '' }}
 
   # The determinism probe runs in Node on Ubuntu, macOS and Windows/x64 and is compared with tools/determinism/golden.json.
   # Strict keys must match everywhere: RNG, topology, history, and every `fd.` key (the whole probe re-run with
