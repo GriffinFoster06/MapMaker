@@ -44,3 +44,6 @@ tools/tuning/ab-current.json
 realism-current.json
 apps/desktop/release/
 apps/desktop/dist-types/
+
+# Independent Earth data for the Earth-likeness targets (decision P6), downloaded by tools/tuning/earthlike/fetch-earth.sh
+tools/tuning/earthlike/data/

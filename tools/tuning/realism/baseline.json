@@ -47,45 +47,45 @@
   },
   "777": {
    "parity": {
-    "landFrac": 0.277,
+    "landFrac": 0.287,
     "hypsometryM": {
      "p5": 0,
-     "p25": 8,
-     "p50": 42,
-     "p75": 231,
-     "p95": 2353,
-     "p99": 5195
+     "p25": 6,
+     "p50": 28,
+     "p75": 128,
+     "p95": 1598,
+     "p99": 3950
     },
     "slopeMPerKm": {
-     "p50": 1.651,
-     "p90": 30.846,
-     "p99": 88.607
+     "p50": 0.921,
+     "p90": 22.304,
+     "p99": 73.205
     },
-    "hackExponent": 0.614,
+    "hackExponent": 0.603,
     "riverKmPer1000Km2": {
-     "a1e3": 16.737,
-     "a1e4": 6.251
+     "a1e3": 16.796,
+     "a1e4": 6.24
     }
    },
    "structured": {
-    "landFrac": 0.266,
+    "landFrac": 0.276,
     "hypsometryM": {
      "p5": 0,
      "p25": 13,
-     "p50": 52,
-     "p75": 278,
-     "p95": 2671,
-     "p99": 5854
+     "p50": 57,
+     "p75": 355,
+     "p95": 3169,
+     "p99": 5987
     },
     "slopeMPerKm": {
-     "p50": 1.793,
-     "p90": 29.287,
-     "p99": 95.786
+     "p50": 1.838,
+     "p90": 30.836,
+     "p99": 96.874
     },
-    "hackExponent": 0.578,
+    "hackExponent": 0.583,
     "riverKmPer1000Km2": {
-     "a1e3": 18.181,
-     "a1e4": 6.357
+     "a1e3": 18.254,
+     "a1e4": 6.348
     }
    }
   },
@@ -134,5 +134,5 @@
    }
   }
  },
- "source": "tools/tuning/realism/realism.mjs, 2026-10-14 (Checkpoint 4b); parity = stock orogen, structured = Phase 4b pipeline"
+ "source": "tools/tuning/realism/realism.mjs, 2026-10-14 (Checkpoint 4b); parity = stock orogen, structured = Phase 4b pipeline; re-recorded 2026-10-22 for the P6 defaults (land coverage 0.31, temperature offset -3): only seed 777 changed"
 }

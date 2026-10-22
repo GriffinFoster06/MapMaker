@@ -35,7 +35,7 @@ export const majorGroup = majorGroupOf;
 /**
  * Run the climate simulation chain through the shell's own stages (orogen.climate, orogen.koppen) on the context's
  * world, whose elevation and plates were written by importHeightmap. Stock harness: same call sequence and arguments
- * as planet-worker.js handleImportHeightmap (offsets 0, landCoverage 0.3, which are the stages' defaults).
+ * as planet-worker.js handleImportHeightmap (offsets 0, landCoverage 0.3, which were the stages' defaults).
  */
 export async function runClimate(ctx, paramOverrides = {}) {
     resetClimateParams();

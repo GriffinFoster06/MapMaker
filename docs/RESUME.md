@@ -2,24 +2,25 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-22, by the local agent (Claude Code), on `parallel-kernels` (user request, outside the authorization limit): item 5 of the performance study, the shared-memory kernel API and the five H1 noise loops in a worker pool, bit-identical (`docs/checkpoints/PERFORMANCE_STUDY.md` section 11, decisions PK1 to PK5). Stopped; Phase 6 and its reconciliation not started.
+- **Last updated:** 2026-10-22, by the local agent (Claude Code), on `earth-defaults` (user request, outside the authorization limit, decision P6): Earth targets from independent data on the world mesh, a search of the Earth-measurable sliders, defaults land coverage 0.31 and temperature offset −3, goldens re-recorded for that cause only. PR ready for review. Phase 6 and its reconciliation not started.
 - **Authorized through: Q4 (Electron).** Set by `scripts/authorize.sh`; only the user changes this line.
 
 ## What the user does next
 
 Do these in order. Each step says why.
 
-1. Open `docs/checkpoints/PERFORMANCE_STUDY.md`, section 11 "After the parallel kernels" (on GitHub: the pull request `parallel-kernels`, "Files changed"). Read decisions PK3 (one of the five loops, the uniform land noise, is only partly parallel: its slope term depends on the order of the loop) and PK4 (17 workers cost about 300 MB more memory than none; 8 would be 0.1 s slower and 188 MB smaller). Why: these are the two places where you might prefer a different trade; tell the agent if you do.
-2. On GitHub, open the pull request `parallel-kernels`. Wait until every check at the bottom shows a green tick, then click **Merge pull request** (the default green button) and **Confirm merge**. Why: the parallel kernels reach `main`.
-3. In the terminal, in the project folder, copy and paste exactly: `scripts/authorize.sh 6`. Why: it lets the agent start Phase 6 (the documentation-only comparison of the newer orogen, GPlates and the other tectonic sources, then planet physics). It prepares a small change on a new branch `authorize-6` and uploads it.
-4. On GitHub, open the pull request for `authorize-6` (the yellow **Compare & pull request** banner), click **Create pull request**, then merge it as in step 2.
-5. Type `/go` in Claude Code.
+1. On GitHub, open the pull request `earth-defaults` and read its description: the table of re-recorded hashes and baselines, and why each changed (two defaults). Why: changing defaults changes every default world; you authorized it (P6), and the table shows nothing else changed.
+2. Decide the Earth-like preset (`docs/earth-tests/DEFAULTS_SWEEP.md`, "Defaults changed against independent Earth data", last paragraph): against real Earth data it is now worse than the defaults. Tell the agent to keep it, remove it, or re-sweep the generator sliders against the new targets. Why: it is a product choice; nothing blocks on it.
+3. Wait until every check at the bottom of the pull request shows a green tick, then click **Merge pull request** and **Confirm merge**.
+4. In the terminal, in the project folder, copy and paste exactly: `scripts/authorize.sh 6`. Why: it lets the agent start Phase 6 (the documentation-only comparison of the newer orogen, GPlates and the other tectonic sources, then planet physics). It prepares a small change on a new branch `authorize-6` and uploads it.
+5. On GitHub, open the pull request for `authorize-6` (the yellow **Compare & pull request** banner), click **Create pull request**, then merge it as in step 3.
+6. Type `/go` in Claude Code.
 
-Optional, whenever convenient and never blocking: generate a 2.56M world in the desktop app (`scripts/node24.sh npm run desktop:dev`); the timing panel now ends with "kernel workers 17". See `docs/RELEASING.md` for installers, tagging `v0.1.0` and publishing (publishing, signing certificates and any spending are yours).
+Optional, whenever convenient and never blocking: generate a 2.56M world in the desktop app (`scripts/node24.sh npm run desktop:dev`). See `docs/RELEASING.md` for installers, tagging `v0.1.0` and publishing (publishing, signing certificates and any spending are yours).
 
 ## Branches
 
-- `main` includes Phases 5, 5b, 5c, Q4, the autonomy setup, the desktop speed fix, the CI/nightly fixes, the label fix with the no-focus test modes, the performance study and the first performance fixes (PRs #8 to #20). `parallel-kernels` (PR to `main`, ready for review) holds item 5 of the study. The next phase branch is `phase-6`, created from updated `main` by `/go`.
+- `main` includes Phases 5, 5b, 5c, Q4, the autonomy setup, the desktop speed fix, the CI/nightly fixes, the label fix with the no-focus test modes, the performance study and the first performance fixes (PRs #8 to #21, including the parallel kernels). `earth-defaults` (PR to `main`, ready for review) holds the Earth defaults (P6). The next phase branch is `phase-6`, created from updated `main` by `/go`.
 
 ## Done (one line each)
 
@@ -47,6 +48,8 @@ Nothing blocks the agent. User-only actions are in "What the user does next". Op
 Type `/go` (or any first message). `.claude/commands/go.md` is the whole prompt; the user does not write prompts (decision W10).
 
 ## Work log (newest first; 2 to 4 lines per milestone)
+
+- 2026-10-22: earth-defaults (user request, P6): `tools/tuning/earthlike/` fetch-earth.sh (ETOPO 2022 60″, Natural Earth 10m), earth-data/earth-real (Earth on the world mesh: land 0.286, slopes p90/p99 5.6/15.7 m/km against earth.png's 0.314 and 16.6/41.1), objective-real, search (20,008 broad + 1,040 refine + 360 confirm worlds). Defaults land coverage 0.31 (first pass 0.36 replaced) and temperature −3 (17.3 → 14.3 °C); preset lists only differing sliders and is now worse than the defaults. Probe v6 (24 temperature/Köppen keys), satellite golden, Q7 and realism baselines re-recorded; each reproduces its old value with the old defaults.
 
 - 2026-10-22: parallel-kernels (user request): `runCells` (core) and `ParallelCells` (engine) run per-cell kernels as a synchronous fork-join on SharedArrayBuffers through the existing WorkerPool, serial fallback where memory is not shared; layers, mesh positions and adjacency allocated shared while a pool is up; the five H1 noise loops converted (uniform land noise: noise only, PK3). 2.56M 28.1 -> 23.2 s, 1M 10.6 -> 8.7 s, 200k 2.8 -> 2.5 s; +300 MB idle pool (17 workers). Goldens, probe (also with the pool), parity tests and the nine-world comparison unchanged. Decisions PK1 to PK5.
 

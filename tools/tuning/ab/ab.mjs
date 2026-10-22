@@ -20,10 +20,10 @@ export const GW = 360, GH = 180, NK = 31, TOPB = 10, MOUNTAIN_M = 1500;
  * Run the shell's orogen pipeline and keep only what the metrics need. `pipeline` 'parity' runs stock orogen (Phase 4a);
  * 'structured' runs the reference and detail passes (Phase 4b). The metrics are computed identically for both.
  */
-export async function summarizeRun({ N, seed, ref, onLog, pipeline = 'parity' }) {
-  if (pipeline === 'structured') return summarizeStructured({ N, seed, ref, onLog });
+export async function summarizeRun({ N, seed, ref, onLog, pipeline = 'parity', params = {} }) {
+  if (pipeline === 'structured') return summarizeStructured({ N, seed, ref, onLog, params });
   const t0 = performance.now();
-  const world = createOrogenWorld({ N, seed });
+  const world = createOrogenWorld({ N, seed, ...params });
   await runPipeline(world, orogenStages, { strict: false });
   const ms = performance.now() - t0;
   const s = getScratch(world);
@@ -41,9 +41,9 @@ export async function summarizeRun({ N, seed, ref, onLog, pipeline = 'parity' })
   return finishRun({ N, nR, ms, xyz: new Float32Array(xyz), adj: { off: new Int32Array(adj.off), list: new Int32Array(adj.list) }, area, E: new Float32Array(E), elevM, precip, koppen: new Uint8Array(koppen), ref, onLog, seed });
 }
 
-async function summarizeStructured({ N, seed, ref, onLog }) {
+async function summarizeStructured({ N, seed, ref, onLog, params = {} }) {
   const t0 = performance.now();
-  const world = createOrogenWorld({ N, seed });
+  const world = createOrogenWorld({ N, seed, ...params });
   await runPipeline(world, [...orogenStages, ...structuredStages], { variant: STRUCTURED, strict: false });
   const ms = performance.now() - t0;
   const mesh = world.meshes.get('global').mesh;
@@ -284,10 +284,11 @@ export function compare(R, a, b) {
  * One seed: runs the shell pipeline at each N (previews first, the last N is the final) and compares every earlier run
  * with every later one that is listed in `finals`. Returns the spike-1c-shaped result plus the Checkpoint 2 metrics.
  */
-export async function runAb({ seed, Ns, refMode = 'L0', finals = [Ns[Ns.length - 1]], onLog = () => {}, pipeline = 'parity' }) {
+/** `params`: generation sliders over the defaults (the spike-1c check passes orogen's own defaults, decision P6). */
+export async function runAb({ seed, Ns, refMode = 'L0', finals = [Ns[Ns.length - 1]], onLog = () => {}, pipeline = 'parity', params = {} }) {
   const refBox = makeRef(refMode, seed);
   const runs = [];
-  for (const N of Ns) runs.push(await summarizeRun({ N, seed, ref: refBox, onLog, pipeline }));
+  for (const N of Ns) runs.push(await summarizeRun({ N, seed, ref: refBox, onLog, pipeline, params }));
   const R = refBox.get();
   const results = {
     seed, Ns, refMode, pipeline, refN: R.nR, mountainThresholdM: MOUNTAIN_M,

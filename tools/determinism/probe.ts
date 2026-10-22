@@ -7,6 +7,8 @@
 // Phase 5 (v5) adds the exact projection path (`fd.projection.<N>.*`): elevation of the 20k structured world sampled
 // through the dmath-backed d3 copy and exported as 16-bit PNG heightmaps, the exported SVG of the vector path, and two
 // distortion overlays. Every key existing in v4 is unchanged.
+// v6 (decision P6): the shell's default land coverage (0.31) and temperature offset (−3) changed, so the keys of the
+// default worlds were re-recorded; no key was added or removed, and with the former defaults every v5 hash is reproduced.
 //
 // The probe runs twice. Keys without a prefix are computed with dmath.mode = 'native' (orogen parity): their
 // libm-dependent values are report-only. Keys prefixed `fd.` are computed with dmath.mode = 'fdlibm' and are ALL
@@ -18,7 +20,7 @@ import { REF_MESH, STRUCTURED, createOrogenWorld, orogenStages, orogenView, stru
 import { MeshSampler, coastlines } from '@mapmaker/projection';
 import { exportDistortionPng, exportHeightmap, exportSvg } from '@mapmaker/projection/exact';
 
-export const PROBE_VERSION = 5;
+export const PROBE_VERSION = 6;
 
 export interface ProbeResult {
   version: number;

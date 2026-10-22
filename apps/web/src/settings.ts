@@ -1,5 +1,6 @@
 // World settings panel: orogen's generation sliders (upstream/orogen/index.html at cc2662b — labels, ranges, steps,
-// defaults and help text), shown above the globe and kept in the page URL so a world can be shared exactly.
+// defaults and help text; the land coverage and temperature defaults are 0.31 and −3 instead, decision P6), shown
+// above the globe and kept in the page URL so a world can be shared exactly.
 // Original shell code. Defaults must equal OROGEN_DEFAULTS (settings.test.ts); they are duplicated here so the page
 // does not bundle the generator, which runs in the engine worker.
 
@@ -41,7 +42,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
         tip: 'Terrain roughness: higher values add more fractal detail to mountains and coastlines.' },
       { key: 'continentSizeVariety', level: 'advanced', domain: 'tectonics', label: 'Continent size variety', min: 0, max: 1, step: 0.05, def: 0.35, lo: 'Equal', hi: 'Varied',
         tip: 'How much continent sizes vary: at 0 all continents are similar in size, at 1 large and small landmasses mix.' },
-      { key: 'landCoverage', level: 'simple', domain: 'tectonics', label: 'Land coverage', min: 0, max: 1, step: 0.01, def: 0.3, lo: 'Ocean world', hi: 'Desert world',
+      { key: 'landCoverage', level: 'simple', domain: 'tectonics', label: 'Land coverage', min: 0, max: 1, step: 0.01, def: 0.31, lo: 'Ocean world', hi: 'Desert world',
         tip: 'Share of the planet covered by land. Low values make ocean worlds; high values make desert worlds with less rain.' },
     ],
   },
@@ -65,7 +66,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
   {
     title: 'Climate',
     settings: [
-      { key: 'temperatureOffset', level: 'simple', domain: 'climate', label: 'Temperature (°C)', min: -15, max: 15, step: 1, def: 0, lo: 'Colder', hi: 'Warmer',
+      { key: 'temperatureOffset', level: 'simple', domain: 'climate', label: 'Temperature (°C)', min: -15, max: 15, step: 1, def: -3, lo: 'Colder', hi: 'Warmer',
         tip: 'Shifts global temperature; climate zones shift accordingly.' },
       { key: 'precipitationOffset', level: 'simple', domain: 'climate', label: 'Precipitation', min: -1, max: 1, step: 0.1, def: 0, lo: 'Drier', hi: 'Wetter',
         tip: 'Scales global precipitation: affects where deserts and rainforests form.' },
@@ -78,14 +79,15 @@ export const SETTINGS: Setting[] = SETTING_GROUPS.flatMap((g) => g.settings);
 /** Settings visible at `level`: a level shows its own parameters and every lower level's. */
 export const visibleAt = (level: Level): Setting[] => SETTINGS.filter((s) => LEVELS.indexOf(s.level) <= LEVELS.indexOf(level));
 
-/** A named set of slider values. Presets never change the defaults (world hashes depend on them); they only fill the sliders. */
+/** A named set of slider values: the sliders it changes from the defaults (unlisted ones are set to their default). Presets never change the defaults (world hashes depend on them); they only fill the sliders. */
 export interface Preset { id: string; label: string; tip: string; values: Record<string, number> }
 
 export const PRESETS: Preset[] = [
   {
     id: 'earthlike', label: 'Earth-like',
-    tip: 'Found by a sweep of the 14 sliders against Earth statistics (docs/earth-tests/DEFAULTS_SWEEP.md, configuration L612). Compared with the defaults it gives Earth-like land fraction, hypsometry, continent sizes, climate-zone shares and river density. Preview-tier evidence only.',
-    values: { jitter: 0.75, P: 81, numContinents: 4, nMag: 0.23, continentSizeVariety: 0.1, landCoverage: 0.36, terrainWarp: 0, smoothing: 0.15, glacialErosion: 0.75, hydraulicErosion: 0.4, thermalErosion: 0.25, ridgeSharpening: 0.95, temperatureOffset: -2, precipitationOffset: -0.5 },
+    tip: 'Found by a sweep of the 14 sliders against Earth statistics from the earth.png heightmap (docs/earth-tests/DEFAULTS_SWEEP.md, configuration L612). Against the independent Earth data of decision P6 it scores worse than the defaults, mainly on slopes; kept as a style option until the generator sliders are swept again.',
+    // Only the sliders that differ from the defaults; `apply` sets every unlisted slider to its default, so this is L612.
+    values: { P: 81, nMag: 0.23, continentSizeVariety: 0.1, landCoverage: 0.36, terrainWarp: 0, smoothing: 0.15, glacialErosion: 0.75, hydraulicErosion: 0.4, thermalErosion: 0.25, ridgeSharpening: 0.95, temperatureOffset: -2, precipitationOffset: -0.5 },
   },
 ];
 
