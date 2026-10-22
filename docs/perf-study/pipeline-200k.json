@@ -1,0 +1,84 @@
+{
+ "N": 200000,
+ "total": 2898,
+ "ran": [
+  "mesh",
+  "ref.pass",
+  "detail.pass"
+ ],
+ "peakRssMB": 380,
+ "rows": [
+  {
+   "stage": "start",
+   "ms": 1,
+   "cpuMs": 2,
+   "cores": 1.13,
+   "peakRssMB": 105,
+   "endHeapMB": 13
+  },
+  {
+   "stage": "mesh | Shaping the world",
+   "ms": 161,
+   "cpuMs": 207,
+   "cores": 1.29,
+   "peakRssMB": 190,
+   "endHeapMB": 12
+  },
+  {
+   "stage": "mesh | ",
+   "ms": 0,
+   "cpuMs": 0,
+   "cores": 1.02,
+   "peakRssMB": 190,
+   "endHeapMB": 12
+  },
+  {
+   "stage": "ref.pass | Reference world (tectonics, elevation, climate, drainage)",
+   "ms": 656,
+   "cpuMs": 1111,
+   "cores": 1.69,
+   "peakRssMB": 231,
+   "endHeapMB": 15
+  },
+  {
+   "stage": "ref.pass | ",
+   "ms": 6,
+   "cpuMs": 7,
+   "cores": 1.16,
+   "peakRssMB": 231,
+   "endHeapMB": 16
+  },
+  {
+   "stage": "detail.pass | Detail: elevation at full resolution",
+   "ms": 1975,
+   "cpuMs": 2587,
+   "cores": 1.31,
+   "peakRssMB": 378,
+   "endHeapMB": 13
+  },
+  {
+   "stage": "detail.pass | Detail: climate",
+   "ms": 70,
+   "cpuMs": 93,
+   "cores": 1.33,
+   "peakRssMB": 380,
+   "endHeapMB": 37
+  },
+  {
+   "stage": "detail.pass | Detail: drainage",
+   "ms": 22,
+   "cpuMs": 35,
+   "cores": 1.58,
+   "peakRssMB": 380,
+   "endHeapMB": 23
+  },
+  {
+   "stage": "detail.pass | ",
+   "ms": 7,
+   "cpuMs": 7,
+   "cores": 1.1,
+   "peakRssMB": 380,
+   "endHeapMB": 23
+  }
+ ]
+}
