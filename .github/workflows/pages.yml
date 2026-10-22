@@ -43,6 +43,9 @@ jobs:
   smoke:
     needs: deploy
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Playwright's own image (browsers, libraries, xvfb): no apt download; keep the tag equal to @playwright/test.
+    container: mcr.microsoft.com/playwright:v1.55.1-noble
     permissions:
       contents: read
     steps:
@@ -52,7 +55,6 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium firefox webkit
       # Headless Firefox on Linux has no WebGL, so Firefox runs headed on a virtual display (playwright.config.ts).
       - run: xvfb-run -a npx playwright test
         env:

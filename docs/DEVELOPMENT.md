@@ -137,4 +137,4 @@ The GitHub Pages deploy (`pages.yml`), the Cloudflare Pages deploy and its deplo
 | realism gate, 2.56M | `nightly.yml` `realism-gate` | nightly |
 | Electron smoke test, installers | `desktop.yml` | tag or manual |
 
-Every job has a `timeout-minutes`, and the browser download in `e2e` and `smoke` fails after 5 minutes and is tried once more: a stalled download or a runner that stops reporting once held a job for 45 minutes. A job that hangs now fails in minutes with its log.
+Every job has a `timeout-minutes`, and on Ubuntu the e2e and smoke jobs run in Playwright's own container image (`mcr.microsoft.com/playwright:v<version>-noble`, kept equal to the `@playwright/test` version; bump both together) so nothing is installed through apt, and on macOS the browser download fails after 5 minutes and is tried once more: an apt mirror serving kilobytes per second held jobs for 5 to 45 minutes. A job that hangs now fails in minutes with its log.

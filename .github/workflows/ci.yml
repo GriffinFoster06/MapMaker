@@ -144,6 +144,10 @@ jobs:
     if: needs.changes.outputs.heavy == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
+    # On Ubuntu the job runs in Playwright's own image (browsers, system libraries and xvfb included): `playwright install --with-deps`
+    # downloaded fonts through apt from a mirror that was running at kilobytes per second, which stalled jobs for 5 to 45 minutes.
+    # The tag must match the @playwright/test version in package-lock.json (bump both together).
+    container: ${{ matrix.os == 'ubuntu-latest' && 'mcr.microsoft.com/playwright:v1.55.1-noble' || null }}
     strategy:
       fail-fast: false
       matrix:
@@ -161,25 +165,23 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci --prefer-offline --no-audit --no-fund
+      # macOS has no image: the browser is downloaded (cached), and a stalled download fails after 5 minutes and is tried once more.
       - name: Cache Playwright browsers
+        if: runner.os != 'Linux'
         uses: actions/cache@v4
         with:
-          path: ${{ runner.os == 'Linux' && '~/.cache/ms-playwright' || '~/Library/Caches/ms-playwright' }}
+          path: ~/Library/Caches/ms-playwright
           key: playwright-${{ runner.os }}-${{ matrix.spec.browser }}-${{ hashFiles('package-lock.json') }}
-      # A browser download that stalls fails after 5 minutes and is tried once more (a hung download once held a job for 45 minutes).
       - name: Install browser
+        if: runner.os != 'Linux'
         id: install
         continue-on-error: true
         timeout-minutes: 5
-        shell: bash
-        run: |
-          if [ "${{ runner.os }}" = "Linux" ]; then npx playwright install --with-deps ${{ matrix.spec.browser }}; else npx playwright install ${{ matrix.spec.browser }}; fi
+        run: npx playwright install ${{ matrix.spec.browser }}
       - name: Install browser (second try)
-        if: steps.install.outcome == 'failure'
+        if: runner.os != 'Linux' && steps.install.outcome == 'failure'
         timeout-minutes: 5
-        shell: bash
-        run: |
-          if [ "${{ runner.os }}" = "Linux" ]; then npx playwright install --with-deps ${{ matrix.spec.browser }}; else npx playwright install ${{ matrix.spec.browser }}; fi
+        run: npx playwright install ${{ matrix.spec.browser }}
       - name: Playwright (${{ matrix.spec.browser }}, ${{ matrix.spec.group }})
         shell: bash
         # Headless Firefox on Linux has no WebGL, so on Linux Firefox runs headed on a virtual display (playwright.config.ts).

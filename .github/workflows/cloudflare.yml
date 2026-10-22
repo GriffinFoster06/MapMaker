@@ -75,6 +75,8 @@ jobs:
     if: needs.deploy.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Playwright's own image: browsers, system libraries and xvfb are in it (no apt download; keep the tag equal to @playwright/test).
+    container: mcr.microsoft.com/playwright:v1.55.1-noble
     strategy:
       fail-fast: false
       matrix:
@@ -106,20 +108,6 @@ jobs:
       - run: npm ci --prefer-offline --no-audit --no-fund
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-Linux-${{ matrix.spec.browser }}-${{ hashFiles('package-lock.json') }}
-      - name: Install browser
-        id: install
-        continue-on-error: true
-        timeout-minutes: 5
-        run: npx playwright install --with-deps ${{ matrix.spec.browser }}
-      - name: Install browser (second try)
-        if: steps.install.outcome == 'failure'
-        timeout-minutes: 5
-        run: npx playwright install --with-deps ${{ matrix.spec.browser }}
       # Headless Firefox on Linux has no WebGL, so Firefox runs headed on a virtual display (playwright.config.ts).
       - run: xvfb-run -a npx playwright test --project=${{ matrix.spec.browser }} $(scripts/e2e-files.sh ${{ matrix.spec.group }})
         env:
