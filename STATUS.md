@@ -17,6 +17,7 @@ Updated at every checkpoint.
 | 5c (Cartography v1) | **Reached 2026-10-19; merged** (`docs/checkpoints/CHECKPOINT_5C.md`, PR #10) |
 | Q4 (Electron desktop app, macOS and Windows) | **Reached 2026-10-20; waits for the user's review** (`docs/checkpoints/CHECKPOINT_ELECTRON.md`, branch `phase-electron`). Also registers the newer orogen as candidate `orogen-evolution` (P5) |
 | Earth defaults (P6, user request) | **2026-10-22, PR from `earth-defaults` ready for review**: Earth targets from ETOPO 2022 and Natural Earth on the world mesh (`docs/earth-tests/EARTH_TARGETS.md`); defaults land coverage 0.31, temperature offset −3 (`docs/earth-tests/DEFAULTS_SWEEP.md`); goldens re-recorded for that cause only |
+| Default seed (S1, user request) | **2026-10-23, PR from `default-seed`**: 12345 → 241774, best of 142,746 sampled seeds on verified layout terms (`docs/earth-tests/DEFAULT_SEED.md`); no golden or baseline depends on it |
 
 ## Current handoff — 2026-10-18, Claude Code (cloud to local; catch-up and reconciliation)
 
