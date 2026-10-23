@@ -177,7 +177,7 @@ export function startApp(): void {
   if (init.seed !== undefined) seedInput.value = String(init.seed);
   if (init.tier && init.tier in TIERS) tier.value = init.tier;
   if (init.pipeline === 'parity' || init.pipeline === 'structured') pipelineSel.value = init.pipeline;
-  const pageState = () => encodeState({ seed: Number(seedInput.value) || 12345, tier: tier.value, pipeline: pipelineSel.value, params: settings.values() });
+  const pageState = () => encodeState({ seed: Number(seedInput.value) || 241774, tier: tier.value, pipeline: pipelineSel.value, params: settings.values() });
   const syncUrl = () => { const q = pageState(); history.replaceState(null, '', q ? `?${q}` : location.pathname); };
   const settings = buildSettings(init.params, syncUrl);
   for (const el of [seedInput, tier, pipelineSel]) el.addEventListener('change', syncUrl);
@@ -277,7 +277,7 @@ export function startApp(): void {
   }
 
   $('generate').addEventListener('click', () => {
-    const N = TIERS[tier.value]!, seed = Number(seedInput.value) || 12345;
+    const N = TIERS[tier.value]!, seed = Number(seedInput.value) || 241774;
     const v = pipelineSel.value as Variant;
     const params = changedParams(settings.values());
     syncUrl();

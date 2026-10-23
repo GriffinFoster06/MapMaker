@@ -28,7 +28,7 @@ export interface OrogenParams {
  * fraction and `temperatureOffset` −3 (orogen 0) for Earth's global mean surface temperature of 14 to 15 °C.
  */
 export const OROGEN_DEFAULTS: OrogenParams = {
-  seed: 12345, N: 20000, P: 80, jitter: 0.75, nMag: 0.4, numContinents: 4, smoothing: 0.1, hydraulicErosion: 0.5,
+  seed: 241774, N: 20000, P: 80, jitter: 0.75, nMag: 0.4, numContinents: 4, smoothing: 0.1, hydraulicErosion: 0.5,
   thermalErosion: 0.1, ridgeSharpening: 0.5, glacialErosion: 0.5, terrainWarp: 0.75, continentSizeVariety: 0.35,
   temperatureOffset: -3, precipitationOffset: 0, landCoverage: 0.31, debugLayers: false,
 };
