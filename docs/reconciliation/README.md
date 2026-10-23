@@ -43,7 +43,7 @@ Used in `group-1.md` through `group-3.md` and `group-6a.md`:
 | MARBL | Done | group 3 | — |
 | Azgaar | **Partly done**: Phases 5, 5b (editors and options UI) and 5c | group 6a, group 5b | Phase 7 (`lakes.ts`, `features-generator.ts`). Notes 5 and 9 are covered by those passes or by Phase 10; asset licences at Phase 10b |
 | QGIS | **Partly done**: Phases 5 and 5c only | group 6a | Phase 17 (Processing framework, note 37) |
-| CesiumJS | **Partly done**: Phases 5 and 5c only | group 6a | Phase 14 (LOD and tiling, note 38); Phase 16 (note 36) |
+| CesiumJS | **Partly done**: Phases 5 and 5c only | group 6a | Phase 14b (LOD and tiling, note 38); Phase 16 (note 36) |
 | Godot | Done | group 5b | — |
 | orogen | Done (the claims in notes 17 and 21 and the audit were corrected) | group 5b | — |
 | orogen-evolution (candidate, decision P5; newer orogen at `47edc28`, GPL-3.0) | Not started | — | Phases 6 and 6b (with GPlates and the other tectonic candidates; per-component picks); Phase 11 (Orogen Import) |
