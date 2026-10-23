@@ -49,6 +49,8 @@ Type `/go` (or any first message). `.claude/commands/go.md` is the whole prompt;
 
 ## Work log (newest first; 2 to 4 lines per milestone)
 
+- 2026-10-23: roadmap-notes (user request, docs only, decisions R1 to R6): 13h before 13a; Phase 14 split into 14a (kernels, done) and 14b; 8b repeats the Earth defaults sweep; 16 usability pass; 18 choose the default seed; 11 Earth choice. ARCHITECTURE §7.0 and phase text, note 38. Nothing started; "Authorized through" untouched.
+
 - 2026-10-22: earth-defaults (user request, P6): `tools/tuning/earthlike/` fetch-earth.sh (ETOPO 2022 60″, Natural Earth 10m), earth-data/earth-real (Earth on the world mesh: land 0.286, slopes p90/p99 5.6/15.7 m/km against earth.png's 0.314 and 16.6/41.1), objective-real, search (20,008 broad + 1,040 refine + 360 confirm worlds). Defaults land coverage 0.31 (first pass 0.36 replaced) and temperature −3 (17.3 → 14.3 °C); preset lists only differing sliders and is now worse than the defaults. Probe v6 (24 temperature/Köppen keys), satellite golden, Q7 and realism baselines re-recorded; each reproduces its old value with the old defaults.
 
 - 2026-10-22: parallel-kernels (user request): `runCells` (core) and `ParallelCells` (engine) run per-cell kernels as a synchronous fork-join on SharedArrayBuffers through the existing WorkerPool, serial fallback where memory is not shared; layers, mesh positions and adjacency allocated shared while a pool is up; the five H1 noise loops converted (uniform land noise: noise only, PK3). 2.56M 28.1 -> 23.2 s, 1M 10.6 -> 8.7 s, 200k 2.8 -> 2.5 s; +300 MB idle pool (17 workers). Goldens, probe (also with the pool), parity tests and the nine-world comparison unchanged. Decisions PK1 to PK5.

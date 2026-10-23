@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Status | Draft (2026-10-13 overhaul) |
-| Built in | Phase 14 (measurement, tiers, jobs, kernels); principles apply from Phase 5b on |
+| Built in | Phase 14a (kernels, done) and 14b (measurement, tiers, jobs, level of detail); principles apply from Phase 5b on |
 | Depends on | Benchmarks from Phases 4a, 7 and 13; the stage runner and worker pool (§6) |
 | Used by | Every system; the desktop decision (§6.5) |
 
@@ -39,7 +39,7 @@ Profile first, then move hot loops to WASM (SIMD and threads where cross-origin 
 
 ### 3.5 Memory
 
-Lazy layers, compressed keyframes, chunked tables, per-level paging. Budgets per tier are re-measured for the full scope in Phase 14, which then decides on the Electron wrapper (§6.5) by the existing rule.
+Lazy layers, compressed keyframes, chunked tables, per-level paging. Budgets per tier are re-measured for the full scope in Phase 14b, which then decides on the Electron wrapper (§6.5) by the existing rule.
 
 ### 3.6 Incremental re-simulation
 

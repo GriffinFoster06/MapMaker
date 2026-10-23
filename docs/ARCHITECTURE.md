@@ -646,7 +646,7 @@ The full catalogue (deep time, life, oceans, history with individuals) is far he
 - **Simulation tiers.** Each system declares tiers (off, statistical, coarse dynamic, fine dynamic). The fidelity slider picks a tier per system; presets bundle them.
 - **Background jobs.** Deep-time runs (plate evolution, paleoclimate, evolution) and long histories run as resumable background jobs with checkpoints, and the app stays usable on the latest completed keyframe.
 - **Kernels.** Hot loops move to WASM (SIMD, threads) after profiling. WebGPU serves previews and rendering; authoritative GPU results need fixed-point arithmetic and a cross-GPU bit-equality test (§6.3).
-- **Memory.** Layers are allocated lazily and paged per mesh level; time-varying layers keep keyframes compressed. Phase 14 re-measures the budgets in §6.2 against the full scope and decides on the desktop wrapper (§6.5).
+- **Memory.** Layers are allocated lazily and paged per mesh level; time-varying layers keep keyframes compressed. Phase 14b re-measures the budgets in §6.2 against the full scope and decides on the desktop wrapper (§6.5).
 
 ---
 
@@ -662,11 +662,11 @@ The roadmap is open-ended (Q13) and interleaved (Q14): a usable editor and attra
 
 | Track | Phases |
 |---|---|
-| **Platform** (model, determinism, save, performance) | 3, 4a, 4b, 12, 14, 17 |
+| **Platform** (model, determinism, save, performance) | 3, 4a, 4b, 12, 14a, 14b, 17 |
 | **Experience** (views, editor, map art, tools) | 5, 5b, 5c, 10b, 16 |
 | **Earth system** (cosmos, geosphere, hydrosphere, cryosphere, atmosphere) | 6, 6a, 6b, 6c, 7, 7b, 7c, 8, 8b |
 | **Life** | 9, 9b, 9c, 9d, 9e |
-| **Civilization** | 10, 11b, 13a–13h |
+| **Civilization** | 10, 11b, 13h, 13a–13g |
 | **Imagination and integration** (fantasy, import, partial worlds, Earth recovery) | 11, 15, 18 |
 
 **Order.** The build order, with the first usable milestone marked:
@@ -698,16 +698,17 @@ The roadmap is open-ended (Q13) and interleaved (Q14): a usable editor and attra
 | 11 | Import, partial-world mode, regional patches | 3, 6 | |
 | 11b | Settlement morphology (town and city plans) | 34 | |
 | 12 | Exports and save hardening | 7 | |
+| 13h | Prehistory and human origins (Q5's "grow from first settlements"); **first of the history sub-phases**: history starts from its output | 30 | |
 | 13a–d | History: engine, economy, politics and war, languages | 1, 2, 9 | |
 | 13e | Technology and innovation | 31 | |
 | 13f | Religion, ideology and culture | 32 | |
 | 13g | Characters, dynasties and chronicle | 33 | |
-| 13h | Prehistory and human origins (Q5's "grow from first settlements") | 30 | |
-| 14 | Performance and scaling for the full scope; desktop decision | 38 | |
+| 14a | Parallel kernels and the WebAssembly/native decision | 38 | done early (user request, PR #21; `docs/DECISIONS_LOG.md` PK1 to PK5) |
+| 14b | Final scaling and level of detail once the models exist; desktop decision | 38 | |
 | 15 | Fantasy framework | 35 | |
 | 16 | Worldbuilder tools: encyclopedia, timeline, branches | 36 | |
 | 17 | Plugin, mod and scripting API | 37 | |
-| 18 | Earth recovery T3–T4 and integration audit | 15 | |
+| 18 | Earth recovery T3–T4, integration audit, choice of the default seed | 15 | |
 
 After 18 the roadmap continues: each new domain or deeper model gets a design note and a phase, through the same checkpoints.
 
@@ -730,13 +731,15 @@ graph LR
   P10 --> P12[12 exports/save]
   P12 --> P13[13a-d history] --> P13e[13e tech] --> P13f[13f religion] --> P13g[13g people]
   P9d --> P13h[13h prehistory]
-  P13 --> P13h
-  P13g --> P14[14 scaling]
-  P14 --> P15[15 fantasy]
+  P13h --> P13
+  P4b --> P14a[14a kernels, done]
+  P13g --> P14b[14b scaling and LOD]
+  P14a --> P14b
+  P14b --> P15[15 fantasy]
   P5b --> P15
   P13g --> P16[16 tools]
   P15 --> P17[17 plugins]
-  P13h --> P18[18 Earth T3-T4]
+  P13h --> P18[18 Earth T3-T4, default seed]
   P6b --> P18
 ```
 
@@ -769,7 +772,7 @@ Phases on different branches of this graph can be reordered at a checkpoint with
 | Fantasy layer | 15 | 35 |
 | Encyclopedia, timeline, branches | 16 | 36 |
 | Plugins and scripting | 17 | 37 |
-| Scaling everything | 14 | 38 |
+| Scaling everything | 14a (kernels), 14b (final scaling, LOD) | 38 |
 
 ### Phase 1: Spikes only (throwaway code in `spikes/`, not shipped)
 
@@ -998,6 +1001,8 @@ Added at Checkpoint 1 (D5):
 - **Known defect (decision P3, 2026-10-19):** generated continents can look unrealistically rectangular, even with organic settings. Investigated in `docs/checkpoints/RECT_CONTINENTS.md` (queue item Q2) before this phase; Phase 6b's plate evolution may also change shapes. Metrics: share of coastline in long near-straight segments, and each landmass's fit to an axis-aligned box.
 - **Earth-like preset and Electron (decisions P1, P2, P4):** no seed reproduces Earth (statistical similarity only); the Earth-like preset (sweep `tools/tuning/earthlike/`) is repeated after Phase 6b and redone for all parameters in Phase 8. The Electron wrapper (Q4) is packaged after Checkpoint 5c for macOS and Windows.
 
+- **Earth choice.** A world option that loads the real Earth (NOAA ETOPO 2022 and Natural Earth, public domain; the data already used for `docs/earth-tests/EARTH_TARGETS.md`) as the starting elevation and generates everything else (names, rivers, climate details, anything not in the data) from the seed, so it sits next to random seeds in the app. This is how to get the real Earth; the default-seed search (Phase 18) is not.
+
 **Prerequisite (decision P5):** reconcile the newer orogen (`orogen-evolution`, pinned at `47edc28`; Orogen Evolution, Orogen Import and Orogen Classic) alongside the other tectonic candidates (GPlates, tectonics.js, ASPECT and the rest already listed) before this phase. Per-component picks on quality and fit; nothing is decided yet. It is a second reference; `upstream/orogen` (`cc2662b`) and `packages/gen-orogen/vendor/` are unchanged.
 
 **Checkpoint 6.** Stop and wait.
@@ -1090,6 +1095,7 @@ Added at Checkpoint 1 (D5):
 - An optional dynamical circulation variant (stage 5a), storm tracks, cyclones and interannual variability (droughts, monsoon strength), and paleoclimate runs on the geologic axis (greenhouse and icehouse states, with 6a forcing).
 - This is Q10's "dynamical atmosphere if calibration plateaus", now planned regardless (Q13).
 - Earth tests: storm-track and cyclone climatology, variability statistics, and the D7-style gate against the heuristic climate.
+- **Repeat the Earth defaults sweep and calibration after atmosphere dynamics** (decision P6's method: `tools/tuning/earthlike/`, `docs/earth-tests/EARTH_TARGETS.md`): the temperature and precipitation defaults were fitted to the heuristic climate and may move once the atmosphere is dynamical. Defaults change only under P6's rule (a win of more than twice the standard error under every reweighting); goldens re-recorded with a table of causes.
 
 **Checkpoint 8b.** Stop and wait.
 
@@ -1198,6 +1204,7 @@ STL (design note 7), GeoJSON, PNG tiles, and other formats as feasible. Save siz
 
 | Sub-phase | Content |
 |---|---|
+| 13h | Prehistory and human origins: from an empty planet to the history t0 (note 30; Q5's "grow from first settlements"); built first, decision R1 |
 | 13a | Engine core (tick loop, agent tables, event log, keyframes, scrubbing, mid-run save and resume) plus demography and settlement growth and decline |
 | 13b | Trade networks and economics (dynamic prices and flows over Azgaar's route graph) |
 | 13c | Politics, diplomacy, borders and war |
@@ -1205,19 +1212,20 @@ STL (design note 7), GeoJSON, PNG tiles, and other formats as feasible. Save siz
 | 13e | Technology and innovation: a technology graph, discovery, diffusion along contacts and loss (note 31) |
 | 13f | Religion, ideology and culture dynamics (note 32) |
 | 13g | Characters, dynasties and the narrative chronicle (note 33) |
-| 13h | Prehistory and human origins: from an empty planet to the history t0 (note 30; Q5's "grow from first settlements") |
 
-Each sub-phase ends at a checkpoint. Stop and wait after each.
+**Order (decision R1):** 13h comes first, before 13a: history starts from prehistory's output (the t0 of stage 11p), so the engine is built on a world that already has peoples. The letters keep their meaning. Each sub-phase ends at a checkpoint. Stop and wait after each.
 
-### Phase 14: Performance and desktop fallback (conditional)
+### Phase 14a: Parallel kernels and the WebAssembly/native decision (done early; decision R2)
+
+Per-cell kernels run as a synchronous fork-join on SharedArrayBuffers through the worker pool (`runCells`, `ParallelCells`), with a serial fallback; the five noise loops are converted and the WebAssembly/native question is measured (native noise 1.62× JS with identical bits). Delivered ahead of order on the user's request: PR #21, decisions PK1 to PK5, `docs/checkpoints/PERFORMANCE_STUDY.md`. Further kernels are converted as later phases add them.
+
+### Phase 14b: Final scaling and level of detail (conditional; decision R2)
 
 **Prerequisite:** reconcile CesiumJS beyond Phases 5 and 5c (LOD and tiling, the references for note 38; `audit/CesiumJS.md`). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
 
-Profile, add WASM kernels where they are justified, and build the Electron wrapper **only if** earlier benchmarks require it.
+Once the models exist: re-measure the full scope, implement note 38's tiers and background jobs and the level of detail, and decide on the desktop wrapper.
 
-**Checkpoint 14.** Stop and wait.
-
-Phase 14 is no longer only conditional (Q13): it re-measures the full scope, implements note 38's tiers and background jobs, and decides on the desktop wrapper.
+**Checkpoint 14b.** Stop and wait.
 
 ### Phase 15: Fantasy framework (Q15; note 35)
 
@@ -1228,9 +1236,10 @@ Phase 14 is no longer only conditional (Q13): it re-measures the full scope, imp
 
 ### Phase 16: Worldbuilder tools (note 36)
 
-**Prerequisite:** reconcile CesiumJS's claims in note 36 (`audit/CesiumJS.md`), if not already done before Phase 14. The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
+**Prerequisite:** reconcile CesiumJS's claims in note 36 (`audit/CesiumJS.md`), if not already done before Phase 14b. The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
 
 - The encyclopedia (an article per entity, generated and editable), the timeline and history scrubber, notes, search, and what-if branches.
+- **Usability pass (decision R4):** a guided new-world flow, named starting presets, and a beginner view over the sliders; the full set of sliders stays as an advanced view.
 
 **Checkpoint 16.** Stop and wait.
 
@@ -1247,6 +1256,12 @@ Phase 14 is no longer only conditional (Q13): it re-measures the full scope, imp
 **Prerequisite:** record the access route and licence of the Glottolog, Seshat and HYDE datasets (T4 Earth tests; `audit/CAPABILITY_MATRIX.md`, Candidate upstreams to audit; logged in `PROVENANCE.md` per Q8). The reconciliation is documentation-only and follows `docs/reconciliation/README.md`.
 
 - The deep-time (T3) and civilization (T4) Earth tests end to end, a review of every domain against its Earth test, and the next roadmap round.
+- **Choose the default seed (decision R5).** Only once the generator is final, search the seed space for the seed whose continents and coastlines are statistically closest to real Earth at the final defaults, and make it the default seed. The default seed stays as it is until then (a seed chosen earlier is wasted: its world changes with every change to the generator, and 6b alone reshapes the continents). Method (the user's idea, 2026-10-23):
+  - (a) The continent layout is fixed by the early stages (coarse plates, ocean/land assignment) and does not depend on the detail level. Build a cheap proxy that reproduces those stages on a tiny grid (about 2000 points), reusing the real port code, and validate it first: rank correlation of at least 0.9 against the real reference pass on a few hundred seeds.
+  - (b) If the proxy costs under about 1 ms per seed, score the whole space of 2,147,483,646 seeds (about 42 hours on 14 cores at 1 ms, about 4 hours at 100 µs; WebAssembly or native code could take it to about 10 µs); otherwise a random sample.
+  - (c) Funnel: proxy, then the real reference pass, then the full structured pipeline at N=50k, then N=200k. Report the proxy's recall of the final top 10.
+  - (d) Score only layout terms verified against independent real data (land fraction 29.2%, seven landmasses of at least 1M km², largest-landmass share, box fill, straight-coast share). Reject winners that exploit a measurement artifact. Render and list a shortlist of 5 so the choice can be swapped with one line.
+  - (e) This finds the most Earth-like seed, never Earth itself: no seed reproduces Earth's real coastlines (decision P1; odds of a coarse match about 1 in 10^15). The real Earth is the Phase 11 "Earth choice".
 
 **Checkpoint 18.** Stop and wait. The roadmap then continues with new notes and phases (Q13).
 
