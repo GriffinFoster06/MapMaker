@@ -19,7 +19,7 @@ export function report() {
   out.A = {
     scored: A.length, skippedLandFracOutside_0_1_to_0_5: A.length - scoredA.length,
     msPerSeedSingleCore: { layout: mean(A.map((r) => r.msLayout)), score: mean(A.filter((r) => !r.skipped).map((r) => r.msScore)), total: mean(ms) },
-    objective: { min: Math.min(...scoredA.map((r) => r.objective)), p01: q(scoredA.map((r) => r.objective), 0.01), median: q(scoredA.map((r) => r.objective), 0.5), p99: q(scoredA.map((r) => r.objective), 0.99) },
+    objective: { min: q(scoredA.map((r) => r.objective), 0), p01: q(scoredA.map((r) => r.objective), 0.01), median: q(scoredA.map((r) => r.objective), 0.5), p99: q(scoredA.map((r) => r.objective), 0.99) },
     currentDefaultInSample: A.some((r) => r.seed === CURRENT_DEFAULT),
   };
   // Stage B: the best-500 list, the random reference group, the default seed.
@@ -64,3 +64,5 @@ export function report() {
   fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(out, (k, v) => rnd(v), 1));
   console.log(JSON.stringify(out, (k, v) => rnd(v), 1));
 }
+
+if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) report();

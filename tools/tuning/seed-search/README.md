@@ -28,7 +28,7 @@ scripts/node24.sh npx tsx tools/tuning/earthlike/earth-real.mjs --N 20000   # 20
 tools/tuning/seed-search/run-a.sh 95                                          # stage A, 95 minutes, 16 shards
 for k in $(seq 0 15); do scripts/node24.sh npx tsx tools/tuning/seed-search/search.mjs b --shard $k --of 16 & done; wait
 for k in $(seq 0 9);  do scripts/node24.sh npx tsx tools/tuning/seed-search/search.mjs c --shard $k --of 10 & done; wait
-scripts/node24.sh npx tsx tools/tuning/seed-search/search.mjs report          # results/seed-search/report.json
+scripts/node24.sh npx tsx tools/tuning/seed-search/report.mjs                      # results/seed-search/report.json
 scripts/node24.sh node tools/tuning/seed-search/shots.mjs docs/feedback/seeds <seed,seed,...>   # needs desktop:build
 ```
 

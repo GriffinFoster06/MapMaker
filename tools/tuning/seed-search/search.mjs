@@ -115,6 +115,6 @@ async function stageC() {
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const cmd = process.argv[2];
   if (cmd === 'a') await stageA(); else if (cmd === 'b') await stageB(); else if (cmd === 'c') await stageC();
-  else if (cmd === 'report') (await import('./report.mjs')).report();
+  else if (cmd === 'report') console.error('run report.mjs directly');
   else console.error('usage: search.mjs a|b|c [--shard k --of m ...] | report');
 }
