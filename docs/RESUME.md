@@ -3,7 +3,7 @@
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
 - **Last updated:** 2026-10-22, by the local agent (Claude Code), on `earth-defaults` (user request, outside the authorization limit, decision P6): Earth targets from independent data on the world mesh, a search of the Earth-measurable sliders, defaults land coverage 0.31 and temperature offset −3, goldens re-recorded for that cause only. PR ready for review. Phase 6 and its reconciliation not started.
-- **Authorized through: Q4 (Electron).** Set by `scripts/authorize.sh`; only the user changes this line.
+- **Authorized through: 6.** Set by `scripts/authorize.sh`; only the user changes this line.
 
 ## What the user does next
 
