@@ -25,3 +25,11 @@ python3 <repo>/packages/planet/golden/extract-insolation.py . > earthclimate-ins
 20 kyr over 1 Myr plus the first three rows. Built in a scratch copy as above, then in `LL2/vpl.in` set `bVarDt 0`,
 replace `dEta` by `dTimeStep 1` and `dStopTime 1000000` (decision A2: fixed 1 yr step), run `../../../bin/vplanet vpl.in`
 in that directory, and `python3 extract-distorb.py <dir> > distorb-ll2.json`. The JSON records the sha256 of every input.
+
+## EqTide and Stellar (Phase 6a M3)
+
+`eqtide-ctl.json`: `examples/TideLock/CTL` with `d.in` edited (`dRadius -1.5` in place of `sMassRad sotin07`, output
+`Time SemiMajorAxis Eccentricity -RotPer Obliq`), `vpl.in` with `dEta 0.001`, `dOutputTime 1e7`; 101 rows for the planet,
+star rotation period. `stellar-baraffe.json`: a scratch system of three single stars (`saModules stellar`,
+`sStellarModel baraffe`, masses 0.1, 0.5, 1.0, `bVarDt 0`, `dTimeStep 1e7`, `dStopTime 1e10`, `dOutputTime 5e8`, outputs
+`Time -Luminosity -Radius Temperature RadGyra`; `-Radius` prints Earth radii). Inputs' sha256 are recorded in each file.

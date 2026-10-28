@@ -14,3 +14,5 @@ export * from './distorb/ll2.js';
 export * from './distorb/eigen.js';
 export * from './distorb/ll2.js';
 export * from './distrot/distrot.js';
+export * from './eqtide/ctl.js';
+export * from './stellar/baraffe.js';
