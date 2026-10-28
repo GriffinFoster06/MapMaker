@@ -2,7 +2,7 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-27, by the local agent (Claude Code), on `phase-6`: reconciliation group 6 (orogen-evolution; decision P7) done. Next: M1, the VPLanet insolation and EBM port in `packages/planet`.
+- **Last updated:** 2026-10-27, by the local agent (Claude Code), on `phase-6`: M0 (reconciliation group 6, P7) and M1a (`packages/planet`: POISE insolation, annual EBM, OLR models, LU; P8) done. Next: M1b, the seasonal EBM.
 - **Authorized through: 6.** Set by `scripts/authorize.sh`; only the user changes this line.
 
 ## What the user does next
@@ -26,7 +26,7 @@ Optional, whenever convenient and never blocking: generate a 2.56M world in the 
 
 ## Next
 
-- Phase 6 (planet physics), plan in ARCHITECTURE §7: **M0 done** (group 6, `docs/reconciliation/group-6.md`, P7). **M1 next**: POISE insolation and EBM port into `packages/planet` through `dmath`, golden tests against native VPLanet `examples/EarthClimate` (built from a scratchpad copy, never inside `upstream/`). Then M2 (note 10 mapping, radius threading, validity flags), M3 (note 11 seasons, Beck Köppen; re-record the Q7 baseline in the same commit), M4 (planet panel), M5 (Earth choice), Checkpoint 6.
+- Phase 6 (planet physics), plan in ARCHITECTURE §7: **M0 done** (group 6, `docs/reconciliation/group-6.md`, P7). **M1a done** (`packages/planet/src/poise/`: insolation checked against native VPLanet to 1e-5 W/m²; annual EBM, OLR models, LU; deviations in P8). **M1b next**: seasonal EBM (`PoiseSeasonal`, land and water, sea ice) with goldens from the native `sea` run (the oracle build and run recipe are in `packages/planet/golden/README.md`; the annual-only native run crashes, P8). Then M2 (note 10 mapping, radius threading, validity flags), M3 (note 11 seasons, Beck Köppen; re-record the Q7 baseline in the same commit), M4 (planet panel), M5 (Earth choice), Checkpoint 6.
 - Missing for a polished first version, logged not built: settlements and political borders (Phase 18 names are placeholders); more than one font family; globe labels for river and range paths use the plan only; no styled export of the globe view; river drawing threshold is a heuristic; an app icon.
 
 ## Waiting on the user
@@ -43,6 +43,8 @@ Nothing blocks the agent. One optional question (raised by group 6, recorded in 
 Type `/go` (or any first message). `.claude/commands/go.md` is the whole prompt; the user does not write prompts (decision W10).
 
 ## Work log (newest first; 2 to 4 lines per milestone)
+
+- 2026-10-27: Phase 6 M1a (P8): `packages/planet` registered as a workspace (lockfile: workspace entry only); POISE insolation, annual EBM (WK97/HM16/SMS09 OLR, MEP and Hadley closures, ice-albedo), LU, 35 tests. Insolation equals native EarthClimate to 1e-5 W/m²; annual EBM has no native golden (annual run segfaults, three configurations tried) and is verified by physics checks and a cross-check against the native seasonal model (RMS 1.6 °C at D = 0.44). Kepler solver converged, SMS09 slope corrected (deviations logged).
 
 - 2026-10-27: Phase 6 M0 (reconciliation group 6, P7): `orogen-evolution` V1 climate and `plate-physics.js` are byte-identical to `orogen`; the new work is `v2/` (climate 4,021 lines, tectonics 8,752). Picks: keep note 10's engine; port v2 `seasons.js` and Beck `koppen.js` for note 11; Phase 6b force balance is `torque-balance.js` + `forces.js`, not `plate-physics.js`. Documentation only.
 
