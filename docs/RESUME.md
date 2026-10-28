@@ -2,7 +2,7 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-27, by the local agent (Claude Code), on `phase-6a` (from `main`): Phase 6a started; M1 (ODE integrator) and M2 (DistOrb LL2 + DistRot, A1/A2) and M3 (EqTide CTL + Baraffe stars, A3) done. Plan: M4 Binary, M5 stage 0a in the engine, M6 app section, then Checkpoint 6a.
+- **Last updated:** 2026-10-27, by the local agent (Claude Code), on `phase-6a` (from `main`): Phase 6a started; M1 (ODE integrator) and M2 (DistOrb LL2 + DistRot, A1/A2) M3 (EqTide CTL + Baraffe stars, A3) and M4 (circumbinary LL13 + original two-star insolation, A4) done. Plan: M4 Binary, M5 stage 0a in the engine, M6 app section, then Checkpoint 6a.
 - **Authorized through: 6a.** Set by `scripts/authorize.sh`; only the user changes this line.
 
 ## What the user does next
@@ -45,6 +45,8 @@ Nothing blocks the agent. One optional question (raised by group 6, recorded in 
 Type `/go` (or any first message). `.claude/commands/go.md` is the whole prompt; the user does not write prompts (decision W10).
 
 ## Work log (newest first; 2 to 4 lines per milestone)
+
+- 2026-10-27: Phase 6a M4 (A4): `binary/ll13.ts` (Leung and Lee circumbinary orbit; native Kepler-16 b over 2 yr to print precision) and original `binary/twostar.ts` (latitude-resolved two-star daily insolation; single-star limit equals the analytic formula).
 
 - 2026-10-27: Phase 6a M3 (A3): `eqtide/ctl.ts` (CTL tides with spin locking, native TideLock/CTL over 1 Gyr), `stellar/baraffe.ts` + `baraffe-grid.json` (Baraffe 2015 bicubic grid and Kopparapu HZ, native stellar module to print precision). CPL and the main-sequence fast path not built (A3). 65 planet tests.
 

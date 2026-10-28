@@ -33,3 +33,8 @@ in that directory, and `python3 extract-distorb.py <dir> > distorb-ll2.json`. Th
 star rotation period. `stellar-baraffe.json`: a scratch system of three single stars (`saModules stellar`,
 `sStellarModel baraffe`, masses 0.1, 0.5, 1.0, `bVarDt 0`, `dTimeStep 1e7`, `dStopTime 1e10`, `dOutputTime 5e8`, outputs
 `Time -Luminosity -Radius Temperature RadGyra`; `-Radius` prints Earth radii). Inputs' sha256 are recorded in each file.
+
+## Circumbinary orbit (Phase 6a M4)
+
+`circumbinary-ll13.json`: `examples/CircumbinaryOrbit` with `vpl.in` set to `bVarDt 0`, `dTimeStep 1e-4`, `dStopTime 2.0`,
+`dOutputTime 0.02` and `cbp.in` output `Time CBPR CBPZ CBPPhi LL13N0 LL13K0 LL13V0 R0` (every 5th row kept).
