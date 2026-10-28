@@ -2,14 +2,14 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-27, by the local agent (Claude Code), on `phase-6`: M0 (reconciliation group 6, P7) and M1a (`packages/planet`: POISE insolation, annual EBM, OLR models, LU; P8) done. Next: M1b, the seasonal EBM.
+- **Last updated:** 2026-10-27, by the local agent (Claude Code), on `phase-6`: M0 and M1a done and pushed (`5c2673a`); stopped before M2 to keep the session within budget (nothing blocked). Resume with `/go` at M2.
 - **Authorized through: 6.** Set by `scripts/authorize.sh`; only the user changes this line.
 
 ## What the user does next
 
-Nothing is needed now: Phase 6 is in progress on `phase-6` (draft PR) and runs to Checkpoint 6 without you. When it stops, this section is rewritten with the PR to merge and the exact `scripts/authorize.sh 6a` command.
+Nothing is needed to continue: type `/go` in Claude Code and it resumes Phase 6 at M2 (it is already authorized through 6). The draft PR is #26 (`phase-6`); do not merge it yet. When Phase 6 reaches Checkpoint 6, this section is rewritten with the PR to merge and the exact `scripts/authorize.sh 6a` command.
 
-Optional, never blocking: answer the climate-engine question under "Waiting on the user" (the recommended answer is already being followed).
+Optional, never blocking: answer the climate-engine question under "Waiting on the user".
 
 Optional, whenever convenient and never blocking: generate a 2.56M world in the desktop app (`scripts/node24.sh npm run desktop:dev`). See `docs/RELEASING.md` for installers, tagging `v0.1.0` and publishing (publishing, signing certificates and any spending are yours).
 
@@ -26,7 +26,12 @@ Optional, whenever convenient and never blocking: generate a 2.56M world in the 
 
 ## Next
 
-- Phase 6 (planet physics), plan in ARCHITECTURE §7: **M0 done** (group 6, `docs/reconciliation/group-6.md`, P7). **M1a done** (`packages/planet/src/poise/`: insolation checked against native VPLanet to 1e-5 W/m²; annual EBM, OLR models, LU; deviations in P8). **M1b next**: seasonal EBM (`PoiseSeasonal`, land and water, sea ice) with goldens from the native `sea` run (the oracle build and run recipe are in `packages/planet/golden/README.md`; the annual-only native run crashes, P8). Then M2 (note 10 mapping, radius threading, validity flags), M3 (note 11 seasons, Beck Köppen; re-record the Q7 baseline in the same commit), M4 (planet panel), M5 (Earth choice), Checkpoint 6.
+- Phase 6 (planet physics), plan in ARCHITECTURE §7. **Done:** M0 (group 6, P7) and M1a (`packages/planet/src/poise/`, P8, commit `5c2673a`). **Deferred, not dropped:** M1b, the POISE *seasonal* EBM (`PoiseSeasonal` and about 1,000 lines of C around it: zenith-dependent TOA albedo fits, sea ice, energy residuals); note 10 needs only the annual profile and note 11 uses its own lag model, so it is off the critical path; list it as a deviation in the Checkpoint 6 report unless it gets done. Recipe for its goldens: `packages/planet/golden/README.md` (the unmodified `sea` example runs; scratchpad build of VPLanet is `clang -O3 -o bin/vplanet src/*.c -lm`).
+  **M2 next** (note 10), in this order:
+  1. *Tag table and mapping function* in `packages/planet/src/mapping/`: tag all 97 keys of `CLIMATE_DEFAULTS` (`packages/gen-orogen/vendor/js/climate-config.js`, a CI test fails on an untagged key) as (a) physical rule, (b) stylistic/empirical, kept, or (c) fitted to the annual EBM profile (`solveAnnualEbm` with `annualInsolation`); rules in note 10 §3.2 (Held–Hou rotation scaling of the belt latitudes, g/c_p lapse, WK97 diffusion and pressure scaling, obliquity/eccentricity seasonal amplitudes, ocean fraction → landCoverage); validity flags and `mappingReport` (§3.4). Identity at Earth inputs must give `CLIMATE_DEFAULTS` bit for bit (rules written as Earth value × ratio; fitted keys keep the Earth default when the fit is within tolerance).
+  2. *Radius threading.* Sites (all `6371`): `port/temperature.ts` 265, 418, 457, 558, 824; `port/wind.ts` 618; `port/ocean.ts` 245; `port/precipitation.ts` 250; `port/heuristic-precip.ts` 155; `port/elevation.ts` 1474, 1475, 1499; `structured/detail.ts` 35, 403; `structured/reference.ts` 18. `PortMesh` is core's `SphereMesh`, which carries no radius, and the radius lives in `world.planet['radius_m']`, so the choice is a decision to log: a shallow wrapper `{...mesh, radiusKm}` built where the stages call the port, or an explicit argument. Each site must be judged: a physical length in km stays a length (more radians on a small planet), an angular conversion scales. At 6371 every expression must be bit-identical (`Math.PI * R` with R = 6371), so no golden, hash or baseline moves; prove it with the existing parity tests and one nine-world comparison. Then replace the guard in `packages/gen-orogen/src/params.ts:44` (structured pipeline only; the vendored parity path keeps refusing other radii). Save `climateConstants` and `mappingReport` in `planet.json`.
+  3. Monotonicity and sign tests (note 10 §5).
+  Then M3 (note 11: port v2 `seasons.js` and Beck `koppen.js`, P7; re-record the Q7 baseline in the same commit), M4 (planet panel), M5 (Earth choice), Checkpoint 6.
 - Missing for a polished first version, logged not built: settlements and political borders (Phase 18 names are placeholders); more than one font family; globe labels for river and range paths use the plan only; no styled export of the globe view; river drawing threshold is a heuristic; an app icon.
 
 ## Waiting on the user
