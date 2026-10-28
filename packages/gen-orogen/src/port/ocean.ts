@@ -7,7 +7,7 @@
 import { dmath } from '@mapmaker/core';
 import { smoothstep, type Season, type TimingEntry } from './wind';
 import { makeItczLookup, percentile } from './climate-util';
-import type { PortMesh } from './types';
+import { type PortMesh, radiusKmOf } from './types';
 
 const DEG = Math.PI / 180;
 
@@ -242,7 +242,7 @@ function smoothOcean(mesh: PortMesh, field: Float32Array, r_isOcean: Uint8Array,
 export function computeOceanCurrents(mesh: PortMesh, r_xyz: ArrayLike<number>, r_elevation: ArrayLike<number>,
   windResult: OceanWindInput): OceanResult {
   const numRegions = mesh.numRegions;
-  const avgEdgeKm = (Math.PI * 6371) / Math.sqrt(numRegions);
+  const avgEdgeKm = (Math.PI * radiusKmOf(mesh)) / Math.sqrt(numRegions);
   const timing: TimingEntry[] = [];
 
   const { r_lat, r_isLand,

@@ -7,7 +7,7 @@ import { dmath } from '@mapmaker/core';
 import { CLIMATE } from '../../vendor/js/climate-config.js';
 import { elevToHeightKm } from './color-map';
 import { smoothField, percentile } from './climate-util';
-import type { PortMesh } from './types';
+import { type PortMesh, radiusKmOf } from './types';
 
 const DEG = Math.PI / 180;
 const RAD = 180 / Math.PI;
@@ -615,7 +615,7 @@ function pressureToWind(r_gradE: ArrayLike<number>, r_gradN: ArrayLike<number>, 
 export function computeWind(mesh: PortMesh, r_xyz: ArrayLike<number>, r_elevation: ArrayLike<number>, plateIsOcean: ReadonlySet<number>,
   r_plate: ArrayLike<number>, noise: NoiseLike | null | undefined, axialTilt = 23.5): WindResult {
   const numRegions = mesh.numRegions;
-  const avgEdgeKm = (Math.PI * 6371) / Math.sqrt(numRegions);
+  const avgEdgeKm = (Math.PI * radiusKmOf(mesh)) / Math.sqrt(numRegions);
   const tiltRad = axialTilt * DEG;
   const timing: TimingEntry[] = [];
 

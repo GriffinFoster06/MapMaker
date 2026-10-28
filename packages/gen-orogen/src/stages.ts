@@ -6,7 +6,7 @@
 import { type World, OrogenLcg, SphereMesh, dmath } from '@mapmaker/core';
 import type { Stage, StageContext } from '@mapmaker/engine';
 import { DEBUG_FIELDS, STAGE, debugId, isRequiredDebug, registerOrogenLayers, writesOf } from './layers';
-import { STAGE_PARAMS, readParams } from './params';
+import { STAGE_PARAMS, readParams, assertEarthPlanet } from './params';
 import { PLATES_SPEC } from './plates-spec';
 import { applyCategoricalEdits, applyTerrainEdits } from './edits';
 import { computeDetailDampenField, computeOrogenicField, runPostProcessing } from './orchestration';
@@ -71,6 +71,7 @@ const tectonicsStage: Stage = {
   run(ctx) {
     const { world } = ctx;
     const p = readParams(world);
+    assertEarthPlanet(p);
     const s = getScratch(world);
     const tect = native(() => computeTectonics(s, p));
     s.tect = tect;
@@ -99,6 +100,7 @@ const elevationStage: Stage = {
   run(ctx) {
     const { world } = ctx;
     const p = readParams(world);
+    assertEarthPlanet(p);
     const s = getScratch(world);
     // assignElevation reads the tectonics objects; take them once, so a re-run recomputes them from the seed.
     let tect = s.tect;
@@ -127,6 +129,7 @@ const erosionStage: Stage = {
   run(ctx) {
     const { world } = ctx;
     const p = readParams(world);
+    assertEarthPlanet(p);
     const s = getScratch(world);
     const r_elevation = new Float32Array(read(ctx, 'orogen.elevPre'));
     const r_dampen = computeDetailDampenField(read(ctx, debugId('cratonWeight')), read(ctx, debugId('basinWeight')));
@@ -154,6 +157,7 @@ const climateStage: Stage = {
   run(ctx) {
     const { world } = ctx;
     const p = readParams(world);
+    assertEarthPlanet(p);
     const s = getScratch(world);
     const r_elevation = read(ctx, 'orogen.elevRaw');
     const r_plate = read(ctx, 'plate') as unknown as Int32Array;

@@ -5,5 +5,5 @@
   "type": "module",
   "license": "GPL-3.0-only",
   "exports": { ".": "./src/index.ts", "./*": "./src/*.ts" },
-  "dependencies": { "@mapmaker/core": "*", "@mapmaker/engine": "*", "delaunator": "5.0.1" }
+  "dependencies": { "@mapmaker/core": "*", "@mapmaker/engine": "*", "@mapmaker/planet": "*", "delaunator": "5.0.1" }
 }

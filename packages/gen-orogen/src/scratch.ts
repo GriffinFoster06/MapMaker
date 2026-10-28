@@ -20,6 +20,9 @@ export interface OMesh {
   triangles: Int32Array; halfedges: Int32Array; numRegions: number; numTriangles: number;
   adjOffset: Int32Array; adjList: Int32Array; adjTriList: Int32Array;
   s_begin_r(s: number): number;
+  /** Planet radius in km and the gravity-dependent peak-compression exponent (absent: Earth). */
+  radiusKm?: number;
+  peakCompressPower?: number;
 }
 
 export interface PlateVec { pole: [number, number, number]; omega: number }

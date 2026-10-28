@@ -10,7 +10,7 @@ import { CLIMATE } from '../../vendor/js/climate-config.js';
 import { smoothstep } from './wind';
 import { elevToHeightKm } from './color-map';
 import { smoothField, makeItczLookup } from './climate-util';
-import type { PortMesh } from './types';
+import { type PortMesh, radiusKmOf } from './types';
 
 const DEG = Math.PI / 180;
 
@@ -152,7 +152,7 @@ export function computeHeuristicPrecipitation(mesh: PortMesh, r_xyz: ArrayLike<n
     const numRegions = mesh.numRegions;
     const { r_lat, r_lon, r_isLand, r_continentality } = windResult;
 
-    const avgEdgeKm = (Math.PI * 6371) / Math.sqrt(numRegions);
+    const avgEdgeKm = (Math.PI * radiusKmOf(mesh)) / Math.sqrt(numRegions);
 
     // Precompute west-coast proximity: positive = west coast, negative = east coast.
     // Coastal land cells check which side ocean is on relative to the local east

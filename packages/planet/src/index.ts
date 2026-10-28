@@ -3,3 +3,7 @@ export * from './poise/insolation.js';
 export * from './poise/lu.js';
 export * from './poise/olr.js';
 export * from './poise/ebm-annual.js';
+export * from './mapping/earth.js';
+export * from './mapping/tags.js';
+export * from './mapping/fit.js';
+export * from './mapping/map-planet.js';
