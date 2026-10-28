@@ -8,3 +8,4 @@ export * from './mapping/tags.js';
 export * from './mapping/fit.js';
 export * from './mapping/map-planet.js';
 export * from './calendar.js';
+export * from './evolve/rk4.js';

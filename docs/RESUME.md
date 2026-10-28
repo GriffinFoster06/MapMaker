@@ -2,7 +2,7 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-27, by the local agent (Claude Code), on `phase-6`: M0 to M5 done (decisions P7 to P12). Checkpoint 6 reached; waiting for the user's review.
+- **Last updated:** 2026-10-27, by the local agent (Claude Code), on `phase-6a` (from `main`): Phase 6a started; M1 (ODE integrator) done. Plan: M2 DistOrb/DistRot, M3 EqTide/Stellar, M4 Binary, M5 stage 0a in the engine, M6 app section, then Checkpoint 6a.
 - **Authorized through: 6a.** Set by `scripts/authorize.sh`; only the user changes this line.
 
 ## What the user does next
@@ -45,6 +45,8 @@ Nothing blocks the agent. One optional question (raised by group 6, recorded in 
 Type `/go` (or any first message). `.claude/commands/go.md` is the whole prompt; the user does not write prompts (decision W10).
 
 ## Work log (newest first; 2 to 4 lines per milestone)
+
+- 2026-10-27: Phase 6a M1: `packages/planet/src/evolve/rk4.ts`, port of `evolve.c` RK4 step and adaptive time step on a generic state vector (6 tests). Native golden through DistOrb/DistRot in M2.
 
 - 2026-10-27: Phase 6 M4 (P11): Planet panel (nine inputs, Earth / Super-Earth / Mars-like, validity badge, `pl_*` URL state, registry levels), parity pipeline refusal message, `assessPlanet`; 7 unit tests, e2e spec in Chromium and Firefox. Earth sends no planet, so nothing existing moves.
 
