@@ -2,7 +2,7 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-27, by the local agent (Claude Code), on `phase-6a` (from `main`): Phase 6a started; M1 (ODE integrator) and M2 (DistOrb LL2 + DistRot, A1/A2) M3 (EqTide CTL + Baraffe stars, A3) M4 (circumbinary LL13 + original two-star insolation, A4) and M5 (stage 0a: `orogen.astro`, A5) done. Plan: M6 app section, then Checkpoint 6a. Earlier plan: M4 Binary, M5 stage 0a in the engine, M6 app section, then Checkpoint 6a.
+- **Last updated:** 2026-10-27, by the local agent (Claude Code), on `phase-6a` (from `main`): Phase 6a started; M1 (ODE integrator) and M2 (DistOrb LL2 + DistRot, A1/A2) M3 (EqTide CTL + Baraffe stars, A3) M4 (circumbinary LL13 + original two-star insolation, A4) M5 (stage 0a: `orogen.astro`, A5) and M6 (Sky panel, A6) done; Checkpoint 6a next. Earlier plan: M4 Binary, M5 stage 0a in the engine, M6 app section, then Checkpoint 6a.
 - **Authorized through: 6a.** Set by `scripts/authorize.sh`; only the user changes this line.
 
 ## What the user does next
@@ -45,6 +45,8 @@ Nothing blocks the agent. One optional question (raised by group 6, recorded in 
 Type `/go` (or any first message). `.claude/commands/go.md` is the whole prompt; the user does not write prompts (decision W10).
 
 ## Work log (newest first; 2 to 4 lines per milestone)
+
+- 2026-10-27: Phase 6a M6 (A6): Sky section in the Planet panel (`astro-panel.ts`: star and moon presets, readout, validity badge, `as_*` URL keys), `astro` through GenerateOpts and the create calls; 5 unit tests, `e2e/sky.spec.ts` in Chromium and Firefox (planet spec unchanged and passing).
 
 - 2026-10-27: Phase 6a M5 (A5): `astro/` (bodies table, calendar with months, leap rules and eclipses, equilibrium tides, habitability and locking, Holman-Wiegert stability; orbital keyframes from LL2 + DistRot with the Moon's torque, T3 passes), `orogen.astro` param feeding the climate mapping (Earth sky = identity; hashes unchanged), `world.planet.astro`. Tide layer, two-star EBM and keyframe use deferred (A5). 657 tests.
 

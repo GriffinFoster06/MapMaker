@@ -12,7 +12,8 @@ import { type EditorHandle, startEditor } from './editor/editor-ui';
 import { THEMES, THEME_IDS, type CartoData, type Lut, type Style } from '@mapmaker/carto';
 import { desktop, saveFile } from './desktop';
 import { GlobeLabels } from './globe/globe-labels';
-import type { PlanetInput } from '@mapmaker/planet';
+import type { AstroInput, PlanetInput } from '@mapmaker/planet';
+import { MOON_PRESETS, SKY_DEFAULT, STAR_PRESETS, astroFromChoice, skyBadge, type SkyChoice } from './astro-panel';
 import { PLANET_PRESETS, PLANET_SETTINGS, planetBadge, planetFromValues, withDefaults } from './planet-panel';
 import { LEVELS, type Level, PRESETS, SETTING_GROUPS, SETTINGS, changedParams, decodeState, encodeState, visibleAt } from './settings';
 
@@ -48,7 +49,7 @@ export interface GlobeHook {
 }
 
 /** `params`: orogen generation settings that differ from the defaults (World settings panel). */
-export interface GenerateOpts { N: number; seed: number; variant?: Variant; params?: Record<string, number>; /** Planet inputs that differ from Earth (design note 10); empty or absent means Earth. */ planet?: Partial<PlanetInput> }
+export interface GenerateOpts { N: number; seed: number; variant?: Variant; params?: Record<string, number>; /** Planet inputs that differ from Earth (design note 10); empty or absent means Earth. */ planet?: Partial<PlanetInput>; /** The sky (design note 20); absent means Earth's. */ astro?: AstroInput }
 
 /** Test hook of the flat map (Phase 5 M4/M5). */
 export interface FlatHook {
@@ -226,10 +227,27 @@ export function startApp(): void {
   if (init.seed !== undefined) seedInput.value = String(init.seed);
   if (init.tier && init.tier in TIERS) tier.value = init.tier;
   if (init.pipeline === 'parity' || init.pipeline === 'structured') pipelineSel.value = init.pipeline;
-  const pageState = () => encodeState({ seed: Number(seedInput.value) || 241774, tier: tier.value, pipeline: pipelineSel.value, params: settings.values(), planet: planetPanel.values() });
-  const syncUrl = () => { const q = pageState(); history.replaceState(null, '', q ? `?${q}` : location.pathname); };
+  const pageState = () => encodeState({ seed: Number(seedInput.value) || 241774, tier: tier.value, pipeline: pipelineSel.value, params: settings.values(), planet: planetPanel.values(), sky: sky() });
+  const syncUrl = () => { showSky(); const q = pageState(); history.replaceState(null, '', q ? `?${q}` : location.pathname); };
   const settings = buildSettings(init.params, syncUrl);
   const planetPanel = buildPlanetPanel(init.planet ?? {}, syncUrl);
+  // Sky (design note 20): star and moons as presets; the readout and badge follow the planet sliders.
+  const starSel = $<HTMLSelectElement>('skyStar'), moonSel = $<HTMLSelectElement>('skyMoons');
+  for (const p of STAR_PRESETS) starSel.add(Object.assign(new Option(p.label, p.id), { title: p.tip }));
+  for (const p of MOON_PRESETS) moonSel.add(Object.assign(new Option(p.label, p.id), { title: p.tip }));
+  starSel.value = init.sky?.star ?? SKY_DEFAULT.star;
+  moonSel.value = init.sky?.moons ?? SKY_DEFAULT.moons;
+  const sky = (): SkyChoice => ({ star: starSel.value, moons: moonSel.value });
+  function showSky(): void {
+    const b = skyBadge(sky(), planetPanel.values());
+    $('skyBadge').textContent = b.text;
+    $('skyBadge').dataset['validity'] = b.validity;
+    $('skyReadout').textContent = b.lines.join('\n');
+  }
+  starSel.addEventListener('change', syncUrl);
+  moonSel.addEventListener('change', syncUrl);
+  if (init.sky) $<HTMLDetailsElement>('planet').open = true;
+  showSky();
   if (Object.keys(init.planet ?? {}).length > 0) $<HTMLDetailsElement>('planet').open = true;
   // Registry levels (note 17): the planet sliders follow the same level selector as the world settings.
   const showPlanetLevel = () => {
@@ -248,7 +266,7 @@ export function startApp(): void {
     // The land cover is a world setting; a preset that implies one writes it to that slider.
     if (p.landCoverage !== undefined) settings.apply({ ...settings.values(), landCoverage: p.landCoverage });
   });
-  $('resetPlanet').addEventListener('click', () => { planetPanel.reset(); planetPresetSel.value = 'earth'; });
+  $('resetPlanet').addEventListener('click', () => { starSel.value = SKY_DEFAULT.star; moonSel.value = SKY_DEFAULT.moons; planetPanel.reset(); planetPresetSel.value = 'earth'; });
   for (const el of [seedInput, tier, pipelineSel]) el.addEventListener('change', syncUrl);
   $('resetSettings').addEventListener('click', () => { settings.reset(); presetSel.value = ''; });
   const presetSel = $<HTMLSelectElement>('preset');
@@ -315,7 +333,7 @@ export function startApp(): void {
       const stages: Record<string, number> = {};
       let cur = '', curStart = t0;
       const close = (t: number) => { if (cur) stages[cur] = (stages[cur] ?? 0) + (t - curStart); };
-      await client.create({ ...(opts.params ?? {}), ...(opts.planet && Object.keys(opts.planet).length > 0 ? { planet: opts.planet } : {}), N: opts.N, seed: opts.seed });
+      await client.create({ ...(opts.params ?? {}), ...(opts.planet && Object.keys(opts.planet).length > 0 ? { planet: opts.planet } : {}), ...(opts.astro ? { astro: opts.astro } : {}), N: opts.N, seed: opts.seed });
       status.textContent = 'generating…';
       await client.run({
         variant,
@@ -350,15 +368,16 @@ export function startApp(): void {
     const v = pipelineSel.value as Variant;
     const params = changedParams(settings.values());
     const planet = planetFromValues(planetPanel.values());
+    const astro = astroFromChoice(sky(), planetPanel.values());
     syncUrl();
-    if (v === 'parity' && Object.keys(planet).length > 0) { status.textContent = 'a different planet needs the structured pipeline (the parity pipeline is stock orogen: Earth only)'; return; }
+    if (v === 'parity' && (Object.keys(planet).length > 0 || astro)) { status.textContent = 'a different planet or sky needs the structured pipeline (the parity pipeline is stock orogen: Earth only)'; return; }
     const previewFirst = v === 'structured' && $<HTMLInputElement>('preview').checked && N > PREVIEW_N;
     void (async () => {
       // Phase 4b: the preview is the final's structure at a lower resolution (same seed, same reference world), so it
       // is shown first and replaced by the final when that is ready.
       // The preview and the final use the same settings.
-      if (previewFirst) await generate({ N: PREVIEW_N, seed, variant: v, params, planet }, 'preview: ');
-      await generate({ N, seed, variant: v, params, planet }, previewFirst ? 'final: ' : '');
+      if (previewFirst) await generate({ N: PREVIEW_N, seed, variant: v, params, planet, ...(astro ? { astro } : {}) }, 'preview: ');
+      await generate({ N, seed, variant: v, params, planet, ...(astro ? { astro } : {}) }, previewFirst ? 'final: ' : '');
     })().catch((e: unknown) => { status.textContent = `error: ${e instanceof Error ? e.message : String(e)}`; });
   });
   sel.addEventListener('change', () => { void paint(sel.value); });
@@ -418,7 +437,7 @@ export function startApp(): void {
     try {
       const c = new EngineClient(w as unknown as PortLike);
       const t0 = performance.now();
-      await c.create({ ...(opts.params ?? {}), ...(opts.planet && Object.keys(opts.planet).length > 0 ? { planet: opts.planet } : {}), N: opts.N, seed: opts.seed });
+      await c.create({ ...(opts.params ?? {}), ...(opts.planet && Object.keys(opts.planet).length > 0 ? { planet: opts.planet } : {}), ...(opts.astro ? { astro: opts.astro } : {}), N: opts.N, seed: opts.seed });
       await c.run({ variant: opts.variant ?? 'structured', strict: false });
       const stats = await c.stats();
       return { totalMs: performance.now() - t0, stats };
