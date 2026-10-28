@@ -3,7 +3,7 @@
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
 - **Last updated:** 2026-10-27, by the local agent (Claude Code), on `phase-6a`: M1 to M6 done (decisions A1 to A6). Checkpoint 6a reached; waiting for the user's review.
-- **Authorized through: 6a.** Set by `scripts/authorize.sh`; only the user changes this line.
+- **Authorized through: 6b.** Set by `scripts/authorize.sh`; only the user changes this line.
 
 ## What the user does next
 
