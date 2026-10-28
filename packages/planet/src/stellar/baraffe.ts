@@ -5,7 +5,7 @@
 // Also fdHabitableZoneKopparapu2013 :1468. Not ported: the Proxima Cen and sine-wave models, XUV/Ribas, magnetic braking, flares.
 import { dmath } from '@mapmaker/core';
 import { AUM, LSUN, MSUN } from '../poise/constants.js';
-import grid from './baraffe-grid.json';
+import grid from './baraffe-grid.json' with { type: 'json' };
 
 const RSUN = 6.957e8; // vplanet.h:70
 const M = Float64Array.from(grid.M);
