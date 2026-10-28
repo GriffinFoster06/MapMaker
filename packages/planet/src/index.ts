@@ -18,3 +18,5 @@ export * from './eqtide/ctl.js';
 export * from './stellar/baraffe.js';
 export * from './binary/ll13.js';
 export * from './binary/twostar.js';
+export * from './astro/astro.js';
+export * from './astro/cycles.js';

@@ -16,6 +16,11 @@ export interface RotParams {
   obliquity: number; // rad, relative to the orbital plane at t = 0
   precA: number; // rad
   grCorr: boolean;
+  /**
+   * Multiplier of the stellar torque for the torque of moons (default 1: VPLanet has no moons). A moon at distance d with mass m
+   * adds m / d^3 against the star's M / a^3 (averaged torque), so the factor is 1 + sum (m / M) (a / d)^3 (Earth: 3.18).
+   */
+  torqueMultiplier?: number;
 }
 
 export interface ObliquitySample {
@@ -34,7 +39,7 @@ export function obliquityRates(
   const a = r.planet.semi / AUM;
   const sfac = 0.5 * dmath.pow(1.0 - orb.h * orb.h - orb.k * orb.k, -1.5);
   const omega = (2 * Math.PI) / r.rotPeriod; // rad/s
-  const R = (((3 * (KGAUSS * KGAUSS) * r.starMass) / MSUN / (a * a * a * (omega * DAYSEC))) * r.dynEllip * sfac * z) / DAYSEC * YEARSEC;
+  const R = (((3 * (KGAUSS * KGAUSS) * r.starMass) / MSUN / (a * a * a * (omega * DAYSEC))) * r.dynEllip * sfac * z * (r.torqueMultiplier ?? 1)) / DAYSEC * YEARSEC;
   let dx = -y * R;
   let dy = x * R;
   // Torque of the other planets.

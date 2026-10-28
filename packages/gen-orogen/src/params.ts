@@ -1,6 +1,6 @@
 // orogen generation parameters (the slider values of planet-worker.js `generate`). Original shell code.
 import type { World } from '@mapmaker/core';
-import { type MappingResult, type PlanetInput, mapPlanet } from '@mapmaker/planet';
+import { type AstroInput, type AstroResult, type MappingResult, type PlanetInput, computeAstro, mapPlanet } from '@mapmaker/planet';
 import { CLIMATE_DEFAULTS, resetClimateParams, setClimateParams } from '../vendor/js/climate-config.js';
 import { PEAK_COMPRESS_POWER } from '../vendor/js/terrain-config.js';
 
@@ -28,6 +28,11 @@ export interface OrogenParams {
    * before. Absent or empty means Earth. Only the structured pipeline accepts a non-Earth planet.
    */
   planet?: Partial<PlanetInput>;
+  /**
+   * The planet's sky (stage 0a, design note 20): star or stars, orbit, spin and moons. Its derived values (luminosity, orbit,
+   * spin) feed the climate mapping, with explicit `planet` fields taking precedence; stored only when set, so other hashes hold.
+   */
+  astro?: AstroInput;
   /** Start from real Earth elevation (structured pipeline, Earth planet only). Stored only when set, so other hashes hold. */
   earth?: boolean;
 }
@@ -57,28 +62,32 @@ export interface PlanetContext {
   /** Climate constants that differ from orogen's defaults. */
   climate: Record<string, number>;
   mapping: MappingResult;
+  /** The sky, when the params carry one. */
+  astro?: AstroResult;
 }
 
 const planetCache = new Map<string, PlanetContext>();
 
 /** The planet context for these params, or null for Earth (nothing changes, so Earth runs are untouched). */
-export function planetContext(p: Pick<OrogenParams, 'planet'>): PlanetContext | null {
-  const pl = p.planet;
-  if (!pl || Object.keys(pl).length === 0) return null;
-  const key = JSON.stringify(pl);
+export function planetContext(p: Pick<OrogenParams, 'planet' | 'astro'>): PlanetContext | null {
+  const hasPlanet = p.planet !== undefined && Object.keys(p.planet).length > 0;
+  if (!hasPlanet && !p.astro) return null;
+  const key = JSON.stringify([p.planet ?? {}, p.astro ?? null]);
   let c = planetCache.get(key);
   if (!c) {
+    const astro = p.astro ? computeAstro(p.astro) : undefined;
+    const pl: Partial<PlanetInput> = { ...(astro ? { ...astro.planetInput, radius_m: p.astro!.planet.radius_m, mass_kg: p.astro!.planet.mass_kg } : {}), ...p.planet };
     const mapping = mapPlanet(pl, CLIMATE_DEFAULTS as Readonly<Record<string, number>>);
     const climate: Record<string, number> = {};
     for (const [k, v] of Object.entries(mapping.climateConstants)) if (!Object.is(v, (CLIMATE_DEFAULTS as Record<string, number>)[k])) climate[k] = v;
-    c = { radiusKm: mapping.inputs.radius_m / 1000, peakCompressPower: mapping.terrainConstants['PEAK_COMPRESS_POWER'] ?? PEAK_COMPRESS_POWER, climate, mapping };
+    c = { radiusKm: mapping.inputs.radius_m / 1000, peakCompressPower: mapping.terrainConstants['PEAK_COMPRESS_POWER'] ?? PEAK_COMPRESS_POWER, climate, mapping, ...(astro ? { astro } : {}) };
     planetCache.set(key, c);
   }
   return c;
 }
 
 /** The vendored (parity) pipeline cannot represent another planet: refuse it instead of silently using Earth. */
-export function assertEarthPlanet(p: Pick<OrogenParams, 'planet' | 'earth'>): void {
+export function assertEarthPlanet(p: Pick<OrogenParams, 'planet' | 'astro' | 'earth'>): void {
   if (p.earth) throw new Error('the Earth option needs the structured pipeline (the parity pipeline generates its own elevation)');
   const c = planetContext(p);
   if (c && (c.radiusKm !== OROGEN_RADIUS_M / 1000 || c.peakCompressPower !== PEAK_COMPRESS_POWER || Object.keys(c.climate).length > 0)) {
@@ -94,11 +103,20 @@ export function assertEarthPlanet(p: Pick<OrogenParams, 'planet' | 'earth'>): vo
 export function recordPlanet(world: World, c: PlanetContext | null): void {
   if (!c) {
     delete world.planet['mapping'];
+    delete world.planet['astro'];
     return;
   }
   const m = c.mapping;
+  const a = c.astro;
+  if (a) {
+    world.planet['astro'] = { bodies: a.bodies, calendar: a.calendar, tide: a.tide, habitability: a.habitability, notes: a.notes, validity: a.validity };
+  } else {
+    delete world.planet['astro'];
+  }
+  // The sky can make the climate model invalid on its own (a star outside the grid, tidal locking, an unstable binary orbit).
+  const validity = a && (a.validity === 'unsupported' || (a.validity === 'extrapolated' && m.validity === 'ok')) ? a.validity : m.validity;
   world.planet['mapping'] = {
-    inputs: m.inputs, ratios: m.ratios, validity: m.validity, notes: m.notes, landCoverage: m.landCoverage,
+    inputs: m.inputs, ratios: m.ratios, validity, notes: a ? [...m.notes, ...a.notes] : m.notes, landCoverage: m.landCoverage,
     climateConstants: c.climate, terrainConstants: m.terrainConstants,
     report: m.report.filter((e) => e.value !== e.earthValue),
   };
