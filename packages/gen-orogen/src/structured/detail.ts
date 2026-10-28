@@ -14,6 +14,7 @@ import type { OrogenParams } from '../params';
 import * as port from '../port';
 import { computeDetailDampenField, computeOrogenicField, runPostProcessing } from '../orchestration';
 import { type OMesh, type OrogenLib, type Scratch, type Tectonics, computeTectonics } from '../scratch';
+import { sampleEarthMetres } from './earth';
 import type { ReferenceState } from './reference';
 import type { StageFields } from '../port/elevation';
 
@@ -32,7 +33,7 @@ export const SIGN_LOCK_MARGIN = 0.5;
 export const SIGN_LOCK_ROUNDS = 8;
 
 /** Mean cell spacing (km) of an N-cell sphere mesh: h(N) = πR/√N (design note 14 §2). */
-export const cellSpacingKm = (n: number): number => (Math.PI * 6371) / Math.sqrt(n);
+export const cellSpacingKm = (n: number, radiusKm = 6371): number => (Math.PI * radiusKm) / Math.sqrt(n);
 
 /** orogen raw elevation → metres (F2). */
 export const rawToMetres = (e: number): number => port.elevToHeightKm(e) * 1000;
@@ -146,6 +147,8 @@ export interface ElevationDetailOptions {
 export function runElevationDetail(L1: SphereMesh, ref: ReferenceState, p: OrogenParams, opts: ElevationDetailOptions = {}): ElevationDetail {
   const keep = opts.keepIntermediates ?? true;
   const omesh = new port.VendorSphereMesh(L1.triangles, L1.halfedges, L1.numRegions) as OMesh;
+  if (ref.omesh.radiusKm !== undefined) omesh.radiusKm = ref.omesh.radiusKm;
+  if (ref.omesh.peakCompressPower !== undefined) omesh.peakCompressPower = ref.omesh.peakCompressPower;
   const r_xyz = L1.orogenPoints() as Float32Array;
   const ml = new MultiLevel(ref.mesh, L1);
   const n1 = L1.numRegions;
@@ -232,8 +235,14 @@ export function runElevationDetail(L1: SphereMesh, ref: ReferenceState, p: Oroge
     if (locked(c) && (refE[c]! > 0) !== (e[i]! > 0)) signViolations++;
   }
 
-  const elevRaw = Float32Array.from(e);
-  const elevation_m = Float32Array.from(elevRaw, rawToMetres);
+  let elevRaw: Float32Array = Float32Array.from(e);
+  let elevation_m: Float32Array = Float32Array.from(elevRaw, rawToMetres);
+  if (p.earth) {
+    // Real elevation at N (the reference pass already used it on L0); orogen units are capped at 6 km, the metre layer is not.
+    elevation_m = sampleEarthMetres(r_xyz, n1);
+    elevRaw = Float32Array.from(elevation_m, metresToRaw);
+    for (let i = 0; i < n1; i++) e[i] = elevRaw[i]!;
+  }
   return { ml, omesh, r_xyz, tect, native, detail, elevation: e, elevRaw, elevation_m, stress, debug, signViolations };
 }
 
@@ -399,8 +408,9 @@ export function runDrainageDetail(ref: ReferenceState, d: Pick<ElevationDetail, 
   }
   flood(false);
   const area = L1.cellArea_sr;
+  const rKm = ref.omesh.radiusKm ?? 6371;
   const drainageArea = new Float64Array(n);
-  for (let j = 0; j < m; j++) drainageArea[order[j]!] = area[order[j]!]! * 6371 * 6371;
+  for (let j = 0; j < m; j++) drainageArea[order[j]!] = area[order[j]!]! * rKm * rKm;
   for (let j = m - 1; j >= 0; j--) { const r = order[j]!, dn = receiver[r]!; if (dn >= 0) drainageArea[dn]! += drainageArea[r]!; }
   return { receiver, outlet, drainageArea, order: order.slice(0, m), basin: label };
 }

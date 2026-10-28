@@ -16,6 +16,7 @@
     "@mapmaker/engine": "*",
     "three": "0.160.0",
     "@mapmaker/gen-orogen": "*",
+    "@mapmaker/planet": "*",
     "@mapmaker/projection": "*"
   },
   "devDependencies": {

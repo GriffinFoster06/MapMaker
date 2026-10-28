@@ -11,7 +11,7 @@ import { computeGradients } from './wind';
 import { elevToHeightKm } from './color-map';
 import { computeHeuristicPrecipitation, computeHeuristicWindField, type HeuristicWindInput } from './heuristic-precip';
 import { smoothField, makeItczLookup, percentile } from './climate-util';
-import type { PortMesh } from './types';
+import { type PortMesh, radiusKmOf } from './types';
 
 const DEG = Math.PI / 180;
 
@@ -247,7 +247,7 @@ export function computePrecipitation(mesh: PortMesh, r_xyz: Float32Array, r_elev
     // Scale-dependent hop count: ~2000 km reach.
     // Average edge length ≈ π / sqrt(numRegions) radians ≈ (π * 6371) / sqrt(N) km
     // hops ≈ 2000 / edgeLengthKm
-    const avgEdgeKm = (Math.PI * 6371) / Math.sqrt(numRegions);
+    const avgEdgeKm = (Math.PI * radiusKmOf(mesh)) / Math.sqrt(numRegions);
     const avgEdgeRad = Math.PI / Math.sqrt(numRegions);
     const maxHops = Math.max(8, Math.min(20, Math.round(CLIMATE.PRECIP_ADVECT_REACH_KM / avgEdgeKm)));
 

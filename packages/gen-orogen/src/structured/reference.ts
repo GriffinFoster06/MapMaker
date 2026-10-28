@@ -7,15 +7,16 @@
 // in Node equal stock orogen bit for bit (port-parity.test.ts); on L0 the pass is therefore stock orogen run on the
 // reference mesh.
 import { type Drainage, type MajorBasins, type SphereMesh, buildReferenceMesh, majorBasins, priorityFlood } from '@mapmaker/core';
-import type { OrogenParams } from '../params';
+import { type OrogenParams, type PlanetContext, planetContext, withPlanetClimate } from '../params';
 import * as port from '../port';
 import type { ElevationStructure, StageFields } from '../port/elevation';
 import { computeDetailDampenField, computeOrogenicField, runPostProcessing } from '../orchestration';
+import { metresToRaw } from './detail';
+import { sampleEarthMetres } from './earth';
 import { type OMesh, type OrogenLib, type Scratch, type Tectonics, computeTectonics } from '../scratch';
 
 /** Major basins drain at least this area (design note 14 §3.7). */
 export const A_MAJOR_KM2 = 2e5;
-const R_KM = 6371;
 
 export interface ReferenceClimate {
   wind: ReturnType<typeof port.computeWind>;
@@ -46,6 +47,8 @@ export interface ReferenceState {
   koppen: Uint8Array;
   drainage: Drainage;
   basins: MajorBasins;
+  /** The non-Earth planet this pass ran with, or null for Earth. */
+  planet: PlanetContext | null;
 }
 
 const lib = port as unknown as OrogenLib;
@@ -53,6 +56,11 @@ const lib = port as unknown as OrogenLib;
 export function runReferencePass(p: OrogenParams): ReferenceState {
   const { mesh } = buildReferenceMesh(p.seed);
   const omesh = new port.VendorSphereMesh(mesh.triangles, mesh.halfedges, mesh.numRegions) as OMesh;
+  const planet = planetContext(p);
+  if (planet) {
+    omesh.radiusKm = planet.radiusKm;
+    omesh.peakCompressPower = planet.peakCompressPower;
+  }
   const r_xyz = mesh.orogenPoints() as Float32Array;
   const s: Scratch = { mesh: omesh, r_xyz, neighborDist: port.computeNeighborDist(omesh, r_xyz) };
 
@@ -68,18 +76,30 @@ export function runReferencePass(p: OrogenParams): ReferenceState {
   const erosionDelta = runPostProcessing(omesh, r_xyz, elevRaw, p, s.neighborDist, p.seed, debug['hotspot'],
     computeDetailDampenField(debug['cratonWeight'], debug['basinWeight']), computeOrogenicField(debug['orogenicPower']), lib);
 
-  const climateNoise = new port.SimplexNoise(p.seed);
-  const wind = port.computeWind(omesh, r_xyz, elevRaw, tect.plateIsOcean, tect.r_plate, climateNoise);
-  const ocean = port.computeOceanCurrents(omesh, r_xyz, elevRaw, wind);
-  const precip = port.computePrecipitation(omesh, r_xyz, elevRaw, wind, ocean, p.precipitationOffset, p.landCoverage);
-  const temp = port.computeTemperature(omesh, r_xyz, elevRaw, wind, ocean, precip, p.temperatureOffset);
-  const koppen = port.classifyKoppen(omesh, elevRaw,
-    { r_temperature_summer: temp.r_temperature_summer, r_temperature_winter: temp.r_temperature_winter },
-    { r_precip_summer: precip.r_precip_summer, r_precip_winter: precip.r_precip_winter, r_westness: precip.r_westness }) as Uint8Array;
+  if (p.earth) {
+    if (planet) throw new Error('the Earth option is for the Earth planet; clear the planet inputs');
+    // Real elevation replaces the generated one (and its erosion); plates, climate and drainage still follow from it.
+    const m = sampleEarthMetres(r_xyz, elevRaw.length);
+    for (let i = 0; i < m.length; i++) { elevRaw[i] = metresToRaw(m[i]!); elevPre[i] = elevRaw[i]!; }
+    erosionDelta.fill(0);
+  }
 
-  const areaKm2 = Float64Array.from(mesh.cellArea_sr, (a) => a * R_KM * R_KM);
+  const climateNoise = new port.SimplexNoise(p.seed);
+  const { wind, ocean, precip, temp, koppen } = withPlanetClimate(planet, () => {
+    const wind = port.computeWind(omesh, r_xyz, elevRaw, tect.plateIsOcean, tect.r_plate, climateNoise);
+    const ocean = port.computeOceanCurrents(omesh, r_xyz, elevRaw, wind);
+    const precip = port.computePrecipitation(omesh, r_xyz, elevRaw, wind, ocean, p.precipitationOffset, p.landCoverage);
+    const temp = port.computeTemperature(omesh, r_xyz, elevRaw, wind, ocean, precip, p.temperatureOffset);
+    const koppen = port.classifyKoppen(omesh, elevRaw,
+      { r_temperature_summer: temp.r_temperature_summer, r_temperature_winter: temp.r_temperature_winter },
+      { r_precip_summer: precip.r_precip_summer, r_precip_winter: precip.r_precip_winter, r_westness: precip.r_westness }) as Uint8Array;
+    return { wind, ocean, precip, temp, koppen };
+  });
+
+  const rKm = omesh.radiusKm ?? 6371;
+  const areaKm2 = Float64Array.from(mesh.cellArea_sr, (a) => a * rKm * rKm);
   const drainage = priorityFlood(elevRaw, mesh.adjOffset, mesh.adjList, areaKm2);
   const basins = majorBasins(drainage, mesh.adjOffset, mesh.adjList, A_MAJOR_KM2);
 
-  return { mesh, omesh, r_xyz, tect, structure, fields: fields!, elevPre, elevRaw, stress: res.r_stress as Float32Array, debug, erosionDelta, climate: { wind, ocean, precip, temp }, koppen, drainage, basins };
+  return { mesh, omesh, r_xyz, tect, structure, fields: fields!, elevPre, elevRaw, stress: res.r_stress as Float32Array, debug, erosionDelta, climate: { wind, ocean, precip, temp }, koppen, drainage, basins, planet };
 }

@@ -1,6 +1,6 @@
 # Reconciliation
 
-Documentation-only passes that check what the planning documents claim about each upstream against the source in `upstream/`. This file records why they exist, the method, what is done and what is deferred, and how to run the next one. The results are in `group-1.md`, `group-2.md`, `group-3.md`, `group-6a.md` and `group-5b.md`. `pending-decisions.md` records the changes the passes raised and the user's rulings on them (all resolved 2026-10-18). `review.md` is an independent review of the first four passes.
+Documentation-only passes that check what the planning documents claim about each upstream against the source in `upstream/`. This file records why they exist, the method, what is done and what is deferred, and how to run the next one. The results are in `group-1.md`, `group-2.md`, `group-3.md`, `group-6a.md`, `group-5b.md` and `group-6.md`. `pending-decisions.md` records the changes the passes raised and the user's rulings on them (all resolved 2026-10-18). `review.md` is an independent review of the first four passes.
 
 ## 1. Why reconciliation exists
 
@@ -46,7 +46,7 @@ Used in `group-1.md` through `group-3.md` and `group-6a.md`:
 | CesiumJS | **Partly done**: Phases 5 and 5c only | group 6a | Phase 14b (LOD and tiling, note 38); Phase 16 (note 36) |
 | Godot | Done | group 5b | — |
 | orogen | Done (the claims in notes 17 and 21 and the audit were corrected) | group 5b | — |
-| orogen-evolution (candidate, decision P5; newer orogen at `47edc28`, GPL-3.0) | Not started | — | Phases 6 and 6b (with GPlates and the other tectonic candidates; per-component picks); Phase 11 (Orogen Import) |
+| orogen-evolution (candidate, decision P5; newer orogen at `47edc28`, GPL-3.0) | **Done for Phases 6 and 6b** (climate and tectonics; per-component picks, decision P7) | group 6 | Phase 11 (Orogen Import: `import-main.js` not reviewed) |
 | LPJmL | Deferred | — | Phase 7 (`src/lpj/drain.c`, note 12) |
 | SLiM | Deferred | — | Phase 9b |
 | RangeShiftR | Deferred | — | Phase 9b |

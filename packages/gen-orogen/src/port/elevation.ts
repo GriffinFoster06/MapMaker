@@ -21,7 +21,7 @@
 import { allocArray, defineCellKernel, dmath, runCells } from '@mapmaker/core';
 import { makeRandInt, makeRng } from './rng';
 import { SimplexNoise, argNoise, noiseArg, noiseFromPerm } from './simplex-noise';
-import type { PortMesh } from './types';
+import { type PortMesh, radiusKmOf } from './types';
 import {
     COLLISION_THRESHOLD, COLLISION_DT_BASE, COLLISION_DT_REF_REGIONS,
     PAIR_INTENSITY_BASE, SUBDUCT_UNDULATION_DENSITY_DECAY, SUBDUCT_UNDULATION_FREQ,
@@ -1471,8 +1471,8 @@ function applyPhasorRidges(mesh: PortMesh, r_xyz: Xyz, r_elevation: Float32Array
     const dl_oroPower = debugLayers.orogenicPower;
 
     // Convert physical km to unit-sphere angular units (R = 6371 km)
-    const wavelengthRad = PHASOR_WAVELENGTH_KM / 6371;
-    const bandwidthRad = PHASOR_BANDWIDTH_KM / 6371;
+    const wavelengthRad = PHASOR_WAVELENGTH_KM / radiusKmOf(mesh);
+    const bandwidthRad = PHASOR_BANDWIDTH_KM / radiusKmOf(mesh);
     const frequency = 1 / wavelengthRad;
     const invBw2 = -0.5 / (bandwidthRad * bandwidthRad);
     // 3-sigma cutoff in chord-length squared (≈ angle² for small angles)
@@ -1496,7 +1496,7 @@ function applyPhasorRidges(mesh: PortMesh, r_xyz: Xyz, r_elevation: Float32Array
         // Without this, the same constant pass count produced very different
         // physical radii at different mesh resolutions, making mountains
         // visibly less coherent at high detail.
-        const avgEdgeKm = (Math.PI * 6371) / Math.sqrt(numRegions);
+        const avgEdgeKm = (Math.PI * radiusKmOf(mesh)) / Math.sqrt(numRegions);
         const smoothingPasses = Math.max(2, Math.round(PHASOR_DIRECTION_SMOOTHING_KM / avgEdgeKm));
 
         const stressActiveFloor = PHASOR_STRESS_THRESHOLD * maxStress;
@@ -2552,13 +2552,13 @@ function applyDynamicTopography(r_elevation: Float32Array, r_mantleNorm: Float32
 //  composition was tuned together — collapsing into a single curve
 //  is a follow-up task.
 // ─────────────────────────────────────────────────────────────────────────
-function applyFinalShaping(r_elevation: Float32Array): void {
+function applyFinalShaping(r_elevation: Float32Array, peakCompressPower: number = PEAK_COMPRESS_POWER): void {
     const numRegions = r_elevation.length;
 
     // Peak compression
     for (let r = 0; r < numRegions; r++) {
         if (r_elevation[r]! > 0) {
-            r_elevation[r] = dmath.pow(r_elevation[r]!, PEAK_COMPRESS_POWER);
+            r_elevation[r] = dmath.pow(r_elevation[r]!, peakCompressPower);
         }
     }
 
@@ -2720,7 +2720,7 @@ export function assignElevation(mesh: PortMesh, r_xyz: Xyz, plateIsOcean: Readon
     _timing.push({ stage: '11. Dynamic topography', ms: performance.now() - _t0 }); _t0 = performance.now();
 
     // Stage 12 — peak compress + isostatic + hypsometric
-    applyFinalShaping(r_elevation);
+    applyFinalShaping(r_elevation, mesh.peakCompressPower ?? PEAK_COMPRESS_POWER);
     _timing.push({ stage: '12. Final shaping', ms: performance.now() - _t0 }); _t0 = performance.now();
 
     // Stage 13 — fill interior seas

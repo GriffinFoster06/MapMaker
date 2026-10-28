@@ -11,7 +11,7 @@ import { CLIMATE } from '../../vendor/js/climate-config.js';
 import { smoothstep } from './wind';
 import { elevToHeightKm } from './color-map';
 import { smoothField, makeItczLookup } from './climate-util';
-import type { PortMesh } from './types';
+import { type PortMesh, radiusKmOf } from './types';
 
 const DEG = Math.PI / 180;
 
@@ -189,6 +189,7 @@ function computeTempContinentality(
     avgEdgeKm: number
 ): Float32Array {
     const { adjOffset, adjList, numRegions } = mesh;
+    const radiusKm = radiusKmOf(mesh);
     const zone = new Float32Array(numRegions);
     // Mark ocean cells as -1 so the viz layer can distinguish them
     for (let r = 0; r < numRegions; r++) {
@@ -262,7 +263,7 @@ function computeTempContinentality(
             maxGap = Math.min(maxGap, LON_BINS);
             const spanBins = LON_BINS - maxGap;
             const spanRad = spanBins * (2 * Math.PI / LON_BINS);
-            widths[id] = spanRad * cosLat52 * 6371;
+            widths[id] = spanRad * cosLat52 * radiusKm;
         }
         return widths;
     }
@@ -415,7 +416,7 @@ function computeTempContinentality(
                 }
             }
             maxGap = Math.min(maxGap, SC_LON_BINS);
-            const spanKm = (SC_LON_BINS - maxGap) * scBinRad * dmath.cos(r_lat[r]!) * 6371;
+            const spanKm = (SC_LON_BINS - maxGap) * scBinRad * dmath.cos(r_lat[r]!) * radiusKm;
             if (spanKm < 2000) {
                 zone[r] = Math.min(zone[r]!, ZONE_OC);
             }
@@ -454,7 +455,7 @@ function computeTempContinentality(
         }
 
         const nsShaveKm = 250;
-        const latBandKm = NS_LAT_BAND * DEG * 6371; // km per lat band
+        const latBandKm = NS_LAT_BAND * DEG * radiusKm; // km per lat band
 
         for (let r = 0; r < numRegions; r++) {
             if (zone[r]! < ZONE_SC) continue;
@@ -555,7 +556,7 @@ function computeTempContinentality(
             binsFromWest = step;
         }
 
-        const distKm = binsFromWest * shaveBinWidthRad * dmath.cos(r_lat[r]!) * 6371;
+        const distKm = binsFromWest * shaveBinWidthRad * dmath.cos(r_lat[r]!) * radiusKm;
 
         if (distKm < 400) {
             zone[r] = Math.min(zone[r]!, ZONE_OC);
@@ -821,7 +822,7 @@ export function computeTemperature(mesh: PortMesh, r_xyz: Float32Array, r_elevat
     const result = {} as TemperatureResult;
 
     // Pre-compute constants shared across seasons
-    const avgEdgeKm = (Math.PI * 6371) / Math.sqrt(numRegions);
+    const avgEdgeKm = (Math.PI * radiusKmOf(mesh)) / Math.sqrt(numRegions);
     const oceanWarmthPasses = Math.max(4, Math.round(CLIMATE.TEMP_OCEAN_WARMTH_DIFFUSE_KM / avgEdgeKm));
     const plateCont = r_plateContinentality || r_continentality;
 

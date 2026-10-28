@@ -13,6 +13,7 @@
     "packages/core",
     "packages/engine",
     "packages/gen-orogen",
+    "packages/planet",
     "packages/projection",
     "tools/*"
   ],

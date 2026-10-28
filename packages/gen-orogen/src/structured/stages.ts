@@ -2,7 +2,7 @@
 // `ref.pass` (pass R) builds the reference mesh L0 and runs the reference pass on it. Canonical: dmath fdlibm only.
 import { REF_MESH_ID, type World } from '@mapmaker/core';
 import type { Stage, StageContext } from '@mapmaker/engine';
-import { STAGE_PARAMS, readParams } from '../params';
+import { STAGE_PARAMS, readParams, recordPlanet } from '../params';
 import { PLATES_SPEC } from '../plates-spec';
 import { elevToHeightKm } from '../port';
 import { DETAIL_STAGE, REF_DEBUG_FIELDS, REF_MESH, REF_STAGE, REF_WRITES, STRUCTURED, detailLayerSpecs } from './layers';
@@ -47,6 +47,7 @@ const refStage: Stage = {
     ctx.progress(0, 'Reference world (tectonics, elevation, climate, drainage)');
     const r = runReferencePass(readParams(world));
     cache.set(world, r);
+    recordPlanet(world, r.planet);
     for (const key of world.layers.keys()) if (key.startsWith(`${REF_MESH}/`)) world.layers.delete(REF_MESH, key.slice(REF_MESH.length + 1));
     world.meshes.delete(REF_MESH);
     world.addMesh({ id: REF_MESH, mesh: r.mesh });

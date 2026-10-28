@@ -66,6 +66,14 @@
     <button id="copyLink" type="button">Copy link to this world</button>
     <span id="linkStatus"></span>
   </details>
+  <details id="planet">
+    <summary>Planet</summary>
+    <p>Physical inputs of the planet. Earth's values generate exactly the same world as without this panel. Only the structured pipeline uses a different planet.</p>
+    <label>Preset <select id="planetPreset"></select></label>
+    <div id="planetGroups" class="sgrid"></div>
+    <p id="planetBadge" role="status"></p>
+    <button id="resetPlanet" type="button">Reset to Earth</button>
+  </details>
   <details id="editor" open>
     <summary>Edit the world</summary>
     <div class="erow">

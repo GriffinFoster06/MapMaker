@@ -2,25 +2,20 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-22, by the local agent (Claude Code), on `earth-defaults` (user request, outside the authorization limit, decision P6): Earth targets from independent data on the world mesh, a search of the Earth-measurable sliders, defaults land coverage 0.31 and temperature offset −3, goldens re-recorded for that cause only. PR ready for review. Phase 6 and its reconciliation not started.
+- **Last updated:** 2026-10-27, by the local agent (Claude Code), on `phase-6`: M0 to M5 done (decisions P7 to P12). Checkpoint 6 reached; waiting for the user's review.
 - **Authorized through: 6.** Set by `scripts/authorize.sh`; only the user changes this line.
 
 ## What the user does next
 
-Do these in order. Each step says why.
+Phase 6 reached Checkpoint 6 (`docs/checkpoints/CHECKPOINT_6.md`, PR #26). To accept it: check CI on PR #26 is green, merge it as a merge commit, then run `scripts/authorize.sh 6a` in the terminal to authorize the next phase. Until then the agent stops at the limit.
 
-1. On GitHub, open the pull request `earth-defaults` and read its description: the table of re-recorded hashes and baselines, and why each changed (two defaults). Why: changing defaults changes every default world; you authorized it (P6), and the table shows nothing else changed.
-2. Decide the Earth-like preset (`docs/earth-tests/DEFAULTS_SWEEP.md`, "Defaults changed against independent Earth data", last paragraph): against real Earth data it is now worse than the defaults. Tell the agent to keep it, remove it, or re-sweep the generator sliders against the new targets. Why: it is a product choice; nothing blocks on it.
-3. Wait until every check at the bottom of the pull request shows a green tick, then click **Merge pull request** and **Confirm merge**.
-4. In the terminal, in the project folder, copy and paste exactly: `scripts/authorize.sh 6`. Why: it lets the agent start Phase 6 (the documentation-only comparison of the newer orogen, GPlates and the other tectonic sources, then planet physics). It prepares a small change on a new branch `authorize-6` and uploads it.
-5. On GitHub, open the pull request for `authorize-6` (the yellow **Compare & pull request** banner), click **Create pull request**, then merge it as in step 3.
-6. Type `/go` in Claude Code.
+Optional, never blocking: answer the climate-engine question under "Waiting on the user".
 
 Optional, whenever convenient and never blocking: generate a 2.56M world in the desktop app (`scripts/node24.sh npm run desktop:dev`). See `docs/RELEASING.md` for installers, tagging `v0.1.0` and publishing (publishing, signing certificates and any spending are yours).
 
 ## Branches
 
-- `main` includes Phases 5, 5b, 5c, Q4, the autonomy setup, the desktop speed fix, the CI/nightly fixes, the label fix with the no-focus test modes, the performance study and the first performance fixes (PRs #8 to #21, including the parallel kernels). `earth-defaults` (PR to `main`, ready for review) holds the Earth defaults (P6). The next phase branch is `phase-6`, created from updated `main` by `/go`.
+- `main` includes Phases 5, 5b, 5c, Q4, the autonomy setup, the desktop speed fix, the CI/nightly fixes, the label fix with the no-focus test modes, the performance study and the first performance fixes (PRs #8 to #21, including the parallel kernels). `earth-defaults` (PR to `main`, ready for review) holds the Earth defaults (P6). `phase-6` (from `main` at `5eed087`) holds Phase 6.
 
 ## Done (one line each)
 
@@ -31,12 +26,14 @@ Optional, whenever convenient and never blocking: generate a 2.56M world in the 
 
 ## Next
 
-- Phase 6 (planet physics) is next. Its first step is the documentation-only reconciliation Prerequisite (ARCHITECTURE §7, decision P5): `orogen-evolution` (`47edc28`) together with GPlates, tectonics.js, ASPECT and the other tectonic candidates, per-component picks (`docs/reconciliation/README.md` §4, §5). Needs the user to authorize "6" (see above). Not started.
+- Phase 6 (planet physics), plan in ARCHITECTURE §7. **Done:** M0 (group 6, P7), M1a (POISE insolation and annual EBM, P8), M2 (mapping and radius, P9), **M3 (P10)**: season interpolation and Beck monthly Köppen ported (`port/seasons.ts`, `port/koppen-monthly.ts`), monthly fields from the solstice solves (`port/monthly-climate.ts`), calendar (`packages/planet/src/calendar.ts`), evaluator `tools/tuning/climate/evaluate-monthly.mjs`; the gate was **not met** (best 0.6737 against the proxy's 0.6778, `docs/earth-tests/MONTHLY_KOPPEN.md`), so the pipeline keeps the proxy classifier and nothing was re-recorded. The twelve-phase solve is deferred to Phase 8 / 8b (list it in the Checkpoint 6 report with M1b). 605 tests pass.
+  **M4 done (P11):** Planet panel in the app (nine inputs, three presets, validity badge, URL state, levels), `assessPlanet` split out of `mapPlanet`, `planet-panel.test.ts` (7 tests) and `e2e/planet.spec.ts` (Chromium and Firefox pass); no 12-month slider (P11 point 7).
+  **M5 done (P12):** Earth option in the engine (`orogen.earth`, derived grid asset, `earth.test.ts`); app toggle deferred (P12). **Checkpoint 6 next** (was the M5 plan:) Earth choice. A world option loading real Earth elevation as the starting elevation; everything else generated from the seed. Plan: a derived grid generated by a script from ETOPO 2022 and Natural Earth (reuse `tools/tuning/earthlike/` fetch, `earth-data.mjs`, `earth-real.mjs`; `docs/earth-tests/EARTH_TARGETS.md`), committed or built at install time with its SHA-256 in `PROVENANCE.md`, sampled onto the world mesh at full mesh resolution (no quality loss against the mesh, `AGENTS.md`); the stage that normally builds elevation takes it from the grid. Tests: land fraction and hypsometry on the mesh match the Earth targets; deterministic; the default world unchanged. Then Checkpoint 6: full checks (lint, typecheck, test, provenance:check, build, e2e, desktop smoke), one nine-world comparison against `main`, `docs/checkpoints/CHECKPOINT_6.md` (deviations: M1b deferred, annual EBM without a native golden, P8 changes, the twelve-phase solve deferred (P10), the 12-month slider deferred (P11)), the `STATUS.md` line, `docs/DEVELOPMENT.md` code map entry for `packages/planet`, and "What the user does next" with `scripts/authorize.sh 6a`.
 - Missing for a polished first version, logged not built: settlements and political borders (Phase 18 names are placeholders); more than one font family; globe labels for river and range paths use the plan only; no styled export of the globe view; river drawing threshold is a heuristic; an app icon.
 
 ## Waiting on the user
 
-Nothing blocks the agent. User-only actions are in "What the user does next". Optional later: enable branch protection on `main`; release steps and signing options are in `docs/RELEASING.md`; an app icon (1024 px PNG).
+Nothing blocks the agent. One optional question (raised by group 6, recorded in P7): `orogen-evolution`'s v2 climate (monthly, Beck Köppen 48 to 51% on Earth land against V1's 38%) could replace orogen's climate stages instead of note 10's mapping. Recommended answer: not in Phase 6 (Earth-only evidence, fixed lat/lon grid, Earth constants hard-coded, circular orbit); revisit at Phase 8 with non-Earth test planets. The agent proceeds on that basis. User-only actions are in "What the user does next". Optional later: branch protection on `main`; release steps in `docs/RELEASING.md`; an app icon.
 
 ## Known issues and watch list
 
@@ -48,6 +45,16 @@ Nothing blocks the agent. User-only actions are in "What the user does next". Op
 Type `/go` (or any first message). `.claude/commands/go.md` is the whole prompt; the user does not write prompts (decision W10).
 
 ## Work log (newest first; 2 to 4 lines per milestone)
+
+- 2026-10-27: Phase 6 M4 (P11): Planet panel (nine inputs, Earth / Super-Earth / Mars-like, validity badge, `pl_*` URL state, registry levels), parity pipeline refusal message, `assessPlanet`; 7 unit tests, e2e spec in Chromium and Firefox. Earth sends no planet, so nothing existing moves.
+
+- 2026-10-27: Phase 6 M3 (P10): monthly Köppen path built and measured on Earth (nine settings, none beats the tuned proxy; `docs/earth-tests/MONTHLY_KOPPEN.md`); default unchanged, no Q7 re-record. Calendar with unequal seasons from the orbit (Earth's northern half 186.4 days). 605 tests.
+
+- 2026-10-27: Phase 6 M2 (P9): mapping module (97 tags, Held-Hou, pressure, gravity, obliquity, seasonal amplitude, EBM-fitted temperature curve), radius and peak-compression threaded through 14 sites, planet in `orogen.planet`, parity refusal, `world.planet.mapping`. Earth identity proved by test (hash of the default world reproduced with explicit Earth values) and by all goldens; 587 tests.
+
+- 2026-10-27: Phase 6 M1a (P8): `packages/planet` registered as a workspace (lockfile: workspace entry only); POISE insolation, annual EBM (WK97/HM16/SMS09 OLR, MEP and Hadley closures, ice-albedo), LU, 35 tests. Insolation equals native EarthClimate to 1e-5 W/m²; annual EBM has no native golden (annual run segfaults, three configurations tried) and is verified by physics checks and a cross-check against the native seasonal model (RMS 1.6 °C at D = 0.44). Kepler solver converged, SMS09 slope corrected (deviations logged).
+
+- 2026-10-27: Phase 6 M0 (reconciliation group 6, P7): `orogen-evolution` V1 climate and `plate-physics.js` are byte-identical to `orogen`; the new work is `v2/` (climate 4,021 lines, tectonics 8,752). Picks: keep note 10's engine; port v2 `seasons.js` and Beck `koppen.js` for note 11; Phase 6b force balance is `torque-balance.js` + `forces.js`, not `plate-physics.js`. Documentation only.
 
 - 2026-10-23: default-seed (user request, S1): `tools/tuning/seed-search/` (layout-only reference pass, 142,746 sampled seeds, 701 at 50k, 11 at 200k); default seed 12345 → 241774 (params.ts, index.html, app.ts); shortlist and numbers in `docs/earth-tests/DEFAULT_SEED.md`, renders in `docs/feedback/seeds/`. No golden, hash or baseline depends on the default seed; nothing re-recorded.
 
