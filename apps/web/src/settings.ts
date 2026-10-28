@@ -104,8 +104,9 @@ export function changedParams(values: Record<string, number>): Record<string, nu
 }
 
 import { decodePlanetValues, encodePlanetValues } from './planet-panel';
+import { decodeSky, encodeSky, type SkyChoice } from './astro-panel';
 
-export interface PageState { seed?: number; tier?: string; pipeline?: string; params: Record<string, number>; /** Planet panel values (keys of PLANET_SETTINGS); absent means Earth. */ planet?: Record<string, number> }
+export interface PageState { seed?: number; tier?: string; pipeline?: string; params: Record<string, number>; /** Planet panel values (keys of PLANET_SETTINGS); absent means Earth. */ planet?: Record<string, number>; /** Star and moon choice of the Sky panel; absent means Earth's sky. */ sky?: SkyChoice }
 
 /** Encodes seed, tier, pipeline and non-default settings as a URL query (`?seed=…&tier=…&P=40`). */
 export function encodeState(st: PageState): string {
@@ -115,6 +116,7 @@ export function encodeState(st: PageState): string {
   if (st.pipeline && st.pipeline !== 'structured') q.set('pipeline', st.pipeline);
   for (const [k, v] of Object.entries(changedParams(st.params))) q.set(k, String(v));
   for (const [k, v] of Object.entries(encodePlanetValues(st.planet ?? {}))) q.set(k, String(v));
+  for (const [k, v] of Object.entries(encodeSky(st.sky ?? { star: 'sun', moons: 'earth-moon' }))) q.set(k, v);
   return q.toString();
 }
 
@@ -127,6 +129,8 @@ export function decodeState(search: string): PageState {
   const st: PageState = { params };
   const planet = decodePlanetValues(q);
   if (Object.keys(planet).length > 0) st.planet = planet;
+  const sky = decodeSky(q);
+  if (sky) st.sky = sky;
   const seed = num('seed');
   if (seed !== undefined) st.seed = Math.trunc(seed);
   const tier = q.get('tier');
