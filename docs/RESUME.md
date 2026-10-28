@@ -2,12 +2,12 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-27, by the local agent (Claude Code), on `phase-6`: M0 to M5 done (decisions P7 to P12). Next: Checkpoint 6.
+- **Last updated:** 2026-10-27, by the local agent (Claude Code), on `phase-6`: M0 to M5 done (decisions P7 to P12). Checkpoint 6 reached; waiting for the user's review.
 - **Authorized through: 6.** Set by `scripts/authorize.sh`; only the user changes this line.
 
 ## What the user does next
 
-Nothing is needed to continue: type `/go` in Claude Code and it resumes Phase 6 at M2 (it is already authorized through 6). The draft PR is #26 (`phase-6`); do not merge it yet. When Phase 6 reaches Checkpoint 6, this section is rewritten with the PR to merge and the exact `scripts/authorize.sh 6a` command.
+Phase 6 reached Checkpoint 6 (`docs/checkpoints/CHECKPOINT_6.md`, PR #26). To accept it: check CI on PR #26 is green, merge it as a merge commit, then run `scripts/authorize.sh 6a` in the terminal to authorize the next phase. Until then the agent stops at the limit.
 
 Optional, never blocking: answer the climate-engine question under "Waiting on the user".
 
