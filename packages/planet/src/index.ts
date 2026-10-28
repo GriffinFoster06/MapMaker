@@ -9,3 +9,8 @@ export * from './mapping/fit.js';
 export * from './mapping/map-planet.js';
 export * from './calendar.js';
 export * from './evolve/rk4.js';
+export * from './distorb/eigen.js';
+export * from './distorb/ll2.js';
+export * from './distorb/eigen.js';
+export * from './distorb/ll2.js';
+export * from './distrot/distrot.js';
