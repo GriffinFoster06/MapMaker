@@ -103,7 +103,9 @@ export function changedParams(values: Record<string, number>): Record<string, nu
   return out;
 }
 
-export interface PageState { seed?: number; tier?: string; pipeline?: string; params: Record<string, number> }
+import { decodePlanetValues, encodePlanetValues } from './planet-panel';
+
+export interface PageState { seed?: number; tier?: string; pipeline?: string; params: Record<string, number>; /** Planet panel values (keys of PLANET_SETTINGS); absent means Earth. */ planet?: Record<string, number> }
 
 /** Encodes seed, tier, pipeline and non-default settings as a URL query (`?seed=…&tier=…&P=40`). */
 export function encodeState(st: PageState): string {
@@ -112,6 +114,7 @@ export function encodeState(st: PageState): string {
   if (st.tier) q.set('tier', st.tier);
   if (st.pipeline && st.pipeline !== 'structured') q.set('pipeline', st.pipeline);
   for (const [k, v] of Object.entries(changedParams(st.params))) q.set(k, String(v));
+  for (const [k, v] of Object.entries(encodePlanetValues(st.planet ?? {}))) q.set(k, String(v));
   return q.toString();
 }
 
@@ -122,6 +125,8 @@ export function decodeState(search: string): PageState {
   const params: Record<string, number> = {};
   for (const s of SETTINGS) { const v = num(s.key); if (v !== undefined) params[s.key] = clamp(s, v); }
   const st: PageState = { params };
+  const planet = decodePlanetValues(q);
+  if (Object.keys(planet).length > 0) st.planet = planet;
   const seed = num('seed');
   if (seed !== undefined) st.seed = Math.trunc(seed);
   const tier = q.get('tier');

@@ -12,6 +12,8 @@ import { type EditorHandle, startEditor } from './editor/editor-ui';
 import { THEMES, THEME_IDS, type CartoData, type Lut, type Style } from '@mapmaker/carto';
 import { desktop, saveFile } from './desktop';
 import { GlobeLabels } from './globe/globe-labels';
+import type { PlanetInput } from '@mapmaker/planet';
+import { PLANET_PRESETS, PLANET_SETTINGS, planetBadge, planetFromValues, withDefaults } from './planet-panel';
 import { LEVELS, type Level, PRESETS, SETTING_GROUPS, SETTINGS, changedParams, decodeState, encodeState, visibleAt } from './settings';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -46,7 +48,7 @@ export interface GlobeHook {
 }
 
 /** `params`: orogen generation settings that differ from the defaults (World settings panel). */
-export interface GenerateOpts { N: number; seed: number; variant?: Variant; params?: Record<string, number> }
+export interface GenerateOpts { N: number; seed: number; variant?: Variant; params?: Record<string, number>; /** Planet inputs that differ from Earth (design note 10); empty or absent means Earth. */ planet?: Partial<PlanetInput> }
 
 /** Test hook of the flat map (Phase 5 M4/M5). */
 export interface FlatHook {
@@ -71,6 +73,53 @@ export interface FlatHook {
 /** Test hook for the editor panel (Phase 5b). */
 export interface EditHook { state(): ReturnType<EditorHandle['state']> }
 declare global { interface Window { __globe?: GlobeHook; __flat?: FlatHook; __edit?: EditHook } }
+
+/** Builds the Planet panel (design note 10): sliders in friendly units, a preset list and the validity badge. */
+function buildPlanetPanel(initial: Record<string, number>, onChange: () => void): { values(): Record<string, number>; reset(): void; apply(values: Record<string, number>): void } {
+  const inputs = new Map<string, HTMLInputElement>();
+  const host = $('planetGroups');
+  for (const st of PLANET_SETTINGS) {
+    const wrap = document.createElement('div');
+    wrap.className = 'setting';
+    wrap.dataset['level'] = st.level;
+    wrap.title = st.tip;
+    const label = document.createElement('label');
+    const name = document.createElement('span');
+    name.textContent = st.label;
+    const val = document.createElement('span');
+    val.className = 'val';
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.id = `pl-${st.key}`;
+    input.min = String(st.min); input.max = String(st.max); input.step = String(st.step);
+    input.value = String(initial[st.key] ?? st.def);
+    const show = () => { val.textContent = input.value; };
+    show();
+    label.htmlFor = input.id;
+    label.append(name, val);
+    const ends = document.createElement('div');
+    ends.className = 'ends';
+    ends.innerHTML = '<span></span><span></span>';
+    ends.children[0]!.textContent = st.lo; ends.children[1]!.textContent = st.hi;
+    wrap.append(label, input, ends);
+    host.append(wrap);
+    inputs.set(st.key, input);
+    input.addEventListener('input', () => { show(); badge(); onChange(); });
+  }
+  const values = () => Object.fromEntries(PLANET_SETTINGS.map((st) => [st.key, Number(inputs.get(st.key)!.value)]));
+  const badgeEl = $('planetBadge');
+  function badge(): void {
+    const b = planetBadge(values());
+    badgeEl.textContent = b.text;
+    badgeEl.dataset['validity'] = b.validity;
+  }
+  badge();
+  return {
+    values,
+    reset: () => { for (const st of PLANET_SETTINGS) { const i = inputs.get(st.key)!; i.value = String(st.def); i.dispatchEvent(new Event('input')); } },
+    apply: (v) => { for (const st of PLANET_SETTINGS) { const i = inputs.get(st.key)!; i.value = String(v[st.key] ?? st.def); i.dispatchEvent(new Event('input')); } },
+  };
+}
 
 /** Builds the World settings panel and returns a reader of the current slider values. */
 function buildSettings(initial: Record<string, number>, onChange: () => void): { values(): Record<string, number>; reset(): void; apply(values: Record<string, number>): void } {
@@ -177,9 +226,29 @@ export function startApp(): void {
   if (init.seed !== undefined) seedInput.value = String(init.seed);
   if (init.tier && init.tier in TIERS) tier.value = init.tier;
   if (init.pipeline === 'parity' || init.pipeline === 'structured') pipelineSel.value = init.pipeline;
-  const pageState = () => encodeState({ seed: Number(seedInput.value) || 241774, tier: tier.value, pipeline: pipelineSel.value, params: settings.values() });
+  const pageState = () => encodeState({ seed: Number(seedInput.value) || 241774, tier: tier.value, pipeline: pipelineSel.value, params: settings.values(), planet: planetPanel.values() });
   const syncUrl = () => { const q = pageState(); history.replaceState(null, '', q ? `?${q}` : location.pathname); };
   const settings = buildSettings(init.params, syncUrl);
+  const planetPanel = buildPlanetPanel(init.planet ?? {}, syncUrl);
+  if (Object.keys(init.planet ?? {}).length > 0) $<HTMLDetailsElement>('planet').open = true;
+  // Registry levels (note 17): the planet sliders follow the same level selector as the world settings.
+  const showPlanetLevel = () => {
+    const at = LEVELS.indexOf($<HTMLSelectElement>('level').value as Level);
+    for (const el of $('planetGroups').querySelectorAll<HTMLElement>('.setting')) el.hidden = LEVELS.indexOf(el.dataset['level'] as Level) > at;
+  };
+  $<HTMLSelectElement>('level').addEventListener('change', showPlanetLevel);
+  showPlanetLevel();
+  const planetPresetSel = $<HTMLSelectElement>('planetPreset');
+  for (const p of PLANET_PRESETS) planetPresetSel.add(Object.assign(new Option(p.label, p.id), { title: p.tip }));
+  planetPresetSel.value = 'earth';
+  planetPresetSel.addEventListener('change', () => {
+    const p = PLANET_PRESETS.find((x) => x.id === planetPresetSel.value);
+    if (!p) return;
+    planetPanel.apply(withDefaults(p.values));
+    // The land cover is a world setting; a preset that implies one writes it to that slider.
+    if (p.landCoverage !== undefined) settings.apply({ ...settings.values(), landCoverage: p.landCoverage });
+  });
+  $('resetPlanet').addEventListener('click', () => { planetPanel.reset(); planetPresetSel.value = 'earth'; });
   for (const el of [seedInput, tier, pipelineSel]) el.addEventListener('change', syncUrl);
   $('resetSettings').addEventListener('click', () => { settings.reset(); presetSel.value = ''; });
   const presetSel = $<HTMLSelectElement>('preset');
@@ -246,7 +315,7 @@ export function startApp(): void {
       const stages: Record<string, number> = {};
       let cur = '', curStart = t0;
       const close = (t: number) => { if (cur) stages[cur] = (stages[cur] ?? 0) + (t - curStart); };
-      await client.create({ ...(opts.params ?? {}), N: opts.N, seed: opts.seed });
+      await client.create({ ...(opts.params ?? {}), ...(opts.planet && Object.keys(opts.planet).length > 0 ? { planet: opts.planet } : {}), N: opts.N, seed: opts.seed });
       status.textContent = 'generating…';
       await client.run({
         variant,
@@ -280,14 +349,16 @@ export function startApp(): void {
     const N = TIERS[tier.value]!, seed = Number(seedInput.value) || 241774;
     const v = pipelineSel.value as Variant;
     const params = changedParams(settings.values());
+    const planet = planetFromValues(planetPanel.values());
     syncUrl();
+    if (v === 'parity' && Object.keys(planet).length > 0) { status.textContent = 'a different planet needs the structured pipeline (the parity pipeline is stock orogen: Earth only)'; return; }
     const previewFirst = v === 'structured' && $<HTMLInputElement>('preview').checked && N > PREVIEW_N;
     void (async () => {
       // Phase 4b: the preview is the final's structure at a lower resolution (same seed, same reference world), so it
       // is shown first and replaced by the final when that is ready.
       // The preview and the final use the same settings.
-      if (previewFirst) await generate({ N: PREVIEW_N, seed, variant: v, params }, 'preview: ');
-      await generate({ N, seed, variant: v, params }, previewFirst ? 'final: ' : '');
+      if (previewFirst) await generate({ N: PREVIEW_N, seed, variant: v, params, planet }, 'preview: ');
+      await generate({ N, seed, variant: v, params, planet }, previewFirst ? 'final: ' : '');
     })().catch((e: unknown) => { status.textContent = `error: ${e instanceof Error ? e.message : String(e)}`; });
   });
   sel.addEventListener('change', () => { void paint(sel.value); });
@@ -347,7 +418,7 @@ export function startApp(): void {
     try {
       const c = new EngineClient(w as unknown as PortLike);
       const t0 = performance.now();
-      await c.create({ ...(opts.params ?? {}), N: opts.N, seed: opts.seed });
+      await c.create({ ...(opts.params ?? {}), ...(opts.planet && Object.keys(opts.planet).length > 0 ? { planet: opts.planet } : {}), N: opts.N, seed: opts.seed });
       await c.run({ variant: opts.variant ?? 'structured', strict: false });
       const stats = await c.stats();
       return { totalMs: performance.now() - t0, stats };

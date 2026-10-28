@@ -88,38 +88,43 @@ function ebmProfile(p: PlanetInput): { latDeg: Float64Array; temp: Float64Array;
   return { latDeg, temp: ebm.temp, seasonal: s / cnt };
 }
 
-/**
- * Maps planet parameters to climate constants. `base` is the Earth set (orogen's CLIMATE_DEFAULTS); every key must be
- * tagged in CLIMATE_TAGS.
- */
-export function mapPlanet(input: Partial<PlanetInput>, base: Readonly<Record<string, number>>): MappingResult {
+/** Ratios to Earth, and the validity of the inputs (note 10 §3.4). Cheap: no energy-balance solve. */
+export function assessPlanet(input: Partial<PlanetInput>): { inputs: PlanetInput; ratios: Ratios; validity: Validity; notes: string[] } {
   const p: PlanetInput = { ...EARTH_PLANET, ...input };
   const E = EARTH_PLANET;
   const notes: string[] = [];
-
-  const g = surfaceGravity(p);
-  const gE = surfaceGravity(E);
-  const gravity = g / gE;
+  const gravity = surfaceGravity(p) / surfaceGravity(E);
   const rotation = rotationRate(p) / rotationRate(E);
   const radius = p.radius_m / E.radius_m;
   const pressure = p.surfacePressure_Pa / E.surfacePressure_Pa;
   const obliquity = dmath.sin(p.obliquity_deg * DEGRAD) / dmath.sin(E.obliquity_deg * DEGRAD);
   const hadley = dmath.sqrt(gravity) / (rotation * radius);
   const diffusion = (pressure * (p.cp / E.cp) * sq(E.meanMolarMass / p.meanMolarMass)) / (rotation * rotation);
-
-  // Validity of the inputs (note 10 §3.4).
-  let validity: Validity = 'ok';
   const flag = (v: Validity, why: string): void => {
     if (v !== 'ok') {
       validity = worse(validity, v);
       notes.push(why);
     }
   };
+  let validity: Validity = 'ok';
   flag(rotation < 0.25 || rotation > 4 ? 'unsupported' : rotation < 0.5 || rotation > 2 ? 'extrapolated' : 'ok', `rotation rate ${rotation.toFixed(3)} x Earth`);
   flag(p.obliquity_deg > 54 ? 'unsupported' : p.obliquity_deg > 40 ? 'extrapolated' : 'ok', `obliquity ${p.obliquity_deg} deg`);
   flag(pressure < 0.1 || pressure > 10 ? 'unsupported' : pressure < 0.5 || pressure > 2 ? 'extrapolated' : 'ok', `surface pressure ${pressure.toFixed(3)} x Earth`);
   flag(gravity < 0.3 || gravity > 3 ? 'extrapolated' : 'ok', `gravity ${gravity.toFixed(3)} x Earth`);
   flag(p.tidallyLocked ? 'unsupported' : 'ok', 'tidally locked');
+  return { inputs: p, ratios: { gravity, rotation, radius, pressure, obliquity, hadley, seasonalAmplitude: 1, diffusion }, validity, notes };
+}
+
+/**
+ * Maps planet parameters to climate constants. `base` is the Earth set (orogen's CLIMATE_DEFAULTS); every key must be
+ * tagged in CLIMATE_TAGS.
+ */
+export function mapPlanet(input: Partial<PlanetInput>, base: Readonly<Record<string, number>>): MappingResult {
+  const a = assessPlanet(input);
+  const p = a.inputs;
+  const E = EARTH_PLANET;
+  const { ratios, validity, notes } = a;
+  const { gravity, pressure, obliquity, hadley } = ratios;
 
   // The energy-balance profile, for the fitted constants and the seasonal-amplitude ratio.
   const planetProfile = ebmProfile(p);
@@ -176,7 +181,7 @@ export function mapPlanet(input: Partial<PlanetInput>, base: Readonly<Record<str
 
   return {
     inputs: p,
-    ratios: { gravity, rotation, radius, pressure, obliquity, hadley, seasonalAmplitude, diffusion },
+    ratios: { ...ratios, seasonalAmplitude },
     climateConstants: mapped,
     terrainConstants,
     landCoverage: 1 - p.oceanFraction,
