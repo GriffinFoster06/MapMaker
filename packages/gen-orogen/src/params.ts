@@ -28,6 +28,8 @@ export interface OrogenParams {
    * before. Absent or empty means Earth. Only the structured pipeline accepts a non-Earth planet.
    */
   planet?: Partial<PlanetInput>;
+  /** Start from real Earth elevation (structured pipeline, Earth planet only). Stored only when set, so other hashes hold. */
+  earth?: boolean;
 }
 
 /**
@@ -76,7 +78,8 @@ export function planetContext(p: Pick<OrogenParams, 'planet'>): PlanetContext | 
 }
 
 /** The vendored (parity) pipeline cannot represent another planet: refuse it instead of silently using Earth. */
-export function assertEarthPlanet(p: Pick<OrogenParams, 'planet'>): void {
+export function assertEarthPlanet(p: Pick<OrogenParams, 'planet' | 'earth'>): void {
+  if (p.earth) throw new Error('the Earth option needs the structured pipeline (the parity pipeline generates its own elevation)');
   const c = planetContext(p);
   if (c && (c.radiusKm !== OROGEN_RADIUS_M / 1000 || c.peakCompressPower !== PEAK_COMPRESS_POWER || Object.keys(c.climate).length > 0)) {
     throw new Error('the parity pipeline hard-codes Earth (R = 6371 km, F3); a non-Earth planet needs the structured pipeline');

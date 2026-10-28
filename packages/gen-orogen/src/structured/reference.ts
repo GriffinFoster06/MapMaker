@@ -11,6 +11,8 @@ import { type OrogenParams, type PlanetContext, planetContext, withPlanetClimate
 import * as port from '../port';
 import type { ElevationStructure, StageFields } from '../port/elevation';
 import { computeDetailDampenField, computeOrogenicField, runPostProcessing } from '../orchestration';
+import { metresToRaw } from './detail';
+import { sampleEarthMetres } from './earth';
 import { type OMesh, type OrogenLib, type Scratch, type Tectonics, computeTectonics } from '../scratch';
 
 /** Major basins drain at least this area (design note 14 §3.7). */
@@ -73,6 +75,14 @@ export function runReferencePass(p: OrogenParams): ReferenceState {
   const elevRaw = new Float32Array(elevPre);
   const erosionDelta = runPostProcessing(omesh, r_xyz, elevRaw, p, s.neighborDist, p.seed, debug['hotspot'],
     computeDetailDampenField(debug['cratonWeight'], debug['basinWeight']), computeOrogenicField(debug['orogenicPower']), lib);
+
+  if (p.earth) {
+    if (planet) throw new Error('the Earth option is for the Earth planet; clear the planet inputs');
+    // Real elevation replaces the generated one (and its erosion); plates, climate and drainage still follow from it.
+    const m = sampleEarthMetres(r_xyz, elevRaw.length);
+    for (let i = 0; i < m.length; i++) { elevRaw[i] = metresToRaw(m[i]!); elevPre[i] = elevRaw[i]!; }
+    erosionDelta.fill(0);
+  }
 
   const climateNoise = new port.SimplexNoise(p.seed);
   const { wind, ocean, precip, temp, koppen } = withPlanetClimate(planet, () => {

@@ -14,6 +14,7 @@ import type { OrogenParams } from '../params';
 import * as port from '../port';
 import { computeDetailDampenField, computeOrogenicField, runPostProcessing } from '../orchestration';
 import { type OMesh, type OrogenLib, type Scratch, type Tectonics, computeTectonics } from '../scratch';
+import { sampleEarthMetres } from './earth';
 import type { ReferenceState } from './reference';
 import type { StageFields } from '../port/elevation';
 
@@ -234,8 +235,14 @@ export function runElevationDetail(L1: SphereMesh, ref: ReferenceState, p: Oroge
     if (locked(c) && (refE[c]! > 0) !== (e[i]! > 0)) signViolations++;
   }
 
-  const elevRaw = Float32Array.from(e);
-  const elevation_m = Float32Array.from(elevRaw, rawToMetres);
+  let elevRaw: Float32Array = Float32Array.from(e);
+  let elevation_m: Float32Array = Float32Array.from(elevRaw, rawToMetres);
+  if (p.earth) {
+    // Real elevation at N (the reference pass already used it on L0); orogen units are capped at 6 km, the metre layer is not.
+    elevation_m = sampleEarthMetres(r_xyz, n1);
+    elevRaw = Float32Array.from(elevation_m, metresToRaw);
+    for (let i = 0; i < n1; i++) e[i] = elevRaw[i]!;
+  }
   return { ml, omesh, r_xyz, tect, native, detail, elevation: e, elevRaw, elevation_m, stress, debug, signViolations };
 }
 
