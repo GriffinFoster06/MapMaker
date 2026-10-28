@@ -12,3 +12,4 @@ export * from './structured/layers';
 export * from './structured/reference';
 export * from './structured/stages';
 // './stock' (the stock-orogen oracle) is deliberately not exported here: shipped code never imports it.
+export { classifyKoppenMonthly, synthesizeMonthlyClimate, WINTER_SOLSTICE_INDEX } from './port/monthly-climate';

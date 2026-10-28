@@ -2,7 +2,7 @@
 
 The living state of the project for any agent starting a session. **Update this file at every milestone** (the "Next", "Branches" and "Work log" parts); keep it short. Rules and method: `docs/OPERATING_GUIDE.md`. Decisions: `docs/DECISIONS_LOG.md`.
 
-- **Last updated:** 2026-10-27, by the local agent (Claude Code), on `phase-6`: M0, M1a and M2 done (decision P9). Next: M3, continuous seasons.
+- **Last updated:** 2026-10-27, by the local agent (Claude Code), on `phase-6`: M0, M1a, M2 and M3 done (decisions P7 to P10). Next: M4, the planet panel.
 - **Authorized through: 6.** Set by `scripts/authorize.sh`; only the user changes this line.
 
 ## What the user does next
@@ -26,8 +26,8 @@ Optional, whenever convenient and never blocking: generate a 2.56M world in the 
 
 ## Next
 
-- Phase 6 (planet physics), plan in ARCHITECTURE §7. **Done:** M0 (group 6, P7), M1a (`packages/planet/src/poise/`, P8), **M2** (P9): `packages/planet/src/mapping/` (97 constants tagged, `mapPlanet`, exact identity at Earth, validity flags), the radius and gravity threaded through the port and the structured pipeline (`OrogenParams.planet`, `PlanetContext`, `world.planet.mapping` in planet.json; the parity pipeline refuses another planet). 587 tests pass, every golden unchanged. **Deferred, not dropped:** M1b, the POISE seasonal EBM (see P8; list it as a deviation in the Checkpoint 6 report). The nine-world comparison runs once at Checkpoint 6 against `main` (P9 point 9).
-  **M3 next** (note 11): port, through `dmath`, `upstream/orogen-evolution/v2/js/climate/seasons.js` (anchor-to-month interpolation matrix, precipitation transform) and `koppen.js` (Beck et al. rules) into `packages/gen-orogen/src/port/` or a new module, logged in `PROVENANCE.md` (GPL-3.0). Season coordinate from the 12-phase mean-anomaly sampling with land (0.5 month) and ocean (2 months) lag (note 11 §3.1; insolation from `packages/planet`); continuous season replaces the port's ±1 switch; harmonic layers (H = 2) and derived layers; monthly Köppen; calendar. Parity: M = 2 at the solstices with s = ±1 must reproduce the current output bit for bit (proxy classifier selected); gates: Earth Köppen objective beats 0.678 at 40k; one H = 2 vs H = 3 measurement. Re-record the Q7 baseline (`tools/tuning/ab-baseline.structured.json`) and any probe or golden keys that change because the climate model changed in the same commit, each with an explanation table; an unexplained change is a hard stop. Then M4 (planet panel and month slider in `apps/web`), M5 (Earth choice), Checkpoint 6.
+- Phase 6 (planet physics), plan in ARCHITECTURE §7. **Done:** M0 (group 6, P7), M1a (POISE insolation and annual EBM, P8), M2 (mapping and radius, P9), **M3 (P10)**: season interpolation and Beck monthly Köppen ported (`port/seasons.ts`, `port/koppen-monthly.ts`), monthly fields from the solstice solves (`port/monthly-climate.ts`), calendar (`packages/planet/src/calendar.ts`), evaluator `tools/tuning/climate/evaluate-monthly.mjs`; the gate was **not met** (best 0.6737 against the proxy's 0.6778, `docs/earth-tests/MONTHLY_KOPPEN.md`), so the pipeline keeps the proxy classifier and nothing was re-recorded. The twelve-phase solve is deferred to Phase 8 / 8b (list it in the Checkpoint 6 report with M1b). 605 tests pass.
+  **M4 next:** planet panel in `apps/web` (physical inputs, presets Earth / super-Earth / Mars-like, validity badge from `world.planet.mapping`; the panel writes `orogen.planet` and `orogen.landCoverage` from `mapPlanet`'s result, structured pipeline only), a month control only where it has data (the seasonal layers are the two solstice fields, so a summer/winter switch rather than a 12-month slider unless the monthly fields are exposed), registry levels per note 17; unit tests for the panel state, one Playwright spec in Chromium and Firefox (hidden), Electron smoke test. Then M5 (Earth choice: derived resampled ETOPO/Natural Earth grid, SHA-256 in PROVENANCE.md, tests against `docs/earth-tests/EARTH_TARGETS.md`), then Checkpoint 6 (full checks, one nine-world comparison against `main`, `CHECKPOINT_6.md`, `STATUS.md` line, authorize.sh 6a instructions).
 - Missing for a polished first version, logged not built: settlements and political borders (Phase 18 names are placeholders); more than one font family; globe labels for river and range paths use the plan only; no styled export of the globe view; river drawing threshold is a heuristic; an app icon.
 
 ## Waiting on the user
@@ -44,6 +44,8 @@ Nothing blocks the agent. One optional question (raised by group 6, recorded in 
 Type `/go` (or any first message). `.claude/commands/go.md` is the whole prompt; the user does not write prompts (decision W10).
 
 ## Work log (newest first; 2 to 4 lines per milestone)
+
+- 2026-10-27: Phase 6 M3 (P10): monthly Köppen path built and measured on Earth (nine settings, none beats the tuned proxy; `docs/earth-tests/MONTHLY_KOPPEN.md`); default unchanged, no Q7 re-record. Calendar with unequal seasons from the orbit (Earth's northern half 186.4 days). 605 tests.
 
 - 2026-10-27: Phase 6 M2 (P9): mapping module (97 tags, Held-Hou, pressure, gravity, obliquity, seasonal amplitude, EBM-fitted temperature curve), radius and peak-compression threaded through 14 sites, planet in `orogen.planet`, parity refusal, `world.planet.mapping`. Earth identity proved by test (hash of the default world reproduced with explicit Earth values) and by all goldens; 587 tests.
 
